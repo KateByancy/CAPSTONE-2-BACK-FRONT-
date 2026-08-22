@@ -1,0 +1,12 @@
+{
+  "name": "marc-capstone",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix Frontend run dev",
+    "dev:frontend": "npm --prefix Frontend run dev",
+    "dev:backend": "npm --prefix Backend run dev",
+    "start": "npm --prefix Frontend run start",
+    "build": "npm --prefix Frontend run build"
+  }
+}
