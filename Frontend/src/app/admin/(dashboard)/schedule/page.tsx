@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, MapPin, User, Trash2 } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 interface Timeblock {
   id: string;
@@ -19,17 +20,26 @@ export default function ScheduleManagement() {
   const [selectedDateStr, setSelectedDateStr] = useState("2026-07-24");
 
   // Client-submitted booking schedule data
-  const [timeblocks, setTimeblocks] = useState<Timeblock[]>([
-    {
-      id: '1',
-      date: '2026-07-24',
-      timeStart: '02:00 PM',
-      timeEnd: '04:00 PM',
-      title: 'Living Room Makeover Review',
-      clientName: 'John Doe',
-      location: 'Showroom Hall A'
-    }
-  ]);
+  const [timeblocks, setTimeblocks] = useState<Timeblock[]>([]);
+
+  useEffect(() => {
+    const loadSchedules = async () => {
+      const response = await fetch(`${getApiUrl()}/schedule`);
+      const schedules: Array<{ id: number; visit_date: string; service_type: string; client_name: string; client_address?: string }> = await response.json();
+      if (!response.ok) throw new Error('Unable to load schedules.');
+      const blocks = schedules.map((schedule): Timeblock => ({
+        id: String(schedule.id),
+        date: new Date(schedule.visit_date).toISOString().slice(0, 10),
+        timeStart: 'By appointment',
+        timeEnd: '',
+        title: schedule.service_type,
+        clientName: schedule.client_name,
+        location: schedule.client_address || 'Location to be confirmed',
+      }));
+      setTimeblocks(blocks);
+    };
+    void loadSchedules().catch(() => setTimeblocks([]));
+  }, []);
 
   // --- CALENDAR GRID COMPUTATION ---
   const year = currentDate.getFullYear();
@@ -61,8 +71,9 @@ export default function ScheduleManagement() {
     setCurrentDate(new Date(parseInt(e.target.value, 10), month, 1));
   };
 
-  const handleDeleteBlock = (id: string) => {
-    setTimeblocks(timeblocks.filter(block => block.id !== id));
+  const handleDeleteBlock = async (id: string) => {
+    const response = await fetch(`${getApiUrl()}/schedule/${id}`, { method: 'DELETE' });
+    if (response.ok) setTimeblocks(timeblocks.filter(block => block.id !== id));
   };
 
   // Selected date events

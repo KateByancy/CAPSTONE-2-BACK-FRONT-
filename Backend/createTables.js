@@ -14,19 +14,15 @@ role VARCHAR(20) DEFAULT 'client',
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )` ,
 
-`INSERT IGNORE INTO settings (id, app_name, system_mode, two_factor)
-VALUES (1, 'MARC Interior Design', 'active', FALSE)`,
-
-`ALTER TABLE tracking ADD COLUMN IF NOT EXISTS remarks TEXT`,
-
-`ALTER TABLE messages MODIFY sender VARCHAR(20)`
-
 `CREATE TABLE IF NOT EXISTS settings(
 id INT PRIMARY KEY,
 app_name VARCHAR(150) NOT NULL DEFAULT 'MARC Interior Design',
 system_mode VARCHAR(30) NOT NULL DEFAULT 'active',
 two_factor BOOLEAN NOT NULL DEFAULT FALSE
 )`,
+
+`INSERT IGNORE INTO settings (id, app_name, system_mode, two_factor)
+VALUES (1, 'MARC Interior Design', 'active', FALSE)`,
 
 `CREATE TABLE IF NOT EXISTS portfolio(
 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -68,6 +64,8 @@ current_stage VARCHAR(100),
 remarks TEXT,
 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
+
+`ALTER TABLE tracking ADD COLUMN IF NOT EXISTS remarks TEXT`,
 
 `CREATE TABLE IF NOT EXISTS notifications(
 id INT AUTO_INCREMENT PRIMARY KEY,

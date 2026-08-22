@@ -49,13 +49,17 @@ const sendMessage = (req, res) => {
                         "Hello! Welcome to MARC Interior Design. How can I help you today?";
                 }
 
-                db.query(
+                return db.query(
                     "INSERT INTO messages (user_id, sender, message) VALUES (?, ?, ?)",
-                    [user_id, "bot", botReply]
+                    [user_id, "bot", botReply],
+                    (botError) => {
+                        if (botError) return res.status(500).json({ success: false, message: botError.message });
+                        return res.status(201).json({ success: true, message: "Message sent successfully." });
+                    }
                 );
             }
 
-            res.json({
+            return res.status(201).json({
                 success: true,
                 message: "Message sent successfully."
             });

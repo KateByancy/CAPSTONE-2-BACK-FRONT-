@@ -1,12 +1,17 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Calendar, Plus, CheckCircle, X, ChevronLeft, ChevronRight, ChevronDown, Clock } from 'lucide-react';
+import { Calendar, CheckCircle, X, ChevronLeft, ChevronRight, ChevronDown, Clock } from 'lucide-react';
+import { getApiUrl, getClientSession } from '@/lib/api';
 
 export default function Book() {
   const [modalMode, setModalMode] = useState<'none' | 'book_form' | 'book_done' | 'schedule_form' | 'schedule_done'>('none');
   const [serviceType, setServiceType] = useState('Living Room Makeover');
   const [description, setDescription] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
+  const [bookingId, setBookingId] = useState<number | null>(null);
+  const [project, setProject] = useState({ serviceType: '', description: '' });
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Track submission/confirmation workflow state ('none' | 'pending' | 'confirmed')
   const [scheduleStatus, setScheduleStatus] = useState<'none' | 'pending' | 'confirmed'>('none');
@@ -76,19 +81,87 @@ export default function Book() {
     }
   }, [modalMode]);
 
+  useEffect(() => {
+    const loadActiveBooking = async () => {
+      const client = getClientSession();
+      if (!client) return;
+      const response = await fetch(`${getApiUrl()}/booking?user_id=${client.id}`);
+      const result: { success: boolean; bookings?: Array<{ id: number; service_type: string; project_description: string; status: string }> } = await response.json();
+      if (!response.ok || !result.success) throw new Error('Unable to load your booking.');
+      const booking = result.bookings?.find((item) => item.status.toLowerCase() !== 'rejected');
+      if (!booking) return;
+      setBookingId(booking.id);
+      setProject({ serviceType: booking.service_type, description: booking.project_description });
+      setScheduleStatus(booking.status.toLowerCase() === 'confirmed' ? 'confirmed' : 'pending');
+    };
+
+    void loadActiveBooking().catch((err) => setError(err instanceof Error ? err.message : 'Unable to load your booking.'));
+  }, []);
+
+  const submitBooking = async () => {
+    const client = getClientSession();
+    if (!client) {
+      setError('Please sign in again before creating a booking.');
+      return;
+    }
+    if (!serviceType.trim() || !description.trim()) {
+      setError('Service type and project description are required.');
+      return;
+    }
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const response = await fetch(`${getApiUrl()}/booking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: client.id, service_type: serviceType, project_description: description }),
+      });
+      const result: { success: boolean; message?: string; bookingId?: number } = await response.json();
+      if (!response.ok || !result.success || !result.bookingId) throw new Error(result.message || 'Unable to create booking.');
+      setBookingId(result.bookingId);
+      setScheduleStatus('pending');
+      setModalMode('book_done');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to create booking.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitSchedule = async () => {
+    if (!bookingId || !selectedDate) {
+      setError('Create a booking and select a date first.');
+      return;
+    }
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const visitDate = new Date(selectedDate).toISOString().slice(0, 10);
+      const response = await fetch(`${getApiUrl()}/schedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: bookingId, visit_date: visitDate }),
+      });
+      const result: { success: boolean; message?: string } = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || 'Unable to submit schedule.');
+      setScheduleStatus('pending');
+      setModalMode('schedule_done');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to submit schedule.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="p-4 space-y-4 animate-fadeIn relative w-full">
       
       {/* Top Action Header Panel */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center">
         <div className="flex items-center space-x-2 text-xs font-bold tracking-wider text-slate-400">
           <Calendar className="w-4 h-4 text-blue-500" />
           <span>PROJECT SCHEDULING</span>
         </div>
-        <button onClick={() => setModalMode('book_form')} className="bg-[#0070c0] hover:bg-blue-600 text-white font-bold text-[10px] tracking-wider px-3 py-1.5 rounded-lg flex items-center space-x-1 transition shadow-md cursor-pointer">
-          <Plus className="w-3 h-3" />
-          <span>BOOK NOW</span>
-        </button>
       </div>
 
       {/* Baseline Overview Card - Visible only while not yet fully confirmed by admin */}
@@ -101,9 +174,9 @@ export default function Book() {
                 <span>Pending</span>
               </span>
             )}
-            <h3 className="text-xs font-bold text-slate-800">Living Room Design</h3>
+            <h3 className="text-xs font-bold text-slate-800">{project.serviceType || 'No booking yet'}</h3>
             <p className="text-[11px] text-slate-500 italic">
-              {selectedDate ? `Scheduled for: ${selectedDate}` : '"I want modern design"'}
+              {selectedDate ? `Scheduled for: ${selectedDate}` : project.description || 'Create a booking from your dashboard to choose a date.'}
             </p>
           </div>
           <button 
@@ -125,11 +198,11 @@ export default function Book() {
           <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
               <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Confirmed</span>
-              <h3 className="text-xs font-bold text-slate-800 mt-2">Living Room Design</h3>
+              <h3 className="text-xs font-bold text-slate-800 mt-2">{project.serviceType}</h3>
               <p className="text-[11px] text-slate-600 font-medium mt-1">
                 Locked Schedule Date: <span className="font-bold text-slate-900">{selectedDate}</span>
               </p>
-              <p className="text-[10px] text-slate-500 italic mt-0.5">"I want modern design"</p>
+              <p className="text-[10px] text-slate-500 italic mt-0.5">{project.description}</p>
             </div>
             <div className="flex items-center space-x-2 w-full sm:w-auto">
               <span className="text-[10px] text-emerald-600 font-bold bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm w-full sm:w-auto text-center">
@@ -144,6 +217,7 @@ export default function Book() {
       {modalMode !== 'none' && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-md bg-white rounded-3xl p-5 md:p-6 shadow-2xl space-y-4 border border-slate-100 my-auto animate-scaleIn relative">
+            {error && <p className="rounded-xl bg-red-50 p-3 text-center text-xs text-red-700">{error}</p>}
             
             {/* Show X Close button for all modes except book_done and schedule_done */}
             {modalMode !== 'book_done' && modalMode !== 'schedule_done' && (
@@ -152,35 +226,7 @@ export default function Book() {
               </button>
             )}
 
-            {/* VIEW 1: BOOK NOW FORM */}
-            {modalMode === 'book_form' && (
-              <div className="space-y-4 pt-2">
-                <h3 className="text-xs font-black tracking-widest uppercase text-slate-800">Book Now Form</h3>
-                <div>
-                  <label className="text-[9px] tracking-widest font-bold text-slate-400 block mb-1 uppercase">Service Type</label>
-                  <input type="text" value={serviceType} onChange={(e) => setServiceType(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#0070c0]" />
-                </div>
-                <div>
-                  <label className="text-[9px] tracking-widest font-bold text-slate-400 block mb-1 uppercase">Project Description</label>
-                  <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="I want modern design" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none resize-none focus:border-[#0070c0]" />
-                </div>
-                <button onClick={() => setModalMode('book_done')} className="w-full bg-[#111c3a] text-white text-[10px] font-bold tracking-widest py-3 rounded-xl shadow-md cursor-pointer hover:bg-slate-800 transition">
-                  SUBMIT BOOKING
-                </button>
-              </div>
-            )}
-
-            {/* VIEW 2: SUBMIT BOOKING DONE (Auto-hides after 3 seconds, no X button or text) */}
-            {modalMode === 'book_done' && (
-              <div className="text-center py-6 space-y-3">
-                <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center mx-auto text-white">
-                  <CheckCircle className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-serif font-bold text-slate-800">Done Book!</h3>
-              </div>
-            )}
-
-            {/* VIEW 3: SCHEDULE FORM + INTERACTIVE SYSTEM CALENDAR ENGINE */}
+            {/* Schedule form */}
             {modalMode === 'schedule_form' && (
               <div className="space-y-4 text-center pt-2">
                 <div className="space-y-0.5">
@@ -307,10 +353,7 @@ export default function Book() {
                 <div className="space-y-2">
                   <button 
                     disabled={!selectedDate} 
-                    onClick={() => {
-                      setScheduleStatus('pending');
-                      setModalMode('schedule_done'); // Switches to Schedule Done state which auto-hides after 3 seconds
-                    }} 
+                    onClick={submitSchedule}
                     className="w-full bg-[#0070c0] text-white text-[10px] font-bold tracking-widest py-3 rounded-xl disabled:opacity-40 shadow-md cursor-pointer hover:bg-blue-600 transition disabled:cursor-not-allowed"
                   >
                     CONFIRM SCHEDULE

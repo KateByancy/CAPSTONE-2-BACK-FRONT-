@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -9,8 +10,9 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!email || !password) {
@@ -18,10 +20,28 @@ export default function AdminPage() {
       return;
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${getApiUrl()}/auth/admin-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const result: { success: boolean; message?: string; token?: string; admin?: unknown } = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || 'Unable to sign in.');
+      if (result.token) localStorage.setItem('adminToken', result.token);
+      if (result.admin) localStorage.setItem('adminAccount', JSON.stringify(result.admin));
+      router.push('/admin/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to sign in.');
+    } finally {
+      setIsLoading(false);
+    }
+    return;
 
-    // Direct credentials verification
-    if (normalizedEmail === 'marc@gmail.com' && password === '12345678') {
+    // Legacy client-side check is intentionally disabled; authentication above is server-side.
+    if (false) {
       setError('');
       // 🚀 Redirect straight to the admin dashboard!
       router.push('/admin/dashboard');

@@ -1,7 +1,8 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Camera, ShieldCheck, Trash2, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { getApiUrl, getClientSession } from '@/lib/api';
 
 interface AccountProfileProps {
   userName?: string;
@@ -17,13 +18,33 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
   const [saveMessage, setSaveMessage] = useState(false);
   const [tfaActive, setTfaActive] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [error, setError] = useState('');
   
   const router = useRouter();
 
-  const handleSaveChanges = (e: React.FormEvent) => {
+  useEffect(() => {
+    const client = getClientSession();
+    if (!client) return;
+    setFullName(client.fullname);
+    setPhoneNumber(client.phone || '');
+    setPrimaryAddress(client.address || '');
+  }, []);
+
+  const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaveMessage(true);
-    setTimeout(() => setSaveMessage(false), 3000);
+    const client = getClientSession();
+    if (!client) { setError('Please sign in again before saving your profile.'); return; }
+    try {
+      const response = await fetch(`${getApiUrl()}/profile/${client.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullname: fullName, phone: phoneNumber, address: primaryAddress }),
+      });
+      const result: { success: boolean; message?: string } = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || 'Unable to update profile.');
+      localStorage.setItem('clientAccount', JSON.stringify({ ...client, fullname: fullName, phone: phoneNumber, address: primaryAddress }));
+      setSaveMessage(true);
+      setTimeout(() => setSaveMessage(false), 3000);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to update profile.'); }
   };
 
   const handleToggleTfa = () => {
@@ -80,6 +101,7 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
             <span>Profile changes saved successfully!</span>
           </div>
         )}
+        {error && <div className="bg-red-50 border border-red-200 text-red-800 p-3 rounded-2xl text-xs">{error}</div>}
 
         {/* Form Container */}
         <form onSubmit={handleSaveChanges} className="space-y-6">

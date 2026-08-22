@@ -35,7 +35,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNav
           <div 
             className="w-full h-56 bg-cover bg-center relative flex flex-col items-center justify-end p-4"
             style={{ 
-              backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,112,192,0.9)), url('/path-to-your-hero-image.jpg')`
+              backgroundImage: 'linear-gradient(135deg, #0b4f86 0%, #0070c0 52%, #051329 100%)'
             }}
           >
             <div className="grid grid-cols-2 gap-4 w-full max-w-xs pb-2">

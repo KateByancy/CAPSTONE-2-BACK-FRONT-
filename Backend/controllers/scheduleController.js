@@ -34,7 +34,12 @@ const scheduleVisit = (req, res) => {
 // Get all schedules
 const getSchedules = (req, res) => {
   db.query(
-    "SELECT * FROM schedules ORDER BY visit_date ASC",
+    `SELECT schedules.*, bookings.service_type, bookings.project_description,
+            users.fullname AS client_name, users.address AS client_address
+     FROM schedules
+     JOIN bookings ON bookings.id = schedules.booking_id
+     JOIN users ON users.id = bookings.user_id
+     ORDER BY schedules.visit_date ASC, schedules.id ASC`,
     (err, result) => {
       if (err) {
         console.error(err);

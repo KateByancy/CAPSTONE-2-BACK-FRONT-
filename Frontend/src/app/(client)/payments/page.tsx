@@ -2,6 +2,7 @@
 "use client";
 import React, { useState } from 'react';
 import { Smartphone, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
+import { getApiUrl, getClientSession } from '@/lib/api';
 
 interface PaymentsProps {
   onBack?: () => void;
@@ -11,6 +12,7 @@ export default function Payments({ onBack = () => undefined }: PaymentsProps) {
   const [amount, setAmount] = useState('');
   const [refNum, setRefNum] = useState('');
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   if (success) {
     return (
@@ -47,7 +49,25 @@ export default function Payments({ onBack = () => undefined }: PaymentsProps) {
       </div>
 
       {/* Financial Declaration Inputs */}
-      <form onSubmit={(e) => { e.preventDefault(); setSuccess(true); }} className="space-y-4">
+      {error && <p className="rounded-xl bg-red-50 p-3 text-xs text-red-700">{error}</p>}
+      <form onSubmit={async (e) => {
+        e.preventDefault();
+        const client = getClientSession();
+        if (!client) { setError('Please sign in again before submitting a payment.'); return; }
+        try {
+          const bookingsResponse = await fetch(`${getApiUrl()}/booking?user_id=${client.id}`);
+          const bookingsResult: { success: boolean; bookings?: Array<{ id: number }> } = await bookingsResponse.json();
+          const bookingId = bookingsResult.bookings?.[0]?.id;
+          if (!bookingsResponse.ok || !bookingId) throw new Error('Create a booking before submitting a payment.');
+          const response = await fetch(`${getApiUrl()}/payment`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ booking_id: bookingId, amount: Number(amount), reference_number: refNum.trim() }),
+          });
+          const result: { success: boolean; message?: string } = await response.json();
+          if (!response.ok || !result.success) throw new Error(result.message || 'Unable to submit payment.');
+          setSuccess(true);
+        } catch (err) { setError(err instanceof Error ? err.message : 'Unable to submit payment.'); }
+      }} className="space-y-4">
         <div>
           <label className="text-[9px] tracking-widest font-black text-slate-500 block mb-1 uppercase">Amount (PHP)</label>
           <input required type="number" step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500" />

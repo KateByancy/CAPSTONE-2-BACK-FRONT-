@@ -1,21 +1,42 @@
 // src/components/Chat.tsx
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MessageSquare, Send } from 'lucide-react';
+import { getApiUrl, getClientSession } from '@/lib/api';
+
+interface ChatMessage { id: number; text: string; isMe: boolean; }
 
 export default function Chat() {
-  const [messages, setMessages] = useState([
-    { id: 1, text: "Hi! Welcome to MARC Custom Design support. How can we help customize your layout today?", isMe: false },
-    { id: 2, text: "I filled out the estimate tool and would love to secure a consultation appointment.", isMe: true }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSend = (e: React.FormEvent) => {
+  const loadMessages = async () => {
+    const client = getClientSession();
+    if (!client) return;
+    const response = await fetch(`${getApiUrl()}/chat/${client.id}`);
+    const result: Array<{ id: number; message: string; sender: string }> = await response.json();
+    if (!response.ok) throw new Error('Unable to load messages.');
+    setMessages(result.map((message) => ({ id: message.id, text: message.message, isMe: message.sender === 'client' })));
+  };
+
+  useEffect(() => { void loadMessages().catch((err) => setError(err.message)); }, []);
+
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
     
-    setMessages(prev => [...prev, { id: Date.now(), text: input, isMe: true }]);
-    setInput('');
+    const client = getClientSession();
+    if (!client) { setError('Please sign in again before sending a message.'); return; }
+    try {
+      const response = await fetch(`${getApiUrl()}/chat`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: client.id, sender: 'client', message: input.trim() }),
+      });
+      if (!response.ok) throw new Error('Unable to send message.');
+      setInput('');
+      await loadMessages();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to send message.'); }
   };
 
   return (
@@ -25,6 +46,7 @@ export default function Chat() {
         <MessageSquare className="w-4 h-4 text-blue-500" />
         <span>DESIGN CONCIERGE</span>
       </div>
+      {error && <p className="mx-4 mt-3 rounded-lg bg-red-50 p-2 text-xs text-red-700">{error}</p>}
 
       {/* Message Feed Stream */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">

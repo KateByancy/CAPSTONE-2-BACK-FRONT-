@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Check, X, Clock, CheckCircle2, XCircle, Calendar, User, ShieldCheck, Trash2 } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 interface BookingRequest {
   id: string;
@@ -18,19 +19,41 @@ type FilterTab = 'pending' | 'confirmed' | 'rejected';
 export default function BookingsManagement() {
   // --- STATE SYSTEM ---
   const [activeTab, setActiveTab] = useState<FilterTab>('pending');
-  const [bookings, setBookings] = useState<BookingRequest[]>([
-    {
-      id: "B-8831",
-      name: "John Doe",
-      scope: "Living Room",
-      date: "April 24th, 2026",
-      note: '"it is small"',
-      status: "pending"
-    }
-  ]);
+  const [bookings, setBookings] = useState<BookingRequest[]>([]);
+
+  const loadBookings = async () => {
+    const response = await fetch(`${getApiUrl()}/booking`);
+    const result: { success: boolean; bookings?: Array<{ id: number; client_name?: string; service_type: string; project_description: string; created_at: string; status: string }> } = await response.json();
+    if (!response.ok || !result.success) throw new Error('Unable to load bookings.');
+    setBookings((result.bookings ?? []).map((booking): BookingRequest => {
+      const status: BookingRequest['status'] = booking.status.toLowerCase() === 'confirmed'
+        ? 'confirmed'
+        : booking.status.toLowerCase() === 'rejected' ? 'rejected' : 'pending';
+      return {
+        id: String(booking.id),
+        name: booking.client_name || 'Unknown client',
+        scope: booking.service_type,
+        date: new Date(booking.created_at).toLocaleDateString(),
+        note: booking.project_description,
+        status,
+      };
+    }));
+  };
+
+  useEffect(() => { void loadBookings(); }, []);
 
   // Handle confirmation action
-  const handleConfirm = (id: string) => {
+  const updateBookingStatus = async (id: string, status: 'Confirmed' | 'Rejected') => {
+    const response = await fetch(`${getApiUrl()}/booking/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    if (!response.ok) throw new Error('Unable to update booking.');
+  };
+
+  const handleConfirm = async (id: string) => {
+    try { await updateBookingStatus(id, 'Confirmed'); } catch { return; }
     // 1. Mark status as confirmed
     setBookings(prev =>
       prev.map(b => (b.id === id ? { ...b, status: 'confirmed' } : b))
@@ -45,7 +68,8 @@ export default function BookingsManagement() {
   };
 
   // Handle rejection action
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
+    try { await updateBookingStatus(id, 'Rejected'); } catch { return; }
     // 1. Mark status as rejected
     setBookings(prev =>
       prev.map(b => (b.id === id ? { ...b, status: 'rejected' } : b))
@@ -60,8 +84,9 @@ export default function BookingsManagement() {
   };
 
   // Permanently delete a booking entry
-  const handleDelete = (id: string) => {
-    setBookings(prev => prev.filter(b => b.id !== id));
+  const handleDelete = async (id: string) => {
+    const response = await fetch(`${getApiUrl()}/booking/${id}`, { method: 'DELETE' });
+    if (response.ok) setBookings(prev => prev.filter(b => b.id !== id));
   };
 
   // Metrics Counters

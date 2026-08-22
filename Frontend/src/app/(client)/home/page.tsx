@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 // The installed lucide-react package does not ship declaration files.
 // @ts-ignore -- preserve the icon imports until the dependency is typed.
 import { User, Calculator, ArrowRight, Wallet, CalendarRange, Check, Calendar, AlertCircle, Smartphone, ArrowLeft, Upload, Clock, ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { getApiUrl, getClientSession } from '@/lib/api';
 
 interface HomeProps {
   onOpenSettings?: () => void;
@@ -35,6 +36,8 @@ export default function Home({
   const [bookingStep, setBookingStep] = useState<'form' | 'success'>('form');
   const [serviceType, setServiceType] = useState<string>('Living Room Makeover');
   const [projectDescription, setProjectDescription] = useState<string>('I want modern design');
+  const [bookingError, setBookingError] = useState('');
+  const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
 
   // --- AUTO-CLOSE TIMEOUT EFFECT FOR BOOKING SUCCESS ---
   useEffect(() => {
@@ -42,6 +45,7 @@ export default function Home({
     if (isBookingOpen && bookingStep === 'success') {
       timer = setTimeout(() => {
         setIsBookingOpen(false);
+        setActiveTab?.('book');
       }, 2000); // Automatically closes modal after 2 seconds
     }
     return () => clearTimeout(timer);
@@ -86,9 +90,30 @@ export default function Home({
     setIsBookingOpen(true);
   };
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBookingStep('success');
+    const client = getClientSession();
+    if (!client) {
+      setBookingError('Please sign in again before creating a booking.');
+      return;
+    }
+    setIsBookingSubmitting(true);
+    setBookingError('');
+    try {
+      const response = await fetch(`${getApiUrl()}/booking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: client.id, service_type: serviceType, project_description: projectDescription }),
+      });
+      const result: { success: boolean; message?: string; bookingId?: number } = await response.json();
+      if (!response.ok || !result.success || !result.bookingId) throw new Error(result.message || 'Unable to create booking.');
+      localStorage.setItem('activeBookingId', String(result.bookingId));
+      setBookingStep('success');
+    } catch (err) {
+      setBookingError(err instanceof Error ? err.message : 'Unable to create booking.');
+    } finally {
+      setIsBookingSubmitting(false);
+    }
   };
 
   const handlePaymentSubmit = (e: React.FormEvent) => {
@@ -430,7 +455,7 @@ export default function Home({
     <div className="space-y-6 animate-fadeIn relative">
       <div className="bg-[#0070c0] text-white rounded-2xl p-6 shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-serif font-black tracking-wide">john@gmail.com</h2>
+          <h2 className="text-xl font-serif font-black tracking-wide">{userName}</h2>
           <p className="text-xs text-blue-100 font-light mt-0.5">Your dream home is in progress.</p>
         </div>
         
@@ -588,6 +613,7 @@ export default function Home({
                   </h3>
 
                   <form onSubmit={handleBookingSubmit} className="space-y-4">
+                    {bookingError && <p className="rounded-xl bg-red-500/10 p-3 text-xs text-red-300">{bookingError}</p>}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
                         Service Type
@@ -616,9 +642,10 @@ export default function Home({
 
                     <button 
                       type="submit"
+                      disabled={isBookingSubmitting}
                       className="w-full py-3.5 bg-[#141b2f] hover:bg-[#1d2642] text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md border border-slate-700 cursor-pointer"
                     >
-                      Submit Booking Form
+                      {isBookingSubmitting ? 'Submitting...' : 'Submit Booking Form'}
                     </button>
                   </form>
                 </div>

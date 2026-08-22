@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Home, ChevronLeft, Loader2, ShieldCheck, Layers } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
+import { requestGoogleCredential } from '@/lib/google-auth';
 
 interface ClientAccount {
   id: number;
@@ -24,8 +26,6 @@ interface RegisterResponse {
   token?: string;
   user?: ClientAccount;
 }
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
 
 export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }: RegisterViewProps) {
   const router = useRouter();
@@ -53,7 +53,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
     }
 
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
+      const response = await fetch(`${getApiUrl()}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -118,6 +118,27 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
       onBackToLogin();
     } else {
       router.push('/login');
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    setError('');
+    setIsLoading(true);
+    try {
+      const credential = await requestGoogleCredential();
+      const response = await fetch(`${getApiUrl()}/auth/google`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }),
+      });
+      const result: RegisterResponse = await response.json();
+      if (!response.ok || !result.success || !result.user) throw new Error(result.message || 'Unable to register with Google.');
+      localStorage.setItem('clientAccount', JSON.stringify(result.user));
+      if (result.token) localStorage.setItem('clientToken', result.token);
+      if (onRegisterSuccess) onRegisterSuccess(result.user);
+      else router.push('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to register with Google.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -278,8 +299,9 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
             <button 
               type="button" 
               onClick={() => {
-                setError('Google registration is not configured yet.');
+                void handleGoogleRegister();
               }}
+              disabled={isLoading}
               className="w-full bg-white text-slate-800 hover:bg-slate-100 font-bold text-xs py-3 rounded-xl transition flex items-center justify-center space-x-2.5 shadow-sm cursor-pointer"
             >
               <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />

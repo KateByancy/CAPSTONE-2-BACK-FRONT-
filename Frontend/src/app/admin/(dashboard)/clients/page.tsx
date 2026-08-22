@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Send, ChevronLeft, MessageSquare, Search } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 interface ChatMessage {
   id: string;
@@ -24,8 +25,6 @@ interface ClientApiRecord {
   email: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
-
 const formatClientName = (fullName: string) => {
   const nameParts = fullName.trim().split(/\s+/).filter(Boolean);
   if (nameParts.length < 2) return nameParts[0] || 'Unnamed Client';
@@ -40,7 +39,7 @@ export default function ClientsManagement() {
   useEffect(() => {
     const loadClients = async () => {
       try {
-        const response = await fetch(`${API_URL}/auth/clients`);
+        const response = await fetch(`${getApiUrl()}/auth/clients`);
         const result: { success: boolean; users?: ClientApiRecord[]; message?: string } = await response.json();
 
         if (!response.ok || !result.success) {

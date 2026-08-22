@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Import your existing pages and views
 import LandingPage from './landing/page';
@@ -34,6 +34,18 @@ export default function ClientMasterController() {
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'login' | 'register' | 'dashboard'>('landing');
   const [activeTab, setActiveTab] = useState('home');
   const [userName, setUserName] = useState('Doe, John');
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('clientAccount');
+      if (!stored) return;
+      const client = JSON.parse(stored) as ClientAccount;
+      setUserName(formatDashboardName(client.fullname));
+    } catch {
+      localStorage.removeItem('clientAccount');
+      localStorage.removeItem('clientToken');
+    }
+  }, []);
 
   // 1. Landing Page: "Launch Client Workspace" button triggers login
   if (currentScreen === 'landing') {
@@ -107,6 +119,11 @@ export default function ClientMasterController() {
       activeTab={activeTab} 
       setActiveTab={setActiveTab} 
       userName={userName}
+      onLogout={() => {
+        localStorage.removeItem('clientAccount');
+        localStorage.removeItem('clientToken');
+        setCurrentScreen('landing');
+      }}
     >
       {renderActiveTabContent()}
     </DashboardShell>

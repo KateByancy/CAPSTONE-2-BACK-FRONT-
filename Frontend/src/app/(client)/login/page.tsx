@@ -1,12 +1,33 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getApiUrl } from '@/lib/api';
+import { requestGoogleCredential } from '@/lib/google-auth';
 import { ChevronLeft, Home, Loader2, ShieldCheck, Layout, Eye } from 'lucide-react';
 
 interface LoginViewProps {
   onLoginSuccess?: (userName?: string) => void; // pass the authenticated user name back to the parent
   onBackToLanding: () => void;
   onNavigateToRegister: () => void; // Added prop for registration routing
+}
+
+interface LoginResponse {
+  success: boolean;
+  message?: string;
+  token?: string;
+  user?: {
+    id: number;
+    fullname: string;
+    email: string;
+    phone?: string;
+    address?: string;
+  };
+  admin?: {
+    id: number;
+    fullname: string;
+    email: string;
+    role: string;
+  };
 }
 
 export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNavigateToRegister }: LoginViewProps) {
@@ -17,37 +38,78 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    setTimeout(() => {
-      const normalizedEmail = email.trim().toLowerCase();
+    try {
+      const apiUrl = getApiUrl();
+      const credentials = { email: email.trim(), password };
+      let response = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
+      });
+      let result: LoginResponse = await response.json();
 
-      // 1. Direct Intercept Check for your exact Admin Credentials
-      if (normalizedEmail === 'marc@gmail.com' && password === '12345678') {
-        setIsLoading(false);
+      if (!response.ok) {
+        response = await fetch(`${apiUrl}/auth/admin-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(credentials),
+        });
+        result = await response.json();
+      }
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Unable to sign in.');
+      }
+
+      if (result.admin) {
+        if (result.token) localStorage.setItem('adminToken', result.token);
+        localStorage.setItem('adminAccount', JSON.stringify(result.admin));
         router.push('/admin/dashboard');
         return;
       }
 
-      // 2. Regular Client login check
-      if (email.trim() && password.length >= 6) {
-        setIsLoading(false);
-        
-        // SAFE PROPKIT CHECK: Checks if the function exists before running it
-        if (onLoginSuccess && typeof onLoginSuccess === 'function') {
-          onLoginSuccess(email.trim());
-        } else {
-          // Fallback redirection path if your state router isn't attached
-          router.push('/home');
-        }
-      } else {
-        setError('Please enter a valid email and password (min. 6 characters).');
-        setIsLoading(false);
+      if (!result.user) {
+        throw new Error('The server did not return an account.');
       }
-    }, 1000);
+
+      if (result.token) localStorage.setItem('clientToken', result.token);
+      localStorage.setItem('clientAccount', JSON.stringify(result.user));
+      if (onLoginSuccess) {
+        onLoginSuccess(result.user.fullname);
+      } else {
+        router.push('/home');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to sign in.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setIsLoading(true);
+    try {
+      const credential = await requestGoogleCredential();
+      const response = await fetch(`${getApiUrl()}/auth/google`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }),
+      });
+      const result: LoginResponse = await response.json();
+      if (!response.ok || !result.success || !result.user) throw new Error(result.message || 'Unable to sign in with Google.');
+      if (result.token) localStorage.setItem('clientToken', result.token);
+      localStorage.setItem('clientAccount', JSON.stringify(result.user));
+      if (onLoginSuccess) onLoginSuccess(result.user.fullname);
+      else router.push('/home');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to sign in with Google.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -114,6 +176,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
             <div className="flex justify-between items-center w-full pt-2 lg:hidden">
               <button 
                 type="button" 
+                disabled={isLoading}
                 onClick={onBackToLanding} 
                 className="p-2.5 bg-white/15 hover:bg-white/20 active:scale-95 rounded-xl transition text-white cursor-pointer"
               >
