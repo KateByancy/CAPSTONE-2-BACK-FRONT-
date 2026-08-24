@@ -4,7 +4,13 @@ const db = require("../config/db");
 const getTracking = (req, res) => {
     const query = req.params.id
         ? "SELECT * FROM tracking WHERE booking_id = ? ORDER BY updated_at DESC"
-        : "SELECT * FROM tracking ORDER BY updated_at DESC";
+        : `SELECT tracking.*, bookings.service_type, bookings.project_description,
+                  bookings.status AS booking_status, users.fullname AS client_name,
+                  users.address AS client_address
+           FROM tracking
+           JOIN bookings ON bookings.id = tracking.booking_id
+           JOIN users ON users.id = bookings.user_id
+           ORDER BY tracking.updated_at DESC`;
     const params = req.params.id ? [req.params.id] : [];
     db.query(query, params, (err, result) => {
         if (err) return res.status(500).json({ success: false, message: err.message });

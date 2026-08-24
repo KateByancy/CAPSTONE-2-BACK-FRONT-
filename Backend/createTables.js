@@ -10,9 +10,32 @@ phone VARCHAR(20),
 address VARCHAR(255),
 email VARCHAR(100) UNIQUE,
 password VARCHAR(255),
-role VARCHAR(20) DEFAULT 'client',
+role ENUM('admin', 'client') NOT NULL DEFAULT 'client',
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )` ,
+
+`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen DATETIME NULL`,
+
+`ALTER TABLE users
+MODIFY COLUMN role ENUM('admin', 'client', 'customer') NOT NULL DEFAULT 'client'`,
+
+`UPDATE users
+SET role = 'client'
+WHERE role IS NULL OR role = '' OR role NOT IN ('admin', 'client')`,
+
+`ALTER TABLE users
+MODIFY COLUMN role ENUM('admin', 'client') NOT NULL DEFAULT 'client'`,
+
+`CREATE TABLE IF NOT EXISTS password_reset_tokens(
+id INT AUTO_INCREMENT PRIMARY KEY,
+user_id INT NOT NULL,
+token_hash CHAR(64) NOT NULL UNIQUE,
+expires_at DATETIME NOT NULL,
+used_at DATETIME NULL,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+INDEX idx_password_reset_user (user_id),
+INDEX idx_password_reset_expiry (expires_at)
+)`,
 
 `CREATE TABLE IF NOT EXISTS settings(
 id INT PRIMARY KEY,
@@ -20,6 +43,15 @@ app_name VARCHAR(150) NOT NULL DEFAULT 'MARC Interior Design',
 system_mode VARCHAR(30) NOT NULL DEFAULT 'active',
 two_factor BOOLEAN NOT NULL DEFAULT FALSE
 )`,
+
+`ALTER TABLE settings
+ADD COLUMN IF NOT EXISTS app_name VARCHAR(150) NOT NULL DEFAULT 'MARC Interior Design'`,
+
+`ALTER TABLE settings
+ADD COLUMN IF NOT EXISTS system_mode VARCHAR(30) NOT NULL DEFAULT 'active'`,
+
+`ALTER TABLE settings
+ADD COLUMN IF NOT EXISTS two_factor BOOLEAN NOT NULL DEFAULT FALSE`,
 
 `INSERT IGNORE INTO settings (id, app_name, system_mode, two_factor)
 VALUES (1, 'MARC Interior Design', 'active', FALSE)`,
@@ -40,12 +72,31 @@ status VARCHAR(50) DEFAULT 'Pending',
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
 
+`ALTER TABLE bookings MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Pending'`,
+
+`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS accepted_at DATETIME NULL`,
+
+`UPDATE bookings SET accepted_at = COALESCE(accepted_at, created_at)
+ WHERE LOWER(status) IN ('confirmed', 'approved', 'ongoing', 'completed')`,
+
+`UPDATE bookings SET status = 'Pending' WHERE status IS NULL OR status = ''`,
+
 `CREATE TABLE IF NOT EXISTS schedules(
 id INT AUTO_INCREMENT PRIMARY KEY,
 booking_id INT,
 visit_date DATE,
 status VARCHAR(30) DEFAULT 'Pending'
 )`,
+
+`ALTER TABLE schedules ADD COLUMN IF NOT EXISTS visit_date DATE NULL`,
+
+`ALTER TABLE schedules ADD COLUMN IF NOT EXISTS date DATE NULL`,
+
+`ALTER TABLE schedules ADD COLUMN IF NOT EXISTS time_start TIME NULL`,
+
+`UPDATE schedules SET visit_date = date WHERE visit_date IS NULL AND date IS NOT NULL`,
+
+`ALTER TABLE schedules MODIFY COLUMN status VARCHAR(30) NOT NULL DEFAULT 'Pending'`,
 
 `CREATE TABLE IF NOT EXISTS payments(
 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -66,6 +117,13 @@ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
 
 `ALTER TABLE tracking ADD COLUMN IF NOT EXISTS remarks TEXT`,
+
+`ALTER TABLE tracking ADD COLUMN IF NOT EXISTS progress INT NOT NULL DEFAULT 0`,
+
+`ALTER TABLE tracking ADD COLUMN IF NOT EXISTS progress_percentage INT NULL`,
+
+`UPDATE tracking SET progress = progress_percentage
+ WHERE progress = 0 AND progress_percentage IS NOT NULL`,
 
 `CREATE TABLE IF NOT EXISTS notifications(
 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -104,26 +162,28 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 ];
 
-queries.forEach((sql,index)=>{
-
-    db.query(sql,(err)=>{
-
-        if(err){
-
-            console.log(err);
-
-        }else{
-
-            console.log(`✅ Table ${index+1} Ready`);
-
-        }
-
-        if(index===queries.length-1){
-
-            process.exit();
-
-        }
-
+const runQuery = (sql) => new Promise((resolve, reject) => {
+    db.query(sql, (error) => {
+        if (error) return reject(error);
+        resolve();
     });
-
 });
+
+const initializeTables = async () => {
+    try {
+        await db.connectDatabase();
+
+        for (const [index, sql] of queries.entries()) {
+            await runQuery(sql);
+            console.log(`Table step ${index + 1} ready.`);
+        }
+        console.log("Database schema is ready.");
+    } catch (error) {
+        console.error("Database schema initialization failed:", error.message);
+        process.exitCode = 1;
+    } finally {
+        db.destroy();
+    }
+};
+
+initializeTables();

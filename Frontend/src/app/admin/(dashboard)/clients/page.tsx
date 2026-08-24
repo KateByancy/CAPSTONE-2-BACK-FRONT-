@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Send, ChevronLeft, MessageSquare, Search } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
+import Link from 'next/link';
 
 interface ChatMessage {
   id: string;
-  sender: 'admin' | 'client';
+  sender: 'admin' | 'client' | 'bot';
   text: string;
   timestamp: string;
 }
@@ -17,12 +18,14 @@ interface ClientProfile {
   email: string;
   initial: string;
   projectName: string;
+  isOnline: boolean;
 }
 
 interface ClientApiRecord {
   id: number;
   fullname: string;
   email: string;
+  is_online: number | boolean;
 }
 
 const formatClientName = (fullName: string) => {
@@ -39,7 +42,7 @@ export default function ClientsManagement() {
   useEffect(() => {
     const loadClients = async () => {
       try {
-        const response = await fetch(`${getApiUrl()}/auth/clients`);
+        const response = await fetch(`${getApiUrl()}/auth/clients`, { headers:{ Authorization:`Bearer ${localStorage.getItem('adminToken') || ''}` } });
         const result: { success: boolean; users?: ClientApiRecord[]; message?: string } = await response.json();
 
         if (!response.ok || !result.success) {
@@ -51,47 +54,53 @@ export default function ClientsManagement() {
           name: formatClientName(client.fullname),
           email: client.email,
           initial: client.fullname.trim().charAt(0).toUpperCase() || 'C',
-          projectName: 'New client account',
+          projectName: 'Registered client',
+          isOnline: Boolean(client.is_online),
         })));
       } catch (err) {
         setClientsError(err instanceof Error ? err.message : 'Unable to load clients.');
       }
     };
 
-    loadClients();
+    void loadClients();
+    const timer = window.setInterval(() => void loadClients(), 10000);
+    return () => window.clearInterval(timer);
   }, []);
 
   // --- ACTIVE CHAT STATE ---
   // Default to null on initial load so chat only appears when "View Chat" is clicked
   const [activeChatClient, setActiveChatClient] = useState<ClientProfile | null>(null);
   
-  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({
-    c1: [
-      { id: "m1", sender: "client", text: "Hi admin, any updates on Project #1302?", timestamp: "10:14 AM" },
-      { id: "m2", sender: "admin", text: "Hello John! We've started prepping the leather materials today.", timestamp: "10:16 AM" }
-    ]
-  });
+  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
   const [newMessageText, setNewMessageText] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!activeChatClient) return;
+    const clientId = activeChatClient.id;
+    const loadConversation = () => fetch(`${getApiUrl()}/chat/${clientId}`).then(r => r.json()).then((rows: Array<{id:number;sender:'admin'|'client'|'bot';message:string;created_at:string}>) => {
+      setMessages(prev => ({ ...prev, [clientId]: rows.map(row => ({ id:String(row.id), sender:row.sender, text:row.message, timestamp:new Date(row.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) })) }));
+    }).catch(() => setClientsError('Unable to load this conversation.'));
+    void loadConversation();
+    const timer = window.setInterval(() => void loadConversation(), 3000);
+    return () => window.clearInterval(timer);
+  }, [activeChatClient]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior:'smooth', block:'end' });
+  }, [messages, activeChatClient]);
 
   // --- HANDLERS ---
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessageText.trim() || !activeChatClient) return;
 
     const clientId = activeChatClient.id;
-    const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      sender: "admin",
-      text: newMessageText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setMessages(prev => ({
-      ...prev,
-      [clientId]: [...(prev[clientId] || []), newMsg]
-    }));
-
-    setNewMessageText("");
+    const text = newMessageText.trim();
+    const response = await fetch(`${getApiUrl()}/chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:Number(clientId),sender:'admin',message:text}) });
+    if (!response.ok) return setClientsError('Unable to send message.');
+    setMessages(prev => ({ ...prev, [clientId]: [...(prev[clientId] || []), { id:`msg-${Date.now()}`, sender:'admin', text, timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) }] }));
+    setNewMessageText('');
   };
 
   return (
@@ -105,6 +114,7 @@ export default function ClientsManagement() {
             Active Partners & Communications
           </p>
         </div>
+        <Link href="/admin/dashboard" className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
       </div>
 
       {/* 2. RESPONSIVE WEB APP CONTAINER GRID */}
@@ -145,8 +155,9 @@ export default function ClientsManagement() {
                 >
                   {/* Avatar & Client Info */}
                   <div className="flex items-center space-x-3">
-                    <div className="w-11 h-11 rounded-full bg-[#82c0e7] text-[#102243] font-bold text-base flex items-center justify-center shrink-0 shadow-inner">
+                    <div className="relative w-11 h-11 rounded-full bg-[#82c0e7] text-[#102243] font-bold text-base flex items-center justify-center shrink-0 shadow-inner">
                       {client.initial}
+                      <span title={client.isOnline ? 'Online' : 'Offline'} className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${client.isOnline ? 'bg-emerald-500' : 'bg-slate-400 shadow-inner'}`} />
                     </div>
                     <div className="overflow-hidden">
                       <h3 className="text-xs sm:text-sm font-bold text-slate-900 font-serif truncate">{client.name}</h3>
@@ -196,7 +207,7 @@ export default function ClientsManagement() {
               </div>
 
               {/* CHAT MESSAGES BODY */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/60 min-h-0">
+              <div className="flex-1 p-4 pb-6 overflow-y-auto space-y-3 bg-slate-50/60 min-h-0">
                 {(messages[activeChatClient.id] || []).map((msg) => {
                   const isAdmin = msg.sender === 'admin';
                   return (
@@ -208,18 +219,19 @@ export default function ClientsManagement() {
                         {isAdmin ? 'You (Admin)' : activeChatClient.name}
                       </span>
                       <div 
-                        className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 text-xs shadow-sm ${
+                        className={`max-w-[85%] sm:max-w-[75%] min-w-0 rounded-2xl p-3 text-xs shadow-sm ${
                           isAdmin 
                             ? 'bg-[#0070c0] text-white rounded-br-none' 
                             : 'bg-white text-slate-800 border border-slate-200/80 rounded-bl-none'
                         }`}
                       >
-                        <p className="leading-relaxed">{msg.text}</p>
+                        <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
                       </div>
                       <span className="text-[9px] font-mono text-slate-400 mt-1 px-1">{msg.timestamp}</span>
                     </div>
                   );
                 })}
+                <div ref={messagesEndRef} className="h-px" />
               </div>
 
               {/* CHAT INPUT FOOTER */}

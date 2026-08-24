@@ -86,16 +86,25 @@ export default function Book() {
       const client = getClientSession();
       if (!client) return;
       const response = await fetch(`${getApiUrl()}/booking?user_id=${client.id}`);
-      const result: { success: boolean; bookings?: Array<{ id: number; service_type: string; project_description: string; status: string }> } = await response.json();
+      const result: { success: boolean; bookings?: Array<{ id: number; service_type: string; project_description: string; status: string; accepted_at?: string | null }> } = await response.json();
       if (!response.ok || !result.success) throw new Error('Unable to load your booking.');
       const booking = result.bookings?.find((item) => item.status.toLowerCase() !== 'rejected');
       if (!booking) return;
+      if (booking.accepted_at) {
+        setBookingId(null);
+        setProject({ serviceType: '', description: '' });
+        setSelectedDate('');
+        setScheduleStatus('none');
+        return;
+      }
       setBookingId(booking.id);
       setProject({ serviceType: booking.service_type, description: booking.project_description });
-      setScheduleStatus(booking.status.toLowerCase() === 'confirmed' ? 'confirmed' : 'pending');
+      setScheduleStatus('pending');
     };
 
     void loadActiveBooking().catch((err) => setError(err instanceof Error ? err.message : 'Unable to load your booking.'));
+    const timer = window.setInterval(() => void loadActiveBooking().catch(() => undefined), 10000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const submitBooking = async () => {
@@ -179,37 +188,13 @@ export default function Book() {
               {selectedDate ? `Scheduled for: ${selectedDate}` : project.description || 'Create a booking from your dashboard to choose a date.'}
             </p>
           </div>
-          <button 
+          {scheduleStatus === 'pending' && <button 
             onClick={() => { setModalMode('schedule_form'); setShowQuickSelect(false); }} 
             className="bg-[#1a2138] text-white text-[9px] font-bold tracking-widest px-3 py-2 rounded-lg hover:bg-slate-800 transition w-full sm:w-auto text-center cursor-pointer"
           >
-            {scheduleStatus === 'pending' ? 'RESCHEDULE DATE' : '+ SCHEDULE DATE'}
+            RESCHEDULE DATE
           </button>
-        </div>
-      )}
-
-      {/* Confirmed Schedules View Panel (Appears after admin confirmation) */}
-      {scheduleStatus === 'confirmed' && (
-        <div className="space-y-3">
-          <div className="flex items-center space-x-2 text-xs font-bold tracking-wider text-slate-700 pt-2">
-            <CheckCircle className="w-4 h-4 text-emerald-500" />
-            <span>CONFIRMED SCHEDULES</span>
-          </div>
-          <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div>
-              <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Confirmed</span>
-              <h3 className="text-xs font-bold text-slate-800 mt-2">{project.serviceType}</h3>
-              <p className="text-[11px] text-slate-600 font-medium mt-1">
-                Locked Schedule Date: <span className="font-bold text-slate-900">{selectedDate}</span>
-              </p>
-              <p className="text-[10px] text-slate-500 italic mt-0.5">{project.description}</p>
-            </div>
-            <div className="flex items-center space-x-2 w-full sm:w-auto">
-              <span className="text-[10px] text-emerald-600 font-bold bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm w-full sm:w-auto text-center">
-                Ready for Execution
-              </span>
-            </div>
-          </div>
+          }
         </div>
       )}
 

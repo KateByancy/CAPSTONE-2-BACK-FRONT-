@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Compass, Info, User, Home, Sparkles } from 'lucide-react';
+import { MapPin, Compass, Info, User, Home, Sparkles, ChevronLeft } from 'lucide-react';
+import Link from 'next/link';
+import { getApiUrl } from '@/lib/api';
 
 interface ProjectMarker {
   id: string;
@@ -18,30 +20,36 @@ interface ProjectMarker {
 
 export default function FleetMapManagement() {
   // --- DYNAMIC STATE SYSTEM CONNECTED TO BUILDS & PROJECT ROADMAP ---
-  const [johnDoeProgress, setJohnDoeProgress] = useState<number>(15);
+  const [liveProject, setLiveProject] = useState<ProjectMarker | null>(null);
   const [selectedProject, setSelectedProject] = useState<ProjectMarker | null>(null);
   const [hoveredProject, setHoveredProject] = useState<ProjectMarker | null>(null);
 
-  // Sync state with Builds Page and Project Roadmap via localStorage and real-time event listener
   useEffect(() => {
-    const fetchBuildsData = () => {
-      const savedProgress = localStorage.getItem('johnDoeProgress');
-      if (savedProgress !== null) {
-        setJohnDoeProgress(Number(savedProgress));
-      }
-    };
-
-    fetchBuildsData();
-
-    // Listen for live progress changes made on Builds Page or Project Roadmap
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'johnDoeProgress' && e.newValue !== null) {
-        setJohnDoeProgress(Number(e.newValue));
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    const loadFleetProject = () => Promise.all([
+      fetch(`${getApiUrl()}/booking`).then(r => r.json()),
+      fetch(`${getApiUrl()}/tracking`).then(r => r.json())
+    ]).then(([bookingData, trackingData]) => {
+      const booking = bookingData.bookings?.find((item: { accepted_at?:string|null }) => Boolean(item.accepted_at));
+      if (!booking) return;
+      const tracking = (trackingData.tracking ?? []).find((item: { booking_id: number }) => item.booking_id === booking.id);
+      const progress = tracking?.progress ?? 0;
+      const address = booking.client_address || 'Address not provided';
+      setLiveProject({
+        id: String(booking.id),
+        projectRef: `#${booking.id}`,
+        clientName: booking.client_name || 'Client',
+        locationName: address,
+        fullAddress: address,
+        region: 'Client project location',
+        progress,
+        coordinates: { top: '50%', left: '50%' },
+        status: getStatus(progress),
+        projectDetails: booking.service_type
+      });
+    });
+    void loadFleetProject();
+    const refreshTimer = window.setInterval(() => void loadFleetProject(), 10000);
+    return () => window.clearInterval(refreshTimer);
   }, []);
 
   // Compute status based on progress from Builds Page / Project Roadmap
@@ -52,18 +60,7 @@ export default function FleetMapManagement() {
   };
 
   // SINGLE TARGET PROJECT: JOHN DOE
-  const johnDoeProject: ProjectMarker = {
-    id: 'p-john-doe',
-    projectRef: '#1509',
-    clientName: 'John Doe',
-    locationName: 'Buagsong, Cordova',
-    fullAddress: 'Victorio Street, Brgy. Buagsong, Cordova, Cebu',
-    region: 'Region 7 (Central Visayas)',
-    progress: johnDoeProgress,
-    coordinates: { top: '50%', left: '50%' },
-    status: getStatus(johnDoeProgress),
-    projectDetails: 'Living Room Makeover'
-  };
+  const johnDoeProject: ProjectMarker = liveProject || { id:'',projectRef:'',clientName:'No tracked project',locationName:'No location',fullAddress:'No client address available',region:'',progress:0,coordinates:{top:'50%',left:'50%'},status:'Pending',projectDetails:'No project data' };
 
   const isActive = hoveredProject?.id === johnDoeProject.id || selectedProject?.id === johnDoeProject.id;
 
@@ -71,13 +68,15 @@ export default function FleetMapManagement() {
     <div className="space-y-6 pb-10">
       
       {/* HEADER BANNER MATCHING THE PROVIDED BANNER DESIGN */}
-      <div className="bg-[#0070c0] text-white rounded-2xl px-6 py-5 shadow-md">
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight leading-none">
+      <div className="bg-[#0070c0] text-white rounded-2xl px-6 py-5 shadow-md flex items-center justify-between gap-4">
+        <div><h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight leading-none">
           Fleet & Project Tracker Map
         </h1>
         <p className="text-[11px] font-black uppercase tracking-widest text-sky-100 mt-2">
           REAL-TIME GEO-LOCATION MONITORING OF ACTIVE CLIENT PROJECTS
         </p>
+        </div>
+        <Link href="/admin/dashboard" className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
       </div>
 
       {/* MAIN HARDWARE VISUALIZATION PORT */}
@@ -88,21 +87,21 @@ export default function FleetMapManagement() {
           
           {/* SIMULATED DEVICE HEADER BAR */}
           <div className="bg-slate-950 text-white px-6 py-3 flex justify-between items-center text-xs font-bold border-b border-slate-800/60 z-10">
-            <span className="font-mono">Central Visayas Fleet Radar</span>
+            <span className="font-mono">Client Project Location</span>
             <div className="flex items-center space-x-2 text-slate-400">
               <Compass className="w-3.5 h-3.5 animate-pulse text-sky-400" />
-              <span className="text-[10px] tracking-wider uppercase font-sans">Victorio St., Buagsong, Cordova</span>
+              <span className="text-[10px] tracking-wider uppercase font-sans">{johnDoeProject.locationName}</span>
             </div>
           </div>
 
           {/* GOOGLE MAPS INTERACTIVE BASE LAYER ENGINE (CEBU FOCUS) */}
           <div className="flex-1 relative overflow-hidden bg-slate-100 flex items-center justify-center select-none">
             
-            {/* Embedded Google Map Focused on Buagsong, Cordova, Cebu */}
+            {/* Embedded map uses the selected client's saved address. */}
             <iframe
-              title="Buagsong Cordova Cebu Google Map"
+              title="Client project Google Map"
               className="absolute inset-0 w-full h-full border-0 pointer-events-auto"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15701.32598379006!2d123.9450!3d10.2520!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a99a1309ff44b9%3A0xb35a09e0ebef40c6!2sBuagsong%2C%20Cordova%2C%20Cebu!5e0!3m2!1sen!2sph!4v1710000000000!5m2!1sen!2sph"
+              src={`https://www.google.com/maps?q=${encodeURIComponent(johnDoeProject.fullAddress || '')}&output=embed`}
               loading="lazy"
             />
 
@@ -187,7 +186,7 @@ export default function FleetMapManagement() {
 
           {/* SIMULATED STATUS BAR BASEFOOT */}
           <div className="bg-slate-950 text-[10px] tracking-widest font-mono text-slate-400 px-6 py-2.5 flex items-center justify-between border-t border-slate-800/60 z-10">
-            <span className="uppercase text-slate-300">Live GPS Signal Active • Cordova, Cebu Sector</span>
+            <span className="uppercase text-slate-300">Live project location data</span>
             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-400/50 animate-pulse" />
           </div>
 

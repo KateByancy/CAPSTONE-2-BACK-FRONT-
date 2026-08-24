@@ -30,14 +30,40 @@ export default function Home({
 
   // --- SCHEDULES TOGGLE STATE (Show/Hide Calendar Widget) ---
   const [showCalendarView, setShowCalendarView] = useState<boolean>(false);
+  const [clientSchedule, setClientSchedule] = useState<{service_type:string;project_description:string;visit_date:string;status:string;time_start?:string;time_end?:string} | null>(null);
+
+  useEffect(() => {
+    const loadSchedule = async () => {
+      const client=getClientSession(); if(!client)return;
+      const response=await fetch(`${getApiUrl()}/schedule?user_id=${client.id}`);
+      const rows=await response.json();
+      if(!response.ok) return;
+      const schedule=Array.isArray(rows)&&rows.length?rows[0]:null;
+      setClientSchedule(schedule);
+      if(schedule?.visit_date){const date=new Date(schedule.visit_date);setCurrentMonth(date.getMonth());setCurrentYear(date.getFullYear());setSelectedDate(date.getDate());}
+    };
+    void loadSchedule();
+    const timer=window.setInterval(()=>void loadSchedule(),10000);
+    return()=>window.clearInterval(timer);
+  }, []);
 
   // --- BOOKING MODAL STATE ENGINE ---
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [bookingStep, setBookingStep] = useState<'form' | 'success'>('form');
   const [serviceType, setServiceType] = useState<string>('Living Room Makeover');
-  const [projectDescription, setProjectDescription] = useState<string>('I want modern design');
+  const [projectDescription, setProjectDescription] = useState<string>('');
+  const [preferredStartDate, setPreferredStartDate] = useState<string>('');
+  const [preferredStartTime, setPreferredStartTime] = useState<string>('');
+  const [unavailableSlots, setUnavailableSlots] = useState<Array<{visit_date:string;time_start:string}>>([]);
   const [bookingError, setBookingError] = useState('');
   const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
+  useEffect(() => {
+    const loadUnavailableSlots=async()=>{const response=await fetch(`${getApiUrl()}/schedule/unavailable`);const data=await response.json();if(response.ok)setUnavailableSlots(data.slots??[]);};
+    void loadUnavailableSlots();
+    const timer=window.setInterval(()=>void loadUnavailableSlots(),10000);
+    return()=>window.clearInterval(timer);
+  },[]);
+  const hasScheduleConflict=Boolean(preferredStartDate&&preferredStartTime&&unavailableSlots.some(slot=>slot.visit_date===preferredStartDate&&slot.time_start.slice(0,5)===preferredStartTime));
 
   // --- AUTO-CLOSE TIMEOUT EFFECT FOR BOOKING SUCCESS ---
   useEffect(() => {
@@ -52,9 +78,9 @@ export default function Home({
   }, [isBookingOpen, bookingStep]);
 
   // --- SCHEDULES INTERACTION STATE ---
-  const [currentMonth, setCurrentMonth] = useState<number>(3); // April (0-indexed)
-  const [currentYear, setCurrentYear] = useState<number>(2026);
-  const [selectedDate, setSelectedDate] = useState<number>(24);
+  const [currentMonth, setCurrentMonth] = useState<number>(() => new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState<number>(() => new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState<number>(() => new Date().getDate());
 
   // --- PAYMENTS PAGE STATE ENGINE ---
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -97,13 +123,21 @@ export default function Home({
       setBookingError('Please sign in again before creating a booking.');
       return;
     }
+    if (!preferredStartDate || !preferredStartTime) {
+      setBookingError('Please select your preferred project start date and time.');
+      return;
+    }
+    if (hasScheduleConflict) {
+      setBookingError('That date and time is already booked. Please choose another slot.');
+      return;
+    }
     setIsBookingSubmitting(true);
     setBookingError('');
     try {
       const response = await fetch(`${getApiUrl()}/booking`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: client.id, service_type: serviceType, project_description: projectDescription }),
+        body: JSON.stringify({ user_id: client.id, service_type: serviceType, project_description: projectDescription, preferred_start_date: preferredStartDate, preferred_start_time: preferredStartTime }),
       });
       const result: { success: boolean; message?: string; bookingId?: number } = await response.json();
       if (!response.ok || !result.success || !result.bookingId) throw new Error(result.message || 'Unable to create booking.');
@@ -333,10 +367,10 @@ export default function Home({
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className={`${showCalendarView ? 'lg:col-span-5' : 'lg:col-span-12 max-w-xl'} space-y-4 transition-all duration-300`}>
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-md space-y-6 relative">
+            {clientSchedule ? <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-md space-y-6 relative">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-base font-serif font-black text-slate-900 tracking-wide">Living Room</h3>
+                  <h3 className="text-base font-serif font-black text-slate-900 tracking-wide">{clientSchedule.service_type}</h3>
                   <p className="text-xs text-slate-500 font-medium mt-1">
                     {monthNames[currentMonth]} {selectedDate}, {currentYear}
                   </p>
@@ -347,7 +381,7 @@ export default function Home({
               </div>
 
               <p className="text-sm text-slate-600 font-serif italic py-1">
-                "It is small"
+                &quot;{clientSchedule.project_description}&quot;
               </p>
 
               <div className="space-y-2.5">
@@ -366,12 +400,12 @@ export default function Home({
                   <div>
                     <p className="text-[9px] uppercase font-black tracking-widest text-slate-400">Time Slot</p>
                     <p className="text-xs font-serif font-black text-slate-800 tracking-wider">
-                      10:00 AM - 12:00 PM
+                      {clientSchedule.time_start ? `${clientSchedule.time_start}${clientSchedule.time_end ? ` - ${clientSchedule.time_end}` : ''}` : 'Start time to be confirmed'}
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
+            </div> : <div className="bg-white border border-slate-200/80 rounded-3xl p-8 text-center text-xs text-slate-400">No confirmed project schedules yet.</div>}
           </div>
 
           {showCalendarView && (
@@ -412,8 +446,9 @@ export default function Home({
 
                   {Array.from({ length: daysInMonth }).map((_, index) => {
                     const dayNum = index + 1;
-                    const isSelected = dayNum === selectedDate && currentMonth === 3 && currentYear === 2026;
-                    const isToday = dayNum === 24 && currentMonth === 3 && currentYear === 2026;
+                    const today = new Date();
+                    const isSelected = dayNum === selectedDate;
+                    const isToday = dayNum === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
 
                     return (
                       <button
@@ -440,7 +475,7 @@ export default function Home({
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between text-xs">
                 <span className="text-slate-500 font-medium">Selected Date Status:</span>
                 <span className="font-bold text-slate-800">
-                  {monthNames[currentMonth]} {selectedDate}, {currentYear} {selectedDate === 24 && currentMonth === 3 ? '(Living Room)' : '(Available)'}
+                  {monthNames[currentMonth]} {selectedDate}, {currentYear} {clientSchedule ? `(${clientSchedule.service_type})` : '(Available)'}
                 </span>
               </div>
             </div>
@@ -640,9 +675,35 @@ export default function Home({
                       />
                     </div>
 
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
+                        Preferred Project Start Date
+                      </label>
+                      <input
+                        type="date"
+                        value={preferredStartDate}
+                        min={new Date().toISOString().slice(0, 10)}
+                        onChange={(e) => setPreferredStartDate(e.target.value)}
+                        required
+                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
+                      />
+                      {hasScheduleConflict && <p className="text-[10px] text-red-300">This date and time is unavailable. Choose another slot.</p>}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">Preferred Start Time</label>
+                      <input
+                        type="time"
+                        value={preferredStartTime}
+                        onChange={(e) => setPreferredStartTime(e.target.value)}
+                        required
+                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
+                      />
+                    </div>
+
                     <button 
                       type="submit"
-                      disabled={isBookingSubmitting}
+                      disabled={isBookingSubmitting || hasScheduleConflict}
                       className="w-full py-3.5 bg-[#141b2f] hover:bg-[#1d2642] text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md border border-slate-700 cursor-pointer"
                     >
                       {isBookingSubmitting ? 'Submitting...' : 'Submit Booking Form'}

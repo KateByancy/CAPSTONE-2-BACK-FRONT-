@@ -21,7 +21,9 @@ const createDesign = (req, res) => {
 
 // Get all design requests
 const getDesigns = (req, res) => {
-    db.query("SELECT * FROM designs", (err, result) => {
+    db.query(`SELECT designs.*, users.fullname AS client_name
+              FROM designs LEFT JOIN users ON users.id = designs.user_id
+              ORDER BY designs.created_at DESC`, (err, result) => {
         if (err) return res.status(500).json(err);
 
         res.json(result);

@@ -4,12 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
-  Calendar, 
   BookOpen, 
   Hammer, 
-  Users, 
-  Map, 
-  CreditCard, 
   Settings, 
   LogOut
 } from 'lucide-react';
@@ -22,11 +18,8 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
 
   const navItems = [
     { label: 'Overview', path: '/admin/dashboard', icon: LayoutDashboard },
-    { label: 'Schedule', path: '/admin/schedule', icon: Calendar },
     { label: 'Bookings', path: '/admin/book', icon: BookOpen },
     { label: 'Builds', path: '/admin/build', icon: Hammer },
-    { label: 'Clients', path: '/admin/clients', icon: Users },
-    { label: 'Payments', path: '/admin/payments', icon: CreditCard },
     { label: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 

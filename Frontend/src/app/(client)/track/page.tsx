@@ -1,69 +1,17 @@
-// src/components/Track.tsx
 "use client";
-import React from 'react';
-import { Compass, CheckCircle2, Circle } from 'lucide-react';
+import React,{useEffect,useState} from 'react';
+import {Compass,CheckCircle2,Circle} from 'lucide-react';
+import {getApiUrl,getClientSession} from '@/lib/api';
 
-export default function Track() {
-  const milestones = [
-    { name: 'Initial Consultation', status: 'completed', desc: 'Design requirements finalized' },
-    { name: 'Design Proposal Rendering', status: 'completed', desc: '3D modeling approved by client' },
-    { name: 'Material & Canvas Selection', status: 'active', desc: 'Sourcing upholstery and framing fabrics' },
-    { name: 'Site Execution & Build', status: 'upcoming', desc: 'Physical assembly and styling installations' },
-    { name: 'Final Turnover Inspection', status: 'upcoming', desc: 'Quality audit and client walkthrough' },
-  ];
+type Project={id:number;title:string;progress:number;stage:string;remarks:string};
+const milestoneNames=['Initial Consultation','Design Proposal','Material Selection','Execution','Final Handover'];
 
-  return (
-    <div className="p-4 space-y-4 animate-fadeIn">
-      <div className="flex items-center space-x-2 text-xs font-bold tracking-wider text-slate-400">
-        <Compass className="w-4 h-4 text-blue-500" />
-        <span>LIVE PROJECT TIMELINE</span>
-      </div>
-
-      {/* Hero Percentage Block */}
-      <div className="bg-[#1a2138] text-white rounded-2xl p-5 shadow-xl">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Active Status</span>
-        <h3 className="text-sm font-semibold tracking-wide text-white mb-4">Residential Living Suite</h3>
-        
-        <div className="flex items-baseline space-x-2">
-          <span className="text-4xl font-black text-blue-400">40%</span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Completed</span>
-        </div>
-
-        <div className="w-full bg-slate-700 h-2 rounded-full mt-3 overflow-hidden">
-          <div className="bg-[#0070c0] h-full w-[40%] rounded-full transition-all duration-500" />
-        </div>
-      </div>
-
-      {/* Build Roadmap Stepper */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <h4 className="text-xs font-black tracking-widest uppercase text-slate-800 mb-6">Build Roadmap</h4>
-        
-        <div className="space-y-6 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
-          {milestones.map((step, idx) => (
-            <div key={idx} className="flex items-start space-x-4 relative z-10">
-              {step.status === 'completed' ? (
-                <CheckCircle2 className="w-6 h-6 text-blue-500 bg-white rounded-full" />
-              ) : step.status === 'active' ? (
-                <Circle className="w-6 h-6 text-[#0070c0] stroke-[3] bg-white rounded-full animate-pulse" />
-              ) : (
-                <Circle className="w-6 h-6 text-slate-200 bg-white rounded-full" />
-              )}
-              
-              <div className="space-y-0.5">
-                <p className={`text-xs font-bold ${step.status === 'completed' ? 'text-slate-500 line-through' : 'text-slate-800'}`}>
-                  {step.name}
-                </p>
-                <p className="text-[10px] text-slate-400 leading-relaxed">{step.desc}</p>
-                {step.status === 'active' && (
-                  <span className="inline-block mt-1 bg-blue-50 text-blue-600 text-[8px] font-extrabold tracking-widest px-1.5 py-0.5 rounded uppercase">
-                    In Progress
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+export default function Track(){
+ const [projects,setProjects]=useState<Project[]>([]);const [error,setError]=useState('');
+ useEffect(()=>{const load=async()=>{const client=getClientSession();if(!client){setError('Please sign in again to view project tracking.');return}const response=await fetch(`${getApiUrl()}/booking?user_id=${client.id}`);const data=await response.json();if(!response.ok||!data.success)throw new Error(data.message||'Unable to load your projects.');const accepted=(data.bookings??[]).filter((item:{accepted_at?:string|null})=>Boolean(item.accepted_at)).sort((first:{id:number},second:{id:number})=>first.id-second.id);const rows=await Promise.all(accepted.map(async(booking:{id:number;service_type:string;status:string})=>{const trackingResponse=await fetch(`${getApiUrl()}/tracking/${booking.id}`);const trackingData=await trackingResponse.json();const latest=trackingData.tracking?.[0];return{id:booking.id,title:booking.service_type,progress:Math.max(0,Math.min(100,Number(latest?.progress)||0)),stage:latest?.current_stage||booking.status||'Pending',remarks:latest?.remarks||''}}));setProjects(rows.filter(project=>project.progress<100))};void load().catch(e=>setError(e instanceof Error?e.message:'Unable to load build tracking.'));const timer=window.setInterval(()=>void load().catch(()=>undefined),10000);return()=>window.clearInterval(timer)},[]);
+ return <div className="p-4 space-y-4 animate-fadeIn"><div className="flex items-center space-x-2 text-xs font-bold tracking-wider text-slate-400"><Compass className="w-4 h-4 text-blue-500"/><span>LIVE PROJECT TIMELINE</span></div>{error&&<p className="rounded-xl bg-red-50 p-3 text-xs text-red-700">{error}</p>}{!projects.length&&!error&&<div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-xs text-slate-400">No accepted projects are available for live tracking yet.</div>}
+ {projects.map(project=>{const milestones=milestoneNames.map((name,index)=>{const threshold=(index+1)*20;const status=project.progress>=threshold?'completed':project.progress>=index*20?'active':'upcoming';return{name,status,desc:status==='active'?(project.remarks||project.stage):status==='completed'?'Completed by the project team':'Waiting for the previous stage'}});return <section key={project.id} className="space-y-4">
+  <div className="bg-[#1a2138] text-white rounded-2xl p-5 shadow-xl"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{project.stage} · Project #{project.id}</span><h3 className="text-sm font-semibold tracking-wide text-white mb-4">{project.title}</h3><div className="flex items-baseline space-x-2"><span className="text-4xl font-black text-blue-400">{project.progress}%</span><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Completed</span></div><div className="w-full bg-slate-700 h-2 rounded-full mt-3 overflow-hidden"><div className="bg-[#0070c0] h-full rounded-full transition-all duration-500" style={{width:`${project.progress}%`}}/></div></div>
+  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm"><h4 className="text-xs font-black tracking-widest uppercase text-slate-800 mb-6">Build Roadmap</h4><div className="space-y-6 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">{milestones.map((step,index)=><div key={step.name} className="flex items-start space-x-4 relative z-10">{step.status==='completed'?<CheckCircle2 className="w-6 h-6 text-blue-500 bg-white rounded-full"/>:<Circle className={`w-6 h-6 bg-white rounded-full ${step.status==='active'?'text-[#0070c0] stroke-[3] animate-pulse':'text-slate-200'}`}/>}<div className="space-y-0.5"><p className={`text-xs font-bold ${step.status==='completed'?'text-slate-500 line-through':'text-slate-800'}`}>{step.name}</p><p className="text-[10px] text-slate-400 leading-relaxed">{step.desc}</p>{step.status==='active'&&<span className="inline-block mt-1 bg-blue-50 text-blue-600 text-[8px] font-extrabold tracking-widest px-1.5 py-0.5 rounded uppercase">In Progress</span>}</div></div>)}</div></div>
+ </section>})}</div>
 }

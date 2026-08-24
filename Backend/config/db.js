@@ -8,12 +8,25 @@ const db = mysql.createConnection({
     database: process.env.DB_NAME || "design_booking_db"
 });
 
-db.connect((err) => {
-    if (err) {
-        console.error("Database Connection Failed:", err);
-    } else {
-        console.log("✅ MySQL Connected");
+let connectionPromise;
+
+const connectDatabase = () => {
+    if (!connectionPromise) {
+        connectionPromise = new Promise((resolve, reject) => {
+            db.connect((error) => {
+                if (error) {
+                    connectionPromise = undefined;
+                    return reject(error);
+                }
+
+                console.log("MySQL connected.");
+                resolve(db);
+            });
+        });
     }
-});
+
+    return connectionPromise;
+};
 
 module.exports = db;
+module.exports.connectDatabase = connectDatabase;

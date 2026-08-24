@@ -6,31 +6,40 @@ const createBooking = (req, res) => {
     const user_id = Number(req.body.user_id);
     const service_type = (req.body.service_type || "").trim();
     const project_description = (req.body.project_description || "").trim();
+    const preferred_start_date = (req.body.preferred_start_date || "").trim();
+    const preferred_start_time = (req.body.preferred_start_time || "").trim();
 
-    if (!user_id || !service_type || !project_description) {
+    if (!user_id || !service_type || !project_description || !/^\d{4}-\d{2}-\d{2}$/.test(preferred_start_date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(preferred_start_time)) {
         return res.status(400).json({
             success: false,
-            message: "user_id, service_type, and project_description are required."
+            message: "Booking details and a valid preferred start date and time are required."
         });
     }
 
     db.query(
-        "INSERT INTO bookings(user_id, service_type, project_description) VALUES(?,?,?)",
-        [user_id, service_type, project_description],
-        (err, result) => {
+      `SELECT id FROM schedules
+       WHERE visit_date = ? AND TIME_FORMAT(time_start, '%H:%i') = ?
+         AND LOWER(status) NOT IN ('cancelled', 'rejected')
+       LIMIT 1`,
+      [preferred_start_date, preferred_start_time],
+      (availabilityError, conflicts) => {
+        if (availabilityError) return res.status(500).json({ success:false, message:availabilityError.message });
+        if (conflicts.length) return res.status(409).json({ success:false, code:'SCHEDULE_CONFLICT', message:'That project date and time is already booked. Please choose another slot.' });
 
-            if (err) {
-                return res.status(500).json({ success: false, message: err.message });
-            }
-
-            res.status(201).json({
-                success: true,
-                message: "Booking created successfully.",
-                bookingId: result.insertId,
-                booking: { id: result.insertId, user_id, service_type, project_description, status: "Pending" }
+    db.beginTransaction((transactionError) => {
+        if (transactionError) return res.status(500).json({ success: false, message: transactionError.message });
+        db.query("INSERT INTO bookings(user_id, service_type, project_description) VALUES(?,?,?)", [user_id, service_type, project_description], (bookingError, result) => {
+            if (bookingError) return db.rollback(() => res.status(500).json({ success: false, message: bookingError.message }));
+            db.query("INSERT INTO schedules (booking_id, visit_date, date, time_start, status) VALUES (?, ?, ?, ?, 'Pending')", [result.insertId, preferred_start_date, preferred_start_date, preferred_start_time], (scheduleError) => {
+                if (scheduleError) return db.rollback(() => res.status(500).json({ success: false, message: scheduleError.message }));
+                db.commit((commitError) => {
+                    if (commitError) return db.rollback(() => res.status(500).json({ success: false, message: commitError.message }));
+                    res.status(201).json({ success: true, message: "Booking and preferred start schedule submitted successfully.", bookingId: result.insertId, booking: { id: result.insertId, user_id, service_type, project_description, preferred_start_date, preferred_start_time, status: "Pending" } });
+                });
             });
-
-        }
+        });
+    });
+      }
     );
 };
 
@@ -38,7 +47,8 @@ const createBooking = (req, res) => {
 const getBookings = (req, res) => {
 
     const userId = Number(req.query.user_id);
-    const query = `SELECT bookings.*, users.fullname AS client_name, users.email AS client_email
+    const query = `SELECT bookings.*, users.fullname AS client_name, users.email AS client_email,
+                          users.address AS client_address
                    FROM bookings
                    LEFT JOIN users ON users.id = bookings.user_id
                    ${userId ? "WHERE bookings.user_id = ?" : ""}
@@ -89,7 +99,11 @@ const updateBooking = (req, res) => {
     const values = [];
     if (service_type) { updates.push("service_type = ?"); values.push(service_type); }
     if (project_description) { updates.push("project_description = ?"); values.push(project_description); }
-    if (status) { updates.push("status = ?"); values.push(status); }
+    if (status) {
+        updates.push("status = ?"); values.push(status);
+        if (status.toLowerCase() === "confirmed" || status.toLowerCase() === "approved") updates.push("accepted_at = COALESCE(accepted_at, NOW())");
+        if (status.toLowerCase() === "rejected" || status.toLowerCase() === "cancelled") updates.push("accepted_at = NULL");
+    }
     values.push(req.params.id);
 
     db.query(

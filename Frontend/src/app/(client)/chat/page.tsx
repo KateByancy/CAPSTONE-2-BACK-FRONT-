@@ -1,6 +1,6 @@
 // src/components/Chat.tsx
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquare, Send } from 'lucide-react';
 import { getApiUrl, getClientSession } from '@/lib/api';
 
@@ -10,6 +10,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const loadMessages = async () => {
     const client = getClientSession();
@@ -20,7 +21,15 @@ export default function Chat() {
     setMessages(result.map((message) => ({ id: message.id, text: message.message, isMe: message.sender === 'client' })));
   };
 
-  useEffect(() => { void loadMessages().catch((err) => setError(err.message)); }, []);
+  useEffect(() => {
+    void loadMessages().catch((err) => setError(err.message));
+    const timer = window.setInterval(() => void loadMessages().catch(() => undefined), 3000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +75,7 @@ export default function Chat() {
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Interactive Chat Input Area */}

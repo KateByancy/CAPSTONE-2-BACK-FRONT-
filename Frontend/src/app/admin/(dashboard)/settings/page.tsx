@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Camera, Plus, ShieldCheck, Trash2, X } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 export default function ProfileSettings() {
   // --- FORM STATES ---
   const [formData, setFormData] = useState({
-    fullName: 'Marc',
-    phoneNumber: '+63 912 345 6789',
-    address: 'Manila, Philippines',
+    fullName: '', phoneNumber: '', address: '',
   });
+  const [adminId, setAdminId] = useState<number | null>(null);
+  const [message, setMessage] = useState('');
+  useEffect(() => { const raw=localStorage.getItem('adminAccount'); if(!raw)return; try { const a=JSON.parse(raw); setAdminId(a.id); setFormData({fullName:a.fullname||'',phoneNumber:a.phone||'',address:a.address||''}); } catch { setMessage('Unable to read the admin profile.'); } }, []);
 
   // --- PORTFOLIO MODAL STATE ---
   const [isPortfolioOpen, setIsPortfolioOpen] = useState(false);
@@ -21,15 +23,19 @@ export default function ProfileSettings() {
   });
 
   // Handle main profile update submit
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Profile settings saved successfully!');
+    if(!adminId)return setMessage('Please sign in again.');
+    const response=await fetch(`${getApiUrl()}/profile/${adminId}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('adminToken')||''}`},body:JSON.stringify({fullname:formData.fullName,phone:formData.phoneNumber,address:formData.address})});
+    setMessage(response.ok?'Profile settings saved.':'Unable to save profile settings.');
   };
 
   // Handle portfolio submission
-  const handlePublishPortfolio = (e: React.FormEvent) => {
+  const handlePublishPortfolio = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Portfolio item published successfully!');
+    const response=await fetch(`${getApiUrl()}/portfolio`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:portfolioData.title,image:portfolioData.imageUrl,description:[portfolioData.category,portfolioData.stories].filter(Boolean).join(' — ')})});
+    if(!response.ok)return setMessage('Unable to publish portfolio item.');
+    setMessage('Portfolio item published successfully.');
     setIsPortfolioOpen(false);
     setPortfolioData({ title: '', imageUrl: '', category: '', stories: '' });
   };
@@ -51,6 +57,7 @@ export default function ProfileSettings() {
 
       {/* 2. MAIN SETTINGS CARD CONTAINER */}
       <div className="w-full max-w-2xl mx-auto space-y-6">
+        {message && <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{message}</p>}
         
         {/* AVATAR SECTION */}
         <div className="flex flex-col items-center justify-center space-y-2 pt-2">

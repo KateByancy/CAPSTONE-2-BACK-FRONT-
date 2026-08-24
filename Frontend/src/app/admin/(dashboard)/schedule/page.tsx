@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, MapPin, User, Trash2 } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
+import Link from 'next/link';
 
 interface Timeblock {
   id: string;
@@ -16,8 +17,11 @@ interface Timeblock {
 
 export default function ScheduleManagement() {
   // --- STATE SYSTEM ---
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 6, 20)); // July 2026
-  const [selectedDateStr, setSelectedDateStr] = useState("2026-07-24");
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [selectedDateStr, setSelectedDateStr] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
 
   // Client-submitted booking schedule data
   const [timeblocks, setTimeblocks] = useState<Timeblock[]>([]);
@@ -114,6 +118,8 @@ export default function ScheduleManagement() {
             Client Booking Schedule
           </p>
         </div>
+
+        <Link href="/admin/dashboard" className="order-last ml-auto shrink-0 inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
 
         {/* Month Navigation Controls */}
         <div className="flex items-center space-x-1 bg-white/10 p-1 rounded-xl border border-white/20">

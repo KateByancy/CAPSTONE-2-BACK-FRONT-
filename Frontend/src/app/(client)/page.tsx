@@ -13,6 +13,7 @@ import TrackView from './track/page';
 import ChatView from './chat/page';
 import ProfileView from './profile/page';
 import DashboardShell from './dashboardshell/page';
+import { getApiUrl } from '@/lib/api';
 
 interface ClientAccount {
   id: number;
@@ -46,6 +47,18 @@ export default function ClientMasterController() {
       localStorage.removeItem('clientToken');
     }
   }, []);
+
+  useEffect(() => {
+    if (currentScreen !== 'dashboard') return;
+    const sendHeartbeat = () => {
+      const token = localStorage.getItem('clientToken');
+      if (!token) return;
+      void fetch(`${getApiUrl()}/auth/presence`, { method:'POST', headers:{ Authorization:`Bearer ${token}` } });
+    };
+    sendHeartbeat();
+    const timer = window.setInterval(sendHeartbeat, 20000);
+    return () => window.clearInterval(timer);
+  }, [currentScreen]);
 
   // 1. Landing Page: "Launch Client Workspace" button triggers login
   if (currentScreen === 'landing') {

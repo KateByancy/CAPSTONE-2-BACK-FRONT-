@@ -7,6 +7,7 @@ const {
   getScheduleById,
   updateSchedule,
   deleteSchedule,
+  getUnavailableSlots,
 } = require("../controllers/scheduleController");
 
 // Create schedule
@@ -14,6 +15,7 @@ router.post("/", scheduleVisit);
 
 // Get all schedules
 router.get("/", getSchedules);
+router.get("/unavailable", getUnavailableSlots);
  
 //grt schedule by id
 router.get("/:id", getScheduleById);

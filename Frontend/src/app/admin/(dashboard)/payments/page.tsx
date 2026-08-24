@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { 
   Check, 
   X, 
@@ -15,10 +15,14 @@ import {
   Receipt,
   ArrowRight,
   ShieldCheck,
-  FileText
+  FileText,
+  ChevronLeft
 } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
+import Link from 'next/link';
 
 interface PaymentTransaction {
+  id: number;
   reference: string;
   client: string;
   amount: string;
@@ -33,19 +37,18 @@ type FilterTab = 'pending' | 'accepted' | 'declined';
 export default function PaymentsVerification() {
   // --- STATE SYSTEM ---
   const [activeTab, setActiveTab] = useState<FilterTab>('pending');
-  const [transactions, setTransactions] = useState<PaymentTransaction[]>([
-    {
-      reference: "4000082236507",
-      client: "John Doe",
-      amount: "40,000",
-      date: "Apr 24, 2026",
-      method: "Gcash Transfer",
-      status: "pending"
-    }
-  ]);
+  const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
+  const loadPayments = useCallback(async () => {
+    const response = await fetch(`${getApiUrl()}/payment`);
+    const rows: Array<{id:number;reference_number?:string;client_name?:string;amount:string;created_at:string;status:string}> = await response.json();
+    setTransactions(rows.map(row => ({ id:row.id, reference:row.reference_number || `PAY-${row.id}`, client:row.client_name || 'Client', amount:Number(row.amount).toLocaleString(), date:new Date(row.created_at).toLocaleDateString(), method:'Client payment submission', status:row.status.toLowerCase() === 'verified' ? 'accepted' : row.status.toLowerCase() === 'declined' ? 'declined' : 'pending' })));
+  }, []);
+  useEffect(() => { void loadPayments(); }, [loadPayments]);
 
   // Handle Accept Action
-  const handleAccept = (reference: string) => {
+  const handleAccept = async (reference: string) => {
+    const payment = transactions.find(t => t.reference === reference); if (!payment) return;
+    await fetch(`${getApiUrl()}/payment/${payment.id}/verify`, {method:'PUT'});
     setTransactions(prev =>
       prev.map(t => (t.reference === reference ? { ...t, status: 'accepted' } : t))
     );
@@ -58,7 +61,9 @@ export default function PaymentsVerification() {
   };
 
   // Handle Decline Action
-  const handleDecline = (reference: string) => {
+  const handleDecline = async (reference: string) => {
+    const payment = transactions.find(t => t.reference === reference); if (!payment) return;
+    await fetch(`${getApiUrl()}/payment/${payment.id}/decline`, {method:'PUT'});
     setTransactions(prev =>
       prev.map(t => (t.reference === reference ? { ...t, status: 'declined' } : t))
     );
@@ -71,8 +76,9 @@ export default function PaymentsVerification() {
   };
 
   // Permanently delete transaction record
-  const handleDelete = (reference: string) => {
-    setTransactions(prev => prev.filter(t => t.reference !== reference));
+  const handleDelete = async (reference: string) => {
+    const payment = transactions.find(t => t.reference === reference); if (!payment) return;
+    await fetch(`${getApiUrl()}/payment/${payment.id}`, {method:'DELETE'}); await loadPayments();
   };
 
   // Metrics Counters
@@ -104,6 +110,7 @@ export default function PaymentsVerification() {
 
         {/* CLICKABLE STATUS FILTER BADGES */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-white/10 p-2 rounded-2xl border border-white/20 backdrop-blur-sm">
+          <Link href="/admin/dashboard" className="order-last ml-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 text-white hover:bg-white/20 transition"><ChevronLeft className="w-3.5 h-3.5"/>Overview</Link>
           
           {/* PENDING TAB */}
           <button

@@ -34,9 +34,11 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
     e.preventDefault();
     const client = getClientSession();
     if (!client) { setError('Please sign in again before saving your profile.'); return; }
+    const token = localStorage.getItem('clientToken');
+    if (!token) { setError('Please sign in again before saving your profile.'); return; }
     try {
       const response = await fetch(`${getApiUrl()}/profile/${client.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ fullname: fullName, phone: phoneNumber, address: primaryAddress }),
       });
       const result: { success: boolean; message?: string } = await response.json();

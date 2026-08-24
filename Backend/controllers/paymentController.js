@@ -29,8 +29,10 @@ const createPayment = (req, res) => {
 // Get all payments
 const getPayments = (req, res) => {
   const sql = `
-    SELECT *
+    SELECT payments.*, users.fullname AS client_name
     FROM payments
+    LEFT JOIN bookings ON bookings.id = payments.booking_id
+    LEFT JOIN users ON users.id = bookings.user_id
     ORDER BY created_at DESC
   `;
 
@@ -40,6 +42,14 @@ const getPayments = (req, res) => {
     }
 
     res.json(results);
+  });
+};
+
+const declinePayment = (req, res) => {
+  db.query("UPDATE payments SET status='Declined' WHERE id=?", [req.params.id], (err, result) => {
+    if (err) return res.status(500).json(err);
+    if (!result.affectedRows) return res.status(404).json({ success: false, message: "Payment not found." });
+    res.json({ success: true, message: "Payment declined." });
   });
 };
 
@@ -89,5 +99,6 @@ module.exports = {
   createPayment,
   getPayments,
   verifyPayment,
+  declinePayment,
   deletePayment,
 };

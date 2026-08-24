@@ -21,7 +21,7 @@ const createInquiry = (req, res) => {
 
 // Get all inquiries
 const getInquiries = (req, res) => {
-    db.query("SELECT * FROM inquiries", (err, result) => {
+    db.query("SELECT * FROM inquiries ORDER BY created_at DESC", (err, result) => {
         if (err) return res.status(500).json(err);
 
         res.json(result);

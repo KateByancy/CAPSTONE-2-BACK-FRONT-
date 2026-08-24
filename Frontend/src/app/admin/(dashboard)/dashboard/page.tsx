@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Calendar, Users, CreditCard, ArrowRight, Clock, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, Users, CreditCard, Clock, Trash2 } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 interface ClientProject {
   id: string;
@@ -27,20 +28,27 @@ export default function DashboardOverview() {
   // --- CLIENT PROJECTS PIPELINE STATE ENGINE (JOHN DOE ONLY) ---
   const [activeFilter, setActiveFilter] = useState<'pending' | 'ongoing' | 'completed'>('ongoing');
   
-  const [projects, setProjects] = useState<ClientProject[]>([
-    {
-      id: 'p-john-doe',
-      projectRef: '#1509',
-      clientName: 'John Doe',
-      service: 'Living Room Makeover',
-      location: 'Victorio St., Brgy. Buagsong, Cordova, Cebu',
-      status: 'ongoing',
-      progress: 15
-    }
-  ]);
+  const [projects, setProjects] = useState<ClientProject[]>([]);
 
   // EMPTY CLIENT INQUIRIES DATASET
-  const [inquiries] = useState<Inquiry[]>([]);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+
+  const loadDashboard = useCallback(async () => {
+    const [bookingResponse, trackingResponse, inquiryResponse] = await Promise.all([
+      fetch(`${getApiUrl()}/booking`), fetch(`${getApiUrl()}/tracking`), fetch(`${getApiUrl()}/inquiries`)
+    ]);
+    const bookingData = await bookingResponse.json();
+    const trackingData = await trackingResponse.json();
+    const inquiryData = await inquiryResponse.json();
+    const tracks: Array<{booking_id:number;progress:number}> = trackingData.tracking ?? [];
+    setProjects((bookingData.bookings ?? []).filter((b: {accepted_at?:string|null}) => Boolean(b.accepted_at)).map((b: {id:number;client_name?:string;service_type:string;status:string;client_address?:string}) => {
+      const progress = tracks.find(t => t.booking_id === b.id)?.progress ?? 0;
+      const status: ClientProject['status'] = progress >= 100 ? 'completed' : progress >= 20 ? 'ongoing' : 'pending';
+      return { id:String(b.id), projectRef:`#${b.id}`, clientName:b.client_name || 'Client', service:b.service_type, location:b.client_address || 'Address not provided', status, progress };
+    }));
+    setInquiries((Array.isArray(inquiryData) ? inquiryData : []).map((i: {id:number;fullname:string;subject:string;created_at:string}) => ({id:String(i.id),clientName:i.fullname,service:i.subject,date:new Date(i.created_at).toLocaleDateString()})));
+  }, []);
+  useEffect(() => { void loadDashboard(); }, [loadDashboard]);
 
   // --- CALCULATE COUNTS DYNAMICALLY ---
   const pendingCount = projects.filter(p => p.status === 'pending').length;
@@ -50,21 +58,8 @@ export default function DashboardOverview() {
   const filteredProjects = projects.filter(p => p.status === activeFilter);
 
   // --- PIPELINE ACTIONS ---
-  const handleAdvanceStatus = (id: string, currentStatus: 'pending' | 'ongoing' | 'completed') => {
-    setProjects(prev => prev.map(p => {
-      if (p.id === id) {
-        if (currentStatus === 'pending') {
-          return { ...p, status: 'ongoing', progress: 25 };
-        } else if (currentStatus === 'ongoing') {
-          return { ...p, status: 'completed', progress: 100 };
-        }
-      }
-      return p;
-    }));
-  };
-
-  const handleDeleteProject = (id: string) => {
-    setProjects(prev => prev.filter(p => p.id !== id));
+  const handleDeleteProject = async (id: string) => {
+    await fetch(`${getApiUrl()}/booking/${id}`, {method:'DELETE'}); await loadDashboard();
   };
 
   const handleViewAllInquiries = () => {
@@ -175,15 +170,7 @@ export default function DashboardOverview() {
                     </div>
 
                     <div className="flex items-center space-x-2 self-start sm:self-center">
-                      {project.status !== 'completed' ? (
-                        <button
-                          onClick={() => handleAdvanceStatus(project.id, project.status)}
-                          className="flex items-center space-x-1 px-3 py-1.5 bg-[#0070c0] hover:bg-[#102243] text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition cursor-pointer border-none shadow-sm"
-                        >
-                          <span>Move to {project.status === 'pending' ? 'Ongoing' : 'Completed'}</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </button>
-                      ) : (
+                      {project.status === 'completed' && (
                         <button
                           onClick={() => handleDeleteProject(project.id)}
                           title="Delete Completed Project"

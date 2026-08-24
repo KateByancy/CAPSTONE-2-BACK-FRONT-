@@ -14,8 +14,9 @@ connection.query(`CREATE DATABASE IF NOT EXISTS ${mysql.escapeId(databaseName)}`
   if (error) {
     console.error("Database creation failed:", error.message);
     process.exitCode = 1;
+    connection.destroy();
   } else {
     console.log(`Database '${databaseName}' is ready.`);
+    connection.end();
   }
-  connection.end();
 });

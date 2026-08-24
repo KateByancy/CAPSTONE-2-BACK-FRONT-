@@ -23,9 +23,9 @@ export default function BookingsManagement() {
 
   const loadBookings = async () => {
     const response = await fetch(`${getApiUrl()}/booking`);
-    const result: { success: boolean; bookings?: Array<{ id: number; client_name?: string; service_type: string; project_description: string; created_at: string; status: string }> } = await response.json();
+    const result: { success: boolean; bookings?: Array<{ id: number; client_name?: string; service_type: string; project_description: string; created_at: string; status: string; accepted_at?: string | null }> } = await response.json();
     if (!response.ok || !result.success) throw new Error('Unable to load bookings.');
-    setBookings((result.bookings ?? []).map((booking): BookingRequest => {
+    setBookings((result.bookings ?? []).filter(booking => !booking.accepted_at).map((booking): BookingRequest => {
       const status: BookingRequest['status'] = booking.status.toLowerCase() === 'confirmed'
         ? 'confirmed'
         : booking.status.toLowerCase() === 'rejected' ? 'rejected' : 'pending';

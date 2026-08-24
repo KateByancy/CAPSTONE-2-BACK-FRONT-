@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Camera, Plus, Check, ChevronDown, X, Trash2 } from 'lucide-react';
+import { Camera, Plus, Check, X, Trash2 } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 interface BuildProject {
   id: string;
+  userId: number;
+  trackingId?: number;
   title: string;
   status: 'Pending' | 'Ongoing' | 'Completed';
   progress: number;
@@ -12,53 +15,28 @@ interface BuildProject {
   milestones: { id: string; label: string; completed: boolean }[];
 }
 
-const DEFAULT_BUILDS: BuildProject[] = [
-  {
-    id: "b1",
-    title: "Living Room Design",
-    status: "Ongoing",
-    progress: 40,
-    concepts: [],
-    milestones: [
-      { id: "m1", label: "Initial Consultation", completed: true },
-      { id: "m2", label: "Design Proposal", completed: true },
-      { id: "m3", label: "Material Selection", completed: false },
-      { id: "m4", label: "Execution", completed: false },
-      { id: "m5", label: "Final Handover", completed: false },
-    ]
-  }
-];
-
 export default function BuildManagement() {
   const [mounted, setMounted] = useState(false);
 
   // Load initial state from localStorage if available
-  const [builds, setBuilds] = useState<BuildProject[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("active_builds_data");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          console.error("Failed to parse saved builds", e);
-        }
-      }
-    }
-    return DEFAULT_BUILDS;
-  });
+  const [builds, setBuilds] = useState<BuildProject[]>([]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (mounted) {
-      localStorage.setItem("active_builds_data", JSON.stringify(builds));
-    }
-  }, [builds, mounted]);
+    Promise.all([fetch(`${getApiUrl()}/booking`).then(r=>r.json()),fetch(`${getApiUrl()}/tracking`).then(r=>r.json()),fetch(`${getApiUrl()}/designs`).then(r=>r.json())]).then(([bookingData,trackingData,designData]) => {
+      const tracks: Array<{id:number;booking_id:number;progress:number;current_stage:string}> = trackingData.tracking ?? [];
+      setBuilds((bookingData.bookings ?? []).filter((b:{accepted_at?:string|null})=>Boolean(b.accepted_at)).map((b:{id:number;user_id:number;service_type:string;status:string})=>{
+        const track=tracks.find(t=>t.booking_id===b.id); const progress=track?.progress??0;
+        const status:BuildProject['status']=progress>=100?'Completed':progress>=20?'Ongoing':'Pending';
+        return {id:String(b.id),userId:b.user_id,trackingId:track?.id,title:b.service_type,status,progress,concepts:(Array.isArray(designData)?designData:[]).filter((d:{user_id:number})=>d.user_id===b.user_id).map((d:{title:string;image?:string;description?:string})=>({title:d.title,url:d.image||'',description:d.description})),milestones:[20,40,60,80,100].map((point,index)=>({id:`${b.id}-${point}`,label:['Initial Consultation','Design Proposal','Material Selection','Execution','Final Handover'][index],completed:progress>=point}))};
+      })); setMounted(true);
+    }).catch(()=>setMounted(true));
+  }, []);
 
   // Active Modals & Selection States
-  const [activeStatusDropdown, setActiveStatusDropdown] = useState<string | null>(null);
   const [activeRoadmapBuild, setActiveRoadmapBuild] = useState<BuildProject | null>(null);
   const [activeConceptModalBuild, setActiveConceptModalBuild] = useState<BuildProject | null>(null);
   const [activePhotosBuild, setActivePhotosBuild] = useState<BuildProject | null>(null);
@@ -72,34 +50,29 @@ export default function BuildManagement() {
   // --- HANDLERS ---
   
   // Delete build manually
-  const handleDeleteBuild = (buildId: string) => {
-    setBuilds(prev => prev.filter(b => b.id !== buildId));
-  };
-
-  // Change status manually
-  const handleStatusChange = (buildId: string, newStatus: 'Pending' | 'Ongoing' | 'Completed') => {
-    setBuilds(prev => prev.map(b => {
-      if (b.id === buildId) {
-        const isCompleted = newStatus === 'Completed';
-        return {
-          ...b,
-          status: newStatus,
-          progress: isCompleted ? 100 : b.progress,
-          milestones: isCompleted ? b.milestones.map(m => ({ ...m, completed: true })) : b.milestones
-        };
-      }
-      return b;
-    }));
-    setActiveStatusDropdown(null);
+  const handleDeleteBuild = async (buildId: string) => {
+    await fetch(`${getApiUrl()}/booking/${buildId}`,{method:'DELETE'}); setBuilds(prev => prev.filter(b => b.id !== buildId));
   };
 
   // Toggle Milestones in Roadmap Modal (Primary driver of percentage)
   const handleToggleMilestone = (milestoneId: string) => {
     if (!activeRoadmapBuild) return;
 
-    const updatedMilestones = activeRoadmapBuild.milestones.map(m => 
-      m.id === milestoneId ? { ...m, completed: !m.completed } : m
-    );
+    const selectedIndex = activeRoadmapBuild.milestones.findIndex(m => m.id === milestoneId);
+    if (selectedIndex < 0) return;
+    const selectedMilestone = activeRoadmapBuild.milestones[selectedIndex];
+    if (!selectedMilestone.completed) {
+      const previousStepsComplete = activeRoadmapBuild.milestones
+        .slice(0, selectedIndex)
+        .every(milestone => milestone.completed);
+      if (!previousStepsComplete) return;
+    }
+
+    const updatedMilestones = activeRoadmapBuild.milestones.map((milestone, index) => {
+      if (selectedMilestone.completed && index >= selectedIndex) return { ...milestone, completed: false };
+      if (index === selectedIndex) return { ...milestone, completed: true };
+      return milestone;
+    });
 
     const completedCount = updatedMilestones.filter(m => m.completed).length;
     const calculatedProgress = Math.round((completedCount / updatedMilestones.length) * 100);
@@ -108,17 +81,24 @@ export default function BuildManagement() {
       ...activeRoadmapBuild,
       milestones: updatedMilestones,
       progress: calculatedProgress,
-      status: calculatedProgress === 100 ? 'Completed' : (activeRoadmapBuild.status === 'Completed' ? 'Ongoing' : activeRoadmapBuild.status)
+      status: calculatedProgress === 100 ? 'Completed' : calculatedProgress >= 20 ? 'Ongoing' : 'Pending'
     };
 
     setActiveRoadmapBuild(updatedBuild);
   };
 
   // Save Roadmap Changes
-  const handleSaveRoadmap = () => {
+  const handleSaveRoadmap = async () => {
     if (!activeRoadmapBuild) return;
 
-    setBuilds(prev => prev.map(b => b.id === activeRoadmapBuild.id ? activeRoadmapBuild : b));
+    const url=`${getApiUrl()}/tracking${activeRoadmapBuild.trackingId?`/${activeRoadmapBuild.trackingId}`:''}`;
+    const bookingResponse=await fetch(`${getApiUrl()}/booking/${activeRoadmapBuild.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:activeRoadmapBuild.status})});
+    if(!bookingResponse.ok){window.alert('Unable to save the project status.');return;}
+    const response=await fetch(url,{method:activeRoadmapBuild.trackingId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({booking_id:Number(activeRoadmapBuild.id),progress:activeRoadmapBuild.progress,current_stage:activeRoadmapBuild.status})});
+    const result=await response.json();
+    if(!response.ok){window.alert(result.message||'Unable to save project progress.');return;}
+    const savedBuild={...activeRoadmapBuild,trackingId:activeRoadmapBuild.trackingId||result.trackingId};
+    setBuilds(prev => prev.map(b => b.id === savedBuild.id ? savedBuild : b));
 
     setActiveRoadmapBuild(null);
     setShowSavedSuccess(true);
@@ -126,11 +106,12 @@ export default function BuildManagement() {
   };
 
   // Add Design Concept
-  const handleAddConcept = (e: React.FormEvent) => {
+  const handleAddConcept = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeConceptModalBuild || !conceptTitle) return;
 
-    const newConcept = { title: conceptTitle, url: conceptUrl || "https://via.placeholder.com/150", description: conceptDesc };
+    const newConcept = { title: conceptTitle, url: conceptUrl, description: conceptDesc };
+    await fetch(`${getApiUrl()}/designs`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:activeConceptModalBuild.userId,title:conceptTitle,description:conceptDesc,image:conceptUrl})});
     setBuilds(prev => prev.map(b => {
       if (b.id === activeConceptModalBuild.id) {
         return { ...b, concepts: [...b.concepts, newConcept] };
@@ -168,33 +149,12 @@ export default function BuildManagement() {
               {/* Header: Status Dropdown, Delete Icon & Dynamic Progress Percentage */}
               <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-2">
-                  <div className="relative">
-                    <button
-                      onClick={() => setActiveStatusDropdown(activeStatusDropdown === build.id ? null : build.id)}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold text-white flex items-center space-x-1.5 transition border-none cursor-pointer ${
-                        build.status === 'Ongoing' ? 'bg-[#51c440] hover:bg-[#46aa37]' :
-                        build.status === 'Completed' ? 'bg-[#0070c0] hover:bg-[#005ba1]' : 'bg-amber-500 hover:bg-amber-600'
-                      }`}
-                    >
-                      <span className="uppercase tracking-wide">{build.status}</span>
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-
-                    {/* Dropdown Menu */}
-                    {activeStatusDropdown === build.id && (
-                      <div className="absolute left-0 top-9 w-32 bg-white border border-slate-200 rounded-xl shadow-xl z-30 overflow-hidden text-xs py-1 animate-in fade-in zoom-in-95">
-                        {(['Pending', 'Ongoing', 'Completed'] as const).map((st) => (
-                          <button
-                            key={st}
-                            onClick={() => handleStatusChange(build.id, st)}
-                            className="w-full text-left px-3 py-1.5 hover:bg-slate-50 font-serif text-slate-700 block transition border-none cursor-pointer"
-                          >
-                            {st}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <span className={`px-3 py-1 rounded-lg text-xs font-bold text-white uppercase tracking-wide ${
+                    build.status === 'Ongoing' ? 'bg-[#51c440]' :
+                    build.status === 'Completed' ? 'bg-[#0070c0]' : 'bg-amber-500'
+                  }`}>
+                    {build.status}
+                  </span>
 
                   {/* Delete Button Icon */}
                   <button
@@ -336,11 +296,12 @@ export default function BuildManagement() {
 
             {/* Checkbox Items */}
             <div className="space-y-2.5 pt-1">
-              {activeRoadmapBuild.milestones.map((ms) => (
+              {activeRoadmapBuild.milestones.map((ms, milestoneIndex) => (
                 <div 
                   key={ms.id}
                   onClick={() => handleToggleMilestone(ms.id)}
-                  className="bg-[#f0f6fc]/80 hover:bg-[#f0f6fc] border border-slate-200/80 rounded-xl p-3 flex items-center space-x-3 cursor-pointer transition"
+                  title={!ms.completed && !activeRoadmapBuild.milestones.slice(0, milestoneIndex).every(item => item.completed) ? 'Complete the previous milestone first.' : undefined}
+                  className={`bg-[#f0f6fc]/80 border border-slate-200/80 rounded-xl p-3 flex items-center space-x-3 transition ${!ms.completed && !activeRoadmapBuild.milestones.slice(0, milestoneIndex).every(item => item.completed) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-[#f0f6fc]'}`}
                 >
                   <div className={`w-5 h-5 rounded flex items-center justify-center border ${
                     ms.completed ? 'bg-[#51c440] border-[#51c440] text-white' : 'bg-white border-slate-300'

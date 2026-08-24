@@ -1,6 +1,16 @@
 const db = require("../config/db");
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const { issueAccessToken } = require("../utils/authTokens");
+
+const query = (sql, values = []) => new Promise((resolve, reject) => {
+  db.query(sql, values, (error, result) => error ? reject(error) : resolve(result));
+});
+const beginTransaction = () => new Promise((resolve, reject) => db.beginTransaction((error) => error ? reject(error) : resolve()));
+const commit = () => new Promise((resolve, reject) => db.commit((error) => error ? reject(error) : resolve()));
+const rollback = () => new Promise((resolve) => db.rollback(resolve));
+
+const authenticationError = { success: false, message: "Invalid email or password." };
 
 // ==============================
 // REGISTER
@@ -35,7 +45,7 @@ exports.register = async (req, res) => {
         if (err) {
           return res.status(500).json({
             success: false,
-            message: err.message,
+            message: "Unable to create account.",
           });
         }
 
@@ -63,7 +73,7 @@ exports.register = async (req, res) => {
             if (err) {
               return res.status(500).json({
                 success: false,
-                message: err.message,
+                message: "Unable to create account.",
               });
             }
 
@@ -75,11 +85,7 @@ exports.register = async (req, res) => {
               email,
             };
 
-            const token = jwt.sign(
-              { id: user.id },
-              process.env.JWT_SECRET || "marc_secret_key",
-              { expiresIn: "7d" }
-            );
+            const token = issueAccessToken({ ...user, role: "client" });
 
             res.status(201).json({
               success: true,
@@ -94,7 +100,7 @@ exports.register = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Unable to create account.",
     });
   }
 };
@@ -120,38 +126,28 @@ exports.login = (req, res) => {
       if (err) {
         return res.status(500).json({
           success: false,
-          message: err.message,
+          message: "Unable to sign in.",
         });
       }
 
       if (result.length === 0) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid email or password.",
-        });
+        return res.status(401).json(authenticationError);
       }
 
       const user = result[0];
 
-      const isMatch = await bcrypt.compare(
-        password,
-        user.password
-      );
-
-      if (!isMatch) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid email or password.",
-        });
+      let isMatch = false;
+      try {
+        isMatch = await bcrypt.compare(password, user.password);
+      } catch {
+        isMatch = false;
       }
 
-      const token = jwt.sign(
-        { id: user.id },
-        process.env.JWT_SECRET || "marc_secret_key",
-        {
-          expiresIn: "7d",
-        }
-      );
+      if (!isMatch) {
+        return res.status(401).json(authenticationError);
+      }
+
+      const token = issueAccessToken(user);
 
       res.json({
         success: true,
@@ -206,16 +202,7 @@ exports.adminLogin = async (req, res) => {
       role: "admin",
     };
 
-    const token = jwt.sign(
-      {
-        id: admin.id,
-        role: admin.role,
-      },
-      process.env.JWT_SECRET || "marc_secret_key",
-      {
-        expiresIn: "7d",
-      }
-    );
+    const token = issueAccessToken(admin);
 
     return res.json({
       success: true,
@@ -227,7 +214,7 @@ exports.adminLogin = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Unable to sign in.",
     });
   }
 };
@@ -246,8 +233,8 @@ exports.googleLogin = async (req, res) => {
     }
 
     db.query("SELECT id, fullname, phone, address, email FROM users WHERE email = ?", [profile.email], async (err, users) => {
-      if (err) return res.status(500).json({ success: false, message: err.message });
-      const issueToken = (user) => jwt.sign({ id: user.id }, process.env.JWT_SECRET || "marc_secret_key", { expiresIn: "7d" });
+      if (err) return res.status(500).json({ success: false, message: "Unable to sign in." });
+      const issueToken = (user) => issueAccessToken({ ...user, role: "client" });
       if (users.length) {
         const user = users[0];
         return res.json({ success: true, message: "Google sign-in successful.", token: issueToken(user), user });
@@ -274,16 +261,120 @@ exports.googleLogin = async (req, res) => {
 // ==============================
 exports.getClients = (req, res) => {
   db.query(
-    `SELECT id, fullname, email, phone, address, created_at
+    `SELECT id, fullname, email, phone, address, created_at, last_seen,
+            (last_seen IS NOT NULL AND last_seen >= DATE_SUB(NOW(), INTERVAL 45 SECOND)) AS is_online
      FROM users
      WHERE role = 'client' OR role IS NULL
      ORDER BY created_at DESC, id DESC`,
     (err, users) => {
       if (err) {
-        return res.status(500).json({ success: false, message: err.message });
+        return res.status(500).json({ success: false, message: "Unable to load clients." });
       }
 
       return res.json({ success: true, users });
     }
   );
+};
+
+exports.updatePresence = (req, res) => {
+  db.query("UPDATE users SET last_seen = NOW() WHERE id = ? AND role = 'client'", [req.user.id], (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: "Unable to update presence." });
+    if (!result.affectedRows) return res.status(404).json({ success: false, message: "Client account not found." });
+    return res.json({ success: true });
+  });
+};
+
+// ==============================
+// PASSWORD RECOVERY
+// ==============================
+exports.forgotPassword = async (req, res, next) => {
+  const genericResponse = {
+    success: true,
+    message: "If an account matches that email, password reset instructions will be sent."
+  };
+
+  try {
+    const email = req.body.email.trim().toLowerCase();
+    const users = await query("SELECT id FROM users WHERE email = ? LIMIT 1", [email]);
+
+    if (!users.length) return res.json(genericResponse);
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
+    const expirationMinutes = Number(process.env.PASSWORD_RESET_EXPIRES_MINUTES || 15);
+    const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
+
+    await query("UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [users[0].id]);
+    await query(
+      "INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)",
+      [users[0].id, tokenHash, expiresAt]
+    );
+
+    // A mail provider should deliver resetToken. It is exposed only to automated tests.
+    if (process.env.NODE_ENV === "test") genericResponse.resetToken = resetToken;
+    return res.json(genericResponse);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.resetPassword = async (req, res, next) => {
+  const tokenHash = crypto.createHash("sha256").update(req.body.token).digest("hex");
+  let transactionStarted = false;
+
+  try {
+    const passwordHash = await bcrypt.hash(req.body.password, 12);
+    await beginTransaction();
+    transactionStarted = true;
+
+    const tokens = await query(
+      `SELECT id, user_id FROM password_reset_tokens
+       WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW()
+       LIMIT 1 FOR UPDATE`,
+      [tokenHash]
+    );
+
+    if (!tokens.length) {
+      await rollback();
+      transactionStarted = false;
+      return res.status(400).json({ success: false, message: "Password reset token is invalid or expired." });
+    }
+
+    const token = tokens[0];
+    await query("UPDATE users SET password = ? WHERE id = ?", [passwordHash, token.user_id]);
+    await query("UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [token.user_id]);
+    await commit();
+    transactionStarted = false;
+
+    return res.json({ success: true, message: "Password reset successful. You can now sign in." });
+  } catch (error) {
+    if (transactionStarted) await rollback();
+    return next(error);
+  }
+};
+
+exports.changePassword = async (req, res, next) => {
+  try {
+    const users = await query("SELECT password FROM users WHERE id = ? LIMIT 1", [req.user.id]);
+    if (!users.length) return res.status(401).json({ success: false, message: "Authentication is required." });
+
+    let matches = false;
+    try {
+      matches = await bcrypt.compare(req.body.currentPassword, users[0].password);
+    } catch {
+      matches = false;
+    }
+
+    if (!matches) {
+      return res.status(400).json({ success: false, message: "Current password is incorrect." });
+    }
+
+    const passwordHash = await bcrypt.hash(req.body.newPassword, 12);
+    await query("UPDATE users SET password = ? WHERE id = ?", [passwordHash, req.user.id]);
+    await query("UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [req.user.id]);
+
+    return res.json({ success: true, message: "Password changed successfully." });
+  } catch (error) {
+    return next(error);
+  }
 };
