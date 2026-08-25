@@ -10,8 +10,10 @@ const {
   login,
   adminLogin,
   googleLogin,
+  getGoogleConfig,
   getClients,
   updatePresence,
+  clearPresence,
   forgotPassword,
   resetPassword,
   changePassword,
@@ -48,6 +50,7 @@ router.post("/register", [
 router.post("/login", emailAndPasswordRules, validateRequest, login);
 router.post("/admin-login", emailAndPasswordRules, validateRequest, adminLogin);
 router.post("/google", body("credential").notEmpty().withMessage("Google credential is required."), validateRequest, googleLogin);
+router.get("/google-config", getGoogleConfig);
 router.post(
     "/forgot-password",
     body("email").trim().isEmail().withMessage("A valid email address is required."),
@@ -66,7 +69,8 @@ router.post("/change-password", verifyToken, [
     validateRequest
 ], changePassword);
 router.get("/clients", verifyToken, authorizeRoles("admin"), getClients);
-router.post("/presence", verifyToken, authorizeRoles("client"), updatePresence);
+router.post("/presence", verifyToken, authorizeRoles("client", "admin"), updatePresence);
+router.post("/presence/offline", verifyToken, authorizeRoles("client", "admin"), clearPresence);
 
 
 module.exports = router;

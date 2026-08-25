@@ -2,9 +2,10 @@ const db = require("../config/db");
 
 // Send Message
 const sendMessage = (req, res) => {
-    const { user_id, sender, message } = req.body;
+    const { user_id, message } = req.body;
+    const sender = String(req.body.sender || "").trim().toLowerCase();
 
-    if (!user_id || !sender || !message) {
+    if (!user_id || !["admin", "client"].includes(sender) || !String(message || "").trim()) {
         return res.status(400).json({
             success: false,
             message: "All fields are required."
@@ -19,10 +20,19 @@ const sendMessage = (req, res) => {
                 return res.status(500).json(err);
             }
 
-            // Chatbot replies only when client sends a message
+            // The AI responder only takes over when no administrator is online.
             if (sender === "client") {
+                return db.query(
+                    `SELECT id FROM users
+                     WHERE role = 'admin' AND last_seen IS NOT NULL
+                       AND last_seen >= DATE_SUB(NOW(), INTERVAL 45 SECOND)
+                     LIMIT 1`,
+                    (presenceError, onlineAdmins) => {
+                        if (presenceError) return res.status(500).json({ success: false, message: presenceError.message });
+                        if (onlineAdmins.length) return res.status(201).json({ success: true, message: "Message sent successfully.", responder: "admin" });
+
                 let botReply =
-                    "Thank you for contacting MARC Interior Design. Our admin is currently offline. We will respond as soon as possible.";
+                    "Our admin is currently offline, so I’m here to help. Your message has been saved for the admin to review.";
 
                 const text = message.toLowerCase();
 
@@ -40,7 +50,7 @@ const sendMessage = (req, res) => {
                     text.includes("gcash")
                 ) {
                     botReply =
-                        "Payments can be sent through GCash. Please upload your reference number after payment.";
+                        "GCash payments are processed securely through PayMongo from the Payments & Billing page.";
                 } else if (
                     text.includes("hello") ||
                     text.includes("hi")
@@ -54,7 +64,9 @@ const sendMessage = (req, res) => {
                     [user_id, "bot", botReply],
                     (botError) => {
                         if (botError) return res.status(500).json({ success: false, message: botError.message });
-                        return res.status(201).json({ success: true, message: "Message sent successfully." });
+                        return res.status(201).json({ success: true, message: "Message sent successfully.", responder: "ai" });
+                    }
+                );
                     }
                 );
             }
@@ -63,6 +75,21 @@ const sendMessage = (req, res) => {
                 success: true,
                 message: "Message sent successfully."
             });
+        }
+    );
+};
+
+const getAdminStatus = (req, res) => {
+    db.query(
+        `SELECT EXISTS(
+           SELECT 1 FROM users
+           WHERE role = 'admin' AND last_seen IS NOT NULL
+             AND last_seen >= DATE_SUB(NOW(), INTERVAL 45 SECOND)
+         ) AS is_online`,
+        (err, rows) => {
+            if (err) return res.status(500).json({ success: false, message: err.message });
+            const adminOnline = Boolean(rows[0]?.is_online);
+            return res.json({ success: true, adminOnline, responder: adminOnline ? "admin" : "ai" });
         }
     );
 };
@@ -86,5 +113,6 @@ const getMessages = (req, res) => {
 
 module.exports = {
     sendMessage,
-    getMessages
+    getMessages,
+    getAdminStatus
 };

@@ -15,12 +15,6 @@ interface ClientProject {
   progress: number;
 }
 
-interface Inquiry {
-  id: string;
-  clientName: string;
-  service: string;
-  date: string;
-}
 
 export default function DashboardOverview() {
   const router = useRouter();
@@ -30,23 +24,19 @@ export default function DashboardOverview() {
   
   const [projects, setProjects] = useState<ClientProject[]>([]);
 
-  // EMPTY CLIENT INQUIRIES DATASET
-  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
 
   const loadDashboard = useCallback(async () => {
-    const [bookingResponse, trackingResponse, inquiryResponse] = await Promise.all([
-      fetch(`${getApiUrl()}/booking`), fetch(`${getApiUrl()}/tracking`), fetch(`${getApiUrl()}/inquiries`)
+    const [bookingResponse, trackingResponse] = await Promise.all([
+      fetch(`${getApiUrl()}/booking`), fetch(`${getApiUrl()}/tracking`)
     ]);
     const bookingData = await bookingResponse.json();
     const trackingData = await trackingResponse.json();
-    const inquiryData = await inquiryResponse.json();
     const tracks: Array<{booking_id:number;progress:number}> = trackingData.tracking ?? [];
     setProjects((bookingData.bookings ?? []).filter((b: {accepted_at?:string|null}) => Boolean(b.accepted_at)).map((b: {id:number;client_name?:string;service_type:string;status:string;client_address?:string}) => {
       const progress = tracks.find(t => t.booking_id === b.id)?.progress ?? 0;
       const status: ClientProject['status'] = progress >= 100 ? 'completed' : progress >= 20 ? 'ongoing' : 'pending';
       return { id:String(b.id), projectRef:`#${b.id}`, clientName:b.client_name || 'Client', service:b.service_type, location:b.client_address || 'Address not provided', status, progress };
     }));
-    setInquiries((Array.isArray(inquiryData) ? inquiryData : []).map((i: {id:number;fullname:string;subject:string;created_at:string}) => ({id:String(i.id),clientName:i.fullname,service:i.subject,date:new Date(i.created_at).toLocaleDateString()})));
   }, []);
   useEffect(() => { void loadDashboard(); }, [loadDashboard]);
 
@@ -62,9 +52,6 @@ export default function DashboardOverview() {
     await fetch(`${getApiUrl()}/booking/${id}`, {method:'DELETE'}); await loadDashboard();
   };
 
-  const handleViewAllInquiries = () => {
-    alert('Navigating to full Client Inquiries panel.');
-  };
 
   return (
     <div className="space-y-8 pb-10">
@@ -233,27 +220,6 @@ export default function DashboardOverview() {
         </button>
 
       </div>
-
-      {/* 3. CLIENT INQUIRIES CONTEXT PANELS (EMPTY) */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-black tracking-widest uppercase text-slate-800 font-serif">
-            Client Inquiries
-          </h3>
-          <button 
-            onClick={handleViewAllInquiries}
-            className="text-xs font-bold text-[#0070c0] hover:underline bg-transparent border-none cursor-pointer"
-          >
-            View All
-          </button>
-        </div>
-
-        {/* Outer Framework Frame - Empty state */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm min-h-[120px] flex flex-col items-center justify-center">
-          <p className="text-center text-xs font-serif text-slate-400 italic">All Inquiries</p>
-        </div>
-      </div>
-
     </div>
   );
 }

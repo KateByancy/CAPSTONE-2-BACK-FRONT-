@@ -1,23 +1,44 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Layers, Eye, X } from 'lucide-react';
 
+interface PortfolioItem {
+  id: number;
+  title: string;
+  category: string;
+  image: string;
+  description: string;
+}
+
 export default function Work() {
-  const categories = ['All', 'Modern', 'Luxury', 'Minimalist'];
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   
   // Track the active image item for the fullscreen preview modal
-  const [activePreviewItem, setActivePreviewItem] = useState<{
-    title: string;
-    category: string;
-    image: string;
-  } | null>(null);
+  const [activePreviewItem, setActivePreviewItem] = useState<PortfolioItem | null>(null);
 
-  const portfolioItems = [
-    { id: 1, title: 'Nordic Living Room', category: 'Minimalist', image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=85' },
-    { id: 2, title: 'Metropolitan Penthouse', category: 'Luxury', image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=85' },
-    { id: 3, title: 'Japandi Bedroom Accent', category: 'Modern', image: 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1200&q=85' },
-  ];
+  useEffect(() => {
+    const loadPortfolio = async () => {
+      try {
+        const response = await fetch('/data/inspirations.json');
+        if (!response.ok) throw new Error('Unable to load the inspiration portfolio.');
+        setPortfolioItems(await response.json() as PortfolioItem[]);
+      } catch (error) {
+        setLoadError(error instanceof Error ? error.message : 'Unable to load the inspiration portfolio.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadPortfolio();
+  }, []);
+
+  const categories = useMemo(
+    () => ['All', ...Array.from(new Set(portfolioItems.map((item) => item.category)))],
+    [portfolioItems],
+  );
 
   const filteredItems = selectedCategory === 'All' 
     ? portfolioItems 
@@ -49,6 +70,16 @@ export default function Work() {
 
       {/* Grid Portfolio Feed */}
       <div className="space-y-4">
+        {isLoading && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
+            Loading inspirations...
+          </div>
+        )}
+        {loadError && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center text-xs text-red-600">
+            {loadError}
+          </div>
+        )}
         {filteredItems.map((item) => (
           <div key={item.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm group">
             <div className="relative block w-full h-48 bg-slate-100 overflow-hidden text-left">
@@ -62,8 +93,11 @@ export default function Work() {
                 {item.category.toUpperCase()}
               </span>
             </div>
-            <div className="p-4 flex justify-between items-center">
-              <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
+            <div className="p-4 flex justify-between items-start gap-4">
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
+                <p className="text-[11px] leading-relaxed text-slate-500">{item.description}</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setActivePreviewItem(item)}
@@ -91,6 +125,7 @@ export default function Work() {
                 {activePreviewItem.category}
               </span>
               <h3 className="text-sm font-bold tracking-tight">{activePreviewItem.title}</h3>
+              <p className="max-w-2xl text-xs leading-relaxed text-slate-300">{activePreviewItem.description}</p>
             </div>
             <button
               type="button"

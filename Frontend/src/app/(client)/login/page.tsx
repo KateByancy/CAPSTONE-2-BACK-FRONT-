@@ -1,8 +1,8 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/lib/api';
-import { requestGoogleCredential } from '@/lib/google-auth';
+import { renderGoogleButton } from '@/lib/google-auth';
 import { ChevronLeft, Home, Loader2, ShieldCheck, Layout, Eye } from 'lucide-react';
 
 interface LoginViewProps {
@@ -37,6 +37,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,11 +92,10 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async (credential: string) => {
     setError('');
     setIsLoading(true);
     try {
-      const credential = await requestGoogleCredential();
       const response = await fetch(`${getApiUrl()}/auth/google`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }),
       });
@@ -111,6 +111,12 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!googleButtonRef.current) return;
+    void renderGoogleButton(googleButtonRef.current, (credential) => void handleGoogleSignIn(credential))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Unable to load Google sign-in.'));
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#072448] flex items-center justify-center text-slate-100 font-sans selection:bg-[#00529b]/30">
@@ -287,14 +293,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
                 <div className="h-px bg-white/20 flex-1"></div>
               </div>
 
-              <button 
-                type="button" 
-                className="w-full bg-white text-slate-700 hover:bg-slate-50 font-semibold text-xs lg:text-sm py-3 rounded-xl transition flex items-center justify-center space-x-2.5 shadow-md cursor-pointer"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
-                <span>Continue with Google</span>
-              </button>
+              <div ref={googleButtonRef} className={`flex min-h-11 w-full justify-center overflow-hidden rounded-xl bg-white ${isLoading ? 'pointer-events-none opacity-60' : ''}`} />
 
               <div className="text-center pt-2">
                 <button 

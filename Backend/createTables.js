@@ -44,6 +44,41 @@ system_mode VARCHAR(30) NOT NULL DEFAULT 'active',
 two_factor BOOLEAN NOT NULL DEFAULT FALSE
 )`,
 
+`CREATE TABLE IF NOT EXISTS pricing_options(
+id INT AUTO_INCREMENT PRIMARY KEY,
+option_type ENUM('style', 'complexity', 'estimate') NOT NULL,
+name VARCHAR(100) NOT NULL,
+value DECIMAL(10,2) NOT NULL,
+sort_order INT NOT NULL DEFAULT 0,
+is_active BOOLEAN NOT NULL DEFAULT TRUE,
+UNIQUE KEY unique_pricing_option (option_type, name)
+)`,
+
+`ALTER TABLE pricing_options MODIFY COLUMN option_type ENUM('style', 'complexity', 'estimate') NOT NULL`,
+
+`INSERT IGNORE INTO pricing_options (option_type, name, value, sort_order) VALUES
+('style', 'Modern', 2500, 1),
+('style', 'Minimalist', 3000, 2),
+('style', 'Luxury', 4500, 3),
+('complexity', 'Standard', 1, 1),
+('complexity', 'Premium', 1.4, 2),
+('estimate', 'Minimum factor', 0.9, 1),
+('estimate', 'Maximum factor', 1.1, 2)`,
+
+`CREATE TABLE IF NOT EXISTS booking_services(
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(150) NOT NULL UNIQUE,
+sort_order INT NOT NULL DEFAULT 0,
+is_active BOOLEAN NOT NULL DEFAULT TRUE
+)`,
+
+`INSERT IGNORE INTO booking_services (name, sort_order) VALUES
+('Living Room Makeover', 1),
+('Bedroom Interior Design', 2),
+('Kitchen Interior Design', 3),
+('Complete Home Interior', 4),
+('Commercial Interior Design', 5)`,
+
 `ALTER TABLE settings
 ADD COLUMN IF NOT EXISTS app_name VARCHAR(150) NOT NULL DEFAULT 'MARC Interior Design'`,
 
@@ -94,6 +129,8 @@ status VARCHAR(30) DEFAULT 'Pending'
 
 `ALTER TABLE schedules ADD COLUMN IF NOT EXISTS time_start TIME NULL`,
 
+`ALTER TABLE schedules ADD COLUMN IF NOT EXISTS reschedule_count INT NOT NULL DEFAULT 0`,
+
 `UPDATE schedules SET visit_date = date WHERE visit_date IS NULL AND date IS NOT NULL`,
 
 `ALTER TABLE schedules MODIFY COLUMN status VARCHAR(30) NOT NULL DEFAULT 'Pending'`,
@@ -106,6 +143,14 @@ reference_number VARCHAR(100),
 status VARCHAR(30) DEFAULT 'Pending',
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
+
+`ALTER TABLE payments ADD COLUMN IF NOT EXISTS checkout_session_id VARCHAR(100) NULL`,
+
+`ALTER TABLE payments ADD COLUMN IF NOT EXISTS checkout_url TEXT NULL`,
+
+`ALTER TABLE payments ADD COLUMN IF NOT EXISTS provider_payment_id VARCHAR(100) NULL`,
+
+`ALTER TABLE payments ADD COLUMN IF NOT EXISTS payment_provider VARCHAR(30) NOT NULL DEFAULT 'PayMongo'`,
 
 `CREATE TABLE IF NOT EXISTS tracking(
 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -141,6 +186,10 @@ sender VARCHAR(20),
 message TEXT,
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
+
+`ALTER TABLE messages MODIFY COLUMN sender VARCHAR(20) NOT NULL`,
+
+`UPDATE messages SET sender = 'admin' WHERE sender IS NULL OR TRIM(sender) = ''`,
 
 `CREATE TABLE IF NOT EXISTS designs(
 id INT AUTO_INCREMENT PRIMARY KEY,

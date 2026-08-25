@@ -2,14 +2,14 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  createPayment,
+  createCheckoutSession,
   getPayments,
   verifyPayment,
   declinePayment,
   deletePayment,
 } = require("../controllers/paymentController");
 
-router.post("/", createPayment);
+router.post("/checkout", createCheckoutSession);
 router.get("/", getPayments);
 router.put("/:id/verify", verifyPayment);
 router.put("/:id/decline", declinePayment);

@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Home, ChevronLeft, Loader2, ShieldCheck, Layers } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
-import { requestGoogleCredential } from '@/lib/google-auth';
+import { renderGoogleButton } from '@/lib/google-auth';
 
 interface ClientAccount {
   id: number;
@@ -40,6 +40,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
   // UI States
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,11 +122,10 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
     }
   };
 
-  const handleGoogleRegister = async () => {
+  const handleGoogleRegister = async (credential: string) => {
     setError('');
     setIsLoading(true);
     try {
-      const credential = await requestGoogleCredential();
       const response = await fetch(`${getApiUrl()}/auth/google`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }),
       });
@@ -141,6 +141,12 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!googleButtonRef.current) return;
+    void renderGoogleButton(googleButtonRef.current, (credential) => void handleGoogleRegister(credential))
+      .catch((err) => setError(err instanceof Error ? err.message : 'Unable to load Google sign-in.'));
+  }, []);
 
   return (
     <div className="min-h-screen w-full bg-[#031525] flex justify-center items-center p-0 md:p-6 text-slate-100 font-sans">
@@ -296,17 +302,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
               <div className="h-px bg-white/5 flex-1"></div>
             </div>
 
-            <button 
-              type="button" 
-              onClick={() => {
-                void handleGoogleRegister();
-              }}
-              disabled={isLoading}
-              className="w-full bg-white text-slate-800 hover:bg-slate-100 font-bold text-xs py-3 rounded-xl transition flex items-center justify-center space-x-2.5 shadow-sm cursor-pointer"
-            >
-              <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
-              <span>Continue with Google</span>
-            </button>
+            <div ref={googleButtonRef} className={`flex min-h-11 w-full justify-center overflow-hidden rounded-xl bg-white ${isLoading ? 'pointer-events-none opacity-60' : ''}`} />
 
             <div className="text-center pt-2">
               <button 

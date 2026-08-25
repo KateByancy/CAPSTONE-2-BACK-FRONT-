@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Send, ChevronLeft, MessageSquare, Search } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
 import Link from 'next/link';
@@ -73,18 +73,36 @@ export default function ClientsManagement() {
   
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
   const [newMessageText, setNewMessageText] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const conversationRequestRef = useRef(0);
+
+  const loadConversation = useCallback(async (clientId: string) => {
+    const requestId = ++conversationRequestRef.current;
+    const response = await fetch(`${getApiUrl()}/chat/${clientId}`);
+    const result: unknown = await response.json();
+    if (!response.ok) {
+      const message = typeof result === 'object' && result !== null && 'message' in result
+        ? String(result.message)
+        : 'Unable to load this conversation.';
+      throw new Error(message);
+    }
+    if (!Array.isArray(result)) throw new Error('The conversation response has an invalid format.');
+    const rows = result as Array<{id:number;sender:'admin'|'client'|'bot';message:string;created_at:string}>;
+    if (requestId !== conversationRequestRef.current) return;
+    setMessages(prev => ({ ...prev, [clientId]: rows.map(row => {
+      const sender = String(row.sender).trim().toLowerCase();
+      return { id:String(row.id), sender:(sender === 'admin' ? 'admin' : sender === 'bot' ? 'bot' : 'client') as ChatMessage['sender'], text:row.message, timestamp:new Date(row.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) };
+    }) }));
+  }, []);
 
   useEffect(() => {
     if (!activeChatClient) return;
     const clientId = activeChatClient.id;
-    const loadConversation = () => fetch(`${getApiUrl()}/chat/${clientId}`).then(r => r.json()).then((rows: Array<{id:number;sender:'admin'|'client'|'bot';message:string;created_at:string}>) => {
-      setMessages(prev => ({ ...prev, [clientId]: rows.map(row => ({ id:String(row.id), sender:row.sender, text:row.message, timestamp:new Date(row.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) })) }));
-    }).catch(() => setClientsError('Unable to load this conversation.'));
-    void loadConversation();
-    const timer = window.setInterval(() => void loadConversation(), 3000);
+    void loadConversation(clientId).catch(() => setClientsError('Unable to load this conversation.'));
+    const timer = window.setInterval(() => void loadConversation(clientId).catch(() => undefined), 3000);
     return () => window.clearInterval(timer);
-  }, [activeChatClient]);
+  }, [activeChatClient, loadConversation]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior:'smooth', block:'end' });
@@ -97,10 +115,18 @@ export default function ClientsManagement() {
 
     const clientId = activeChatClient.id;
     const text = newMessageText.trim();
-    const response = await fetch(`${getApiUrl()}/chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:Number(clientId),sender:'admin',message:text}) });
-    if (!response.ok) return setClientsError('Unable to send message.');
-    setMessages(prev => ({ ...prev, [clientId]: [...(prev[clientId] || []), { id:`msg-${Date.now()}`, sender:'admin', text, timestamp:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) }] }));
-    setNewMessageText('');
+    setIsSending(true);
+    setClientsError('');
+    try {
+      const response = await fetch(`${getApiUrl()}/chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:Number(clientId),sender:'admin',message:text}) });
+      if (!response.ok) throw new Error('Unable to send message.');
+      setNewMessageText('');
+      await loadConversation(clientId);
+    } catch (error) {
+      setClientsError(error instanceof Error ? error.message : 'Unable to send message.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -204,30 +230,49 @@ export default function ClientsManagement() {
                     <p className="text-[10px] text-blue-100 font-mono">{activeChatClient.projectName}</p>
                   </div>
                 </div>
+                <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[10px] font-black text-[#0070c0]">A</div>
+                  <div className="hidden text-left sm:block">
+                    <p className="text-[10px] font-black leading-none">Admin</p>
+                    <p className="mt-1 text-[9px] text-blue-100">Online</p>
+                  </div>
+                </div>
               </div>
 
               {/* CHAT MESSAGES BODY */}
               <div className="flex-1 p-4 pb-6 overflow-y-auto space-y-3 bg-slate-50/60 min-h-0">
+                {(messages[activeChatClient.id] || []).length === 0 && (
+                  <div className="flex h-full min-h-48 flex-col items-center justify-center text-center text-slate-400">
+                    <MessageSquare className="mb-2 h-8 w-8 opacity-40" />
+                    <p className="text-xs font-bold text-slate-500">No messages yet</p>
+                    <p className="mt-1 text-[10px]">Start a conversation with {activeChatClient.name}.</p>
+                  </div>
+                )}
                 {(messages[activeChatClient.id] || []).map((msg) => {
                   const isAdmin = msg.sender === 'admin';
+                  const isBot = msg.sender === 'bot';
+                  if (isBot) return (
+                    <div key={msg.id} className="flex justify-center py-1">
+                      <div className="max-w-[80%] rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-center text-[10px] text-slate-500">
+                        <span className="font-bold">Design Assistant:</span> {msg.text}
+                      </div>
+                    </div>
+                  );
                   return (
                     <div 
                       key={msg.id}
-                      className={`flex flex-col ${isAdmin ? 'items-end' : 'items-start'}`}
+                      className={`flex w-full flex-row gap-2 ${isAdmin ? 'justify-end' : 'justify-start'}`}
                     >
-                      <span className="text-[9px] font-bold text-slate-400 mb-1 px-1">
-                        {isAdmin ? 'You (Admin)' : activeChatClient.name}
-                      </span>
-                      <div 
-                        className={`max-w-[85%] sm:max-w-[75%] min-w-0 rounded-2xl p-3 text-xs shadow-sm ${
-                          isAdmin 
-                            ? 'bg-[#0070c0] text-white rounded-br-none' 
-                            : 'bg-white text-slate-800 border border-slate-200/80 rounded-bl-none'
-                        }`}
-                      >
-                        <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${isAdmin ? 'order-2 bg-[#0070c0] text-white' : 'order-1 bg-slate-200 text-slate-700'}`}>
+                        {isAdmin ? 'A' : activeChatClient.initial}
                       </div>
-                      <span className="text-[9px] font-mono text-slate-400 mt-1 px-1">{msg.timestamp}</span>
+                      <div className={`flex max-w-[85%] flex-col ${isAdmin ? 'order-1 items-end' : 'order-2 items-start'}`}>
+                        <span className="mb-1 px-1 text-[9px] font-bold text-slate-500">{isAdmin ? 'Admin · Sender' : `${activeChatClient.name} · Client`}</span>
+                        <div className={`min-w-0 rounded-2xl p-3 text-xs shadow-sm ${isAdmin ? 'rounded-br-none bg-[#0070c0] text-white' : 'rounded-bl-none border border-slate-200/80 bg-white text-slate-800'}`}>
+                          <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
+                        </div>
+                        <span className="mt-1 px-1 text-[9px] font-mono text-slate-400">{msg.timestamp}</span>
+                      </div>
                     </div>
                   );
                 })}
@@ -245,7 +290,9 @@ export default function ClientsManagement() {
                 />
                 <button
                   type="submit"
-                  className="p-2.5 bg-[#0070c0] hover:bg-[#102243] text-white rounded-xl transition border-none cursor-pointer flex items-center justify-center shrink-0 shadow-sm"
+                  disabled={isSending || !newMessageText.trim()}
+                  className="p-2.5 bg-[#0070c0] hover:bg-[#102243] text-white rounded-xl transition border-none cursor-pointer flex items-center justify-center shrink-0 shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Send message as admin"
                 >
                   <Send className="w-4 h-4" />
                 </button>

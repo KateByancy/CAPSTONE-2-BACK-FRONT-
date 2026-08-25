@@ -41,7 +41,7 @@ export default function PaymentsVerification() {
   const loadPayments = useCallback(async () => {
     const response = await fetch(`${getApiUrl()}/payment`);
     const rows: Array<{id:number;reference_number?:string;client_name?:string;amount:string;created_at:string;status:string}> = await response.json();
-    setTransactions(rows.map(row => ({ id:row.id, reference:row.reference_number || `PAY-${row.id}`, client:row.client_name || 'Client', amount:Number(row.amount).toLocaleString(), date:new Date(row.created_at).toLocaleDateString(), method:'Client payment submission', status:row.status.toLowerCase() === 'verified' ? 'accepted' : row.status.toLowerCase() === 'declined' ? 'declined' : 'pending' })));
+    setTransactions(rows.map(row => ({ id:row.id, reference:row.reference_number || `PAY-${row.id}`, client:row.client_name || 'Client', amount:Number(row.amount).toLocaleString(), date:new Date(row.created_at).toLocaleDateString(), method:row.payment_provider || 'Client payment submission', status:['verified', 'paid'].includes(row.status.toLowerCase()) ? 'accepted' : row.status.toLowerCase() === 'declined' ? 'declined' : 'pending' })));
   }, []);
   useEffect(() => { void loadPayments(); }, [loadPayments]);
 

@@ -195,12 +195,14 @@ exports.adminLogin = async (req, res) => {
       });
     }
 
-    const admin = {
-      id: 1,
-      fullname: "Administrator",
-      email: adminEmail,
-      role: "admin",
-    };
+    await query(
+      `INSERT INTO users (fullname, email, password, role, last_seen)
+       VALUES ('Administrator', ?, 'ADMIN_ENV_AUTH', 'admin', NOW())
+       ON DUPLICATE KEY UPDATE fullname = VALUES(fullname), role = 'admin', last_seen = NOW()`,
+      [adminEmail]
+    );
+    const adminRows = await query("SELECT id, fullname, email, role FROM users WHERE email = ? LIMIT 1", [adminEmail]);
+    const admin = adminRows[0];
 
     const token = issueAccessToken(admin);
 
@@ -256,6 +258,14 @@ exports.googleLogin = async (req, res) => {
   }
 };
 
+exports.getGoogleConfig = (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId || clientId.includes("your-google-oauth")) {
+    return res.status(503).json({ enabled: false, message: "Google sign-in has not been configured." });
+  }
+  return res.json({ enabled: true, clientId });
+};
+
 // ==============================
 // ADMIN: CLIENT DIRECTORY
 // ==============================
@@ -277,9 +287,28 @@ exports.getClients = (req, res) => {
 };
 
 exports.updatePresence = (req, res) => {
-  db.query("UPDATE users SET last_seen = NOW() WHERE id = ? AND role = 'client'", [req.user.id], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: "Unable to update presence." });
+  const isAdmin = req.user.role === "admin";
+  const sql = isAdmin
+    ? `INSERT INTO users (fullname, email, password, role, last_seen)
+       VALUES ('Administrator', ?, 'ADMIN_ENV_AUTH', 'admin', NOW())
+       ON DUPLICATE KEY UPDATE role = 'admin', last_seen = NOW()`
+    : "UPDATE users SET last_seen = NOW() WHERE id = ?";
+  const identity = isAdmin ? process.env.ADMIN_EMAIL : req.user.id;
+  db.query(sql, [identity], (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: "Unable to update presence.", detail: process.env.NODE_ENV === "production" ? undefined : err.message });
     if (!result.affectedRows) return res.status(404).json({ success: false, message: "Client account not found." });
+    return res.json({ success: true });
+  });
+};
+
+exports.clearPresence = (req, res) => {
+  const isAdmin = req.user.role === "admin";
+  const sql = isAdmin
+    ? "UPDATE users SET last_seen = NULL WHERE email = ? AND role = 'admin'"
+    : "UPDATE users SET last_seen = NULL WHERE id = ?";
+  db.query(sql, [isAdmin ? process.env.ADMIN_EMAIL : req.user.id], (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: "Unable to update offline status." });
+    if (!result.affectedRows) return res.status(404).json({ success: false, message: "Account not found." });
     return res.json({ success: true });
   });
 };

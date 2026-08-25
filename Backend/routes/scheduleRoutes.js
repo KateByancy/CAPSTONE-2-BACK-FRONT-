@@ -8,6 +8,7 @@ const {
   updateSchedule,
   deleteSchedule,
   getUnavailableSlots,
+  reschedulePendingVisit,
 } = require("../controllers/scheduleController");
 
 // Create schedule
@@ -19,6 +20,8 @@ router.get("/unavailable", getUnavailableSlots);
  
 //grt schedule by id
 router.get("/:id", getScheduleById);
+
+router.put("/:id/reschedule", reschedulePendingVisit);
 
 
 // Update schedule

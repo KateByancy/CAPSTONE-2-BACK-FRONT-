@@ -2,35 +2,36 @@
 import React, { useState, useEffect } from 'react';
 // The installed lucide-react package does not ship declaration files.
 // @ts-ignore -- preserve the icon imports until the dependency is typed.
-import { User, Calculator, ArrowRight, Wallet, CalendarRange, Check, Calendar, AlertCircle, Smartphone, ArrowLeft, Upload, Clock, ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { User, Calculator, ArrowRight, Wallet, CalendarRange, Check, Calendar, ArrowLeft, Clock, ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { getApiUrl, getClientSession } from '@/lib/api';
 
 interface HomeProps {
-  onOpenSettings?: () => void;
-  onOpenPayments?: () => void;
   setActiveTab?: (tab: string) => void;
   userName?: string;
-  onLogout?: () => void;
 }
 
-export default function Home({ 
-  onOpenSettings = () => console.log('Settings opened'), 
-  onOpenPayments = () => console.log('Payments opened'),
-  setActiveTab,
-  userName = 'Doe, John',
-  onLogout
-}: HomeProps) {
+interface PricingOption { name: string; value: number | string }
+
+export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const [area, setArea] = useState<number>(0);
-  const [style, setStyle] = useState<string>('Modern');
-  const [complexity, setComplexity] = useState<string>('Standard');
+  const [style, setStyle] = useState<string>('');
+  const [complexity, setComplexity] = useState<string>('');
   const [estimate, setEstimate] = useState<{ min: number; max: number }>({ min: 0, max: 0 });
+  const [styleOptions, setStyleOptions] = useState<PricingOption[]>([]);
+  const [complexityOptions, setComplexityOptions] = useState<PricingOption[]>([]);
+  const [estimateFactors, setEstimateFactors] = useState<PricingOption[]>([]);
+  const [clientDisplayName, setClientDisplayName] = useState(userName);
+  const [homeError, setHomeError] = useState('');
 
   // --- VIEW ROUTING STATE ---
-  const [currentView, setCurrentView] = useState<'dashboard' | 'payments' | 'schedules'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'schedules'>('dashboard');
 
   // --- SCHEDULES TOGGLE STATE (Show/Hide Calendar Widget) ---
   const [showCalendarView, setShowCalendarView] = useState<boolean>(false);
-  const [clientSchedule, setClientSchedule] = useState<{service_type:string;project_description:string;visit_date:string;status:string;time_start?:string;time_end?:string} | null>(null);
+  const [clientSchedule, setClientSchedule] = useState<{id:number;service_type:string;project_description:string;visit_date:string;status:string;booking_status:string;accepted_at?:string | null;reschedule_count:number;time_start?:string;time_end?:string} | null>(null);
+  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [isRescheduleSubmitting, setIsRescheduleSubmitting] = useState(false);
+  const [scheduleMessage, setScheduleMessage] = useState('');
 
   useEffect(() => {
     const loadSchedule = async () => {
@@ -40,12 +41,12 @@ export default function Home({
       if(!response.ok) return;
       const schedule=Array.isArray(rows)&&rows.length?rows[0]:null;
       setClientSchedule(schedule);
-      if(schedule?.visit_date){const date=new Date(schedule.visit_date);setCurrentMonth(date.getMonth());setCurrentYear(date.getFullYear());setSelectedDate(date.getDate());}
+      if(schedule?.visit_date && !isRescheduling){const [year,month,day]=String(schedule.visit_date).slice(0,10).split('-').map(Number);setCurrentMonth(month-1);setCurrentYear(year);setSelectedDate(day);}
     };
     void loadSchedule();
     const timer=window.setInterval(()=>void loadSchedule(),10000);
     return()=>window.clearInterval(timer);
-  }, []);
+  }, [isRescheduling]);
 
   // --- BOOKING MODAL STATE ENGINE ---
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
@@ -65,6 +66,31 @@ export default function Home({
   },[]);
   const hasScheduleConflict=Boolean(preferredStartDate&&preferredStartTime&&unavailableSlots.some(slot=>slot.visit_date===preferredStartDate&&slot.time_start.slice(0,5)===preferredStartTime));
 
+  useEffect(() => {
+    const loadHome = async () => {
+      const client = getClientSession();
+      if (!client) { setHomeError('Please sign in again to load your dashboard.'); return; }
+      try {
+        const response = await fetch(`${getApiUrl()}/client-home?user_id=${client.id}`);
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message || 'Unable to load the dashboard.');
+        const styles: PricingOption[] = result.pricing?.styles || [];
+        const complexities: PricingOption[] = result.pricing?.complexities || [];
+        const factors: PricingOption[] = result.pricing?.estimateFactors || [];
+        setStyleOptions(styles);
+        setComplexityOptions(complexities);
+        setEstimateFactors(factors);
+        setStyle((current) => current || styles[0]?.name || '');
+        setComplexity((current) => current || complexities[0]?.name || '');
+        setClientDisplayName(result.client?.fullname || userName);
+        setHomeError('');
+      } catch (error) {
+        setHomeError(error instanceof Error ? error.message : 'Unable to load the dashboard.');
+      }
+    };
+    void loadHome();
+  }, [userName]);
+
   // --- AUTO-CLOSE TIMEOUT EFFECT FOR BOOKING SUCCESS ---
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -82,34 +108,23 @@ export default function Home({
   const [currentYear, setCurrentYear] = useState<number>(() => new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState<number>(() => new Date().getDate());
 
-  // --- PAYMENTS PAGE STATE ENGINE ---
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [refNum, setRefNum] = useState('');
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [paymentHistory, setPaymentHistory] = useState([
-    { id: 'TXN-94821', date: 'Apr 20, 2026', amount: '₱15,000.00', status: 'Verified', ref: '1938291029384' },
-    { id: 'TXN-83712', date: 'Apr 10, 2026', amount: '₱10,000.00', status: 'Pending', ref: '9837426150293' }
-  ]);
-
   // Calculation Logic Engine
   useEffect(() => {
-    let baseRate = 2500; 
-
-    if (style === 'Luxury') baseRate = 4500;
-    if (style === 'Minimalist') baseRate = 3000;
-
-    const complexityMultiplier = complexity === 'Premium' ? 1.4 : 1.0;
+    const baseRate = Number(styleOptions.find((option) => option.name === style)?.value || 0);
+    const complexityMultiplier = Number(complexityOptions.find((option) => option.name === complexity)?.value || 0);
 
     const calculatedBase = area * baseRate * complexityMultiplier;
-    const minEstimate = Math.round(calculatedBase * 0.9);
-    const maxEstimate = Math.round(calculatedBase * 1.1);
+    const minFactor = Number(estimateFactors.find((option) => option.name === 'Minimum factor')?.value || 0);
+    const maxFactor = Number(estimateFactors.find((option) => option.name === 'Maximum factor')?.value || 0);
+    const minEstimate = Math.round(calculatedBase * minFactor);
+    const maxEstimate = Math.round(calculatedBase * maxFactor);
 
     if (isNaN(area) || area <= 0) {
       setEstimate({ min: 0, max: 0 });
     } else {
       setEstimate({ min: minEstimate, max: maxEstimate });
     }
-  }, [area, style, complexity]);
+  }, [area, style, complexity, styleOptions, complexityOptions, estimateFactors]);
 
   const handleOpenBooking = () => {
     setBookingStep('form');
@@ -150,24 +165,6 @@ export default function Home({
     }
   };
 
-  const handlePaymentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!paymentAmount || !refNum) return;
-
-    const newTxn = {
-      id: `TXN-${Math.floor(10000 + Math.random() * 90000)}`,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      amount: `₱${parseFloat(paymentAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      status: 'Pending Verification',
-      ref: refNum
-    };
-
-    setPaymentHistory([newTxn, ...paymentHistory]);
-    setPaymentSuccess(true);
-    setPaymentAmount('');
-    setRefNum('');
-  };
-
   // Calendar Helper Logic
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -191,151 +188,32 @@ export default function Home({
     }
   };
 
-  // --- RENDER DEDICATED PAYMENTS PAGE ---
-  if (currentView === 'payments') {
-    return (
-      <div className="space-y-6 animate-fadeIn relative">
-        <div className="bg-[#0070c0] text-white rounded-2xl p-4 sm:p-6 shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => setCurrentView('dashboard')}
-              className="p-2 rounded-xl bg-white/15 hover:bg-white/25 transition cursor-pointer border-none text-white flex items-center justify-center flex-shrink-0"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h2 className="text-lg sm:text-xl font-serif font-black tracking-wide">Payments & Billing</h2>
-              <p className="text-xs text-blue-100 font-light mt-0.5">Manage invoices, GCash receipts, and verification tracking.</p>
-            </div>
-          </div>
-        </div>
+  const bookingIsAccepted = Boolean(clientSchedule?.accepted_at) || ['confirmed', 'approved', 'ongoing', 'completed'].includes(clientSchedule?.booking_status?.toLowerCase() || '');
+  const canReschedule = Boolean(clientSchedule) && !bookingIsAccepted && Number(clientSchedule?.reschedule_count || 0) === 0;
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-[#141b2d] text-white p-6 rounded-2xl shadow-xl border border-slate-800 space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Total Billed Balance</p>
-                <p className="text-2xl font-serif font-black text-blue-400">₱25,000.00</p>
-                <p className="text-[10px] text-slate-500">Includes active layout milestones.</p>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Total Verified Payments</p>
-                <p className="text-2xl font-serif font-black text-emerald-600">₱15,000.00</p>
-                <p className="text-[10px] text-slate-500">Successfully processed transactions.</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-sm font-serif font-black text-slate-800 tracking-wide">Transaction History</h3>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recent Activity</span>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      <th className="py-3 px-2">Transaction ID</th>
-                      <th className="py-3 px-2">Date</th>
-                      <th className="py-3 px-2">Reference #</th>
-                      <th className="py-3 px-2">Amount</th>
-                      <th className="py-3 px-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs">
-                    {paymentHistory.map((txn, index) => (
-                      <tr key={index} className="hover:bg-slate-50 transition">
-                        <td className="py-3.5 px-2 font-bold font-mono text-slate-700">{txn.id}</td>
-                        <td className="py-3.5 px-2 text-slate-500">{txn.date}</td>
-                        <td className="py-3.5 px-2 font-mono text-slate-600">{txn.ref}</td>
-                        <td className="py-3.5 px-2 font-serif font-black text-slate-900">{txn.amount}</td>
-                        <td className="py-3.5 px-2">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider ${
-                            txn.status === 'Verified' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                          }`}>
-                            {txn.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
-              <div>
-                <h3 className="text-sm font-serif font-black text-slate-800 tracking-wide">Submit GCash Payment</h3>
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mt-0.5">Reference Confirmation</p>
-              </div>
-
-              <div className="bg-[#f0f6fc] border border-blue-100 rounded-2xl p-4 text-center shadow-inner space-y-1">
-                <div className="w-8 h-8 bg-white rounded-xl shadow-sm mx-auto flex items-center justify-center">
-                  <Smartphone className="w-4 h-4 text-blue-600" />
-                </div>
-                <h4 className="text-xs font-black tracking-wider text-slate-800 uppercase">GCash Direct Pay</h4>
-                <p className="text-[11px] text-slate-500">Send layout billing payment to:</p>
-                <p className="text-sm font-black text-slate-800 tracking-wider">0917-123-4567</p>
-                <p className="text-[9px] text-blue-500 font-bold uppercase tracking-wider">(Mark Custom Design)</p>
-              </div>
-
-              {paymentSuccess && (
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-xl text-xs flex items-center space-x-2 animate-fadeIn">
-                  <Check className="w-4 h-4 flex-shrink-0 text-emerald-600" />
-                  <span>Reference submitted successfully! Pending verification.</span>
-                </div>
-              )}
-
-              <form onSubmit={handlePaymentSubmit} className="space-y-4">
-                <div>
-                  <label className="text-[9px] tracking-widest font-black text-slate-500 block mb-1 uppercase">Amount (PHP)</label>
-                  <input 
-                    required 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="0.00" 
-                    value={paymentAmount} 
-                    onChange={(e) => setPaymentAmount(e.target.value)} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 font-bold" 
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[9px] tracking-widest font-black text-slate-500 block mb-1 uppercase">Reference Number</label>
-                  <input 
-                    required 
-                    type="text" 
-                    placeholder="13-digit reference number" 
-                    value={refNum} 
-                    onChange={(e) => setRefNum(e.target.value)} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 font-mono" 
-                  />
-                </div>
-
-                <button 
-                  type="submit" 
-                  className="w-full bg-[#111c3a] hover:bg-[#16254e] text-white text-xs font-bold tracking-widest py-3 rounded-xl shadow-md transition cursor-pointer border-none flex items-center justify-center space-x-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>SUBMIT REFERENCE</span>
-                </button>
-              </form>
-
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex items-start space-x-2">
-                <AlertCircle className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                <p className="text-[9px] text-slate-400 leading-normal font-medium">
-                  MANUAL VERIFICATION WITHIN 24 HOURS. PLEASE KEEP AN UNEDITED DIGITAL SCREENSHOT RECEIPT SECURE.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleReschedule = async () => {
+    if (!clientSchedule || !canReschedule) return;
+    const client = getClientSession();
+    if (!client) { setScheduleMessage('Please sign in again before rescheduling.'); return; }
+    const visitDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+    setIsRescheduleSubmitting(true);
+    setScheduleMessage('');
+    try {
+      const response = await fetch(`${getApiUrl()}/schedule/${clientSchedule.id}/reschedule`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: client.id, visit_date: visitDate }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || 'Unable to reschedule this booking.');
+      setClientSchedule({ ...clientSchedule, visit_date: visitDate, reschedule_count: 1 });
+      setScheduleMessage('Your project date was rescheduled. The one-time reschedule allowance has now been used.');
+      setIsRescheduling(false);
+    } catch (error) {
+      setScheduleMessage(error instanceof Error ? error.message : 'Unable to reschedule this booking.');
+    } finally {
+      setIsRescheduleSubmitting(false);
+    }
+  };
 
   // --- RENDER DEDICATED SCHEDULES PAGE WITH TOGGLEABLE RIGHT CALENDAR VIEW ---
   if (currentView === 'schedules') {
@@ -375,8 +253,8 @@ export default function Home({
                     {monthNames[currentMonth]} {selectedDate}, {currentYear}
                   </p>
                 </div>
-                <span className="text-[10px] font-bold font-mono tracking-wider text-emerald-600 bg-emerald-50 px-3.5 py-1.5 rounded-full">
-                  CONFIRMED
+                <span className={`text-[10px] font-bold font-mono tracking-wider px-3.5 py-1.5 rounded-full ${bookingIsAccepted ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
+                  {bookingIsAccepted ? 'CONFIRMED' : 'PENDING APPROVAL'}
                 </span>
               </div>
 
@@ -405,7 +283,19 @@ export default function Home({
                   </div>
                 </div>
               </div>
-            </div> : <div className="bg-white border border-slate-200/80 rounded-3xl p-8 text-center text-xs text-slate-400">No confirmed project schedules yet.</div>}
+              {scheduleMessage && <p className="rounded-xl bg-blue-50 p-3 text-[11px] leading-relaxed text-blue-700">{scheduleMessage}</p>}
+              {canReschedule && !isRescheduling && (
+                <button type="button" onClick={() => { setIsRescheduling(true); setShowCalendarView(true); setScheduleMessage(''); }} className="w-full rounded-xl border border-blue-200 bg-blue-50 py-3 text-[10px] font-black uppercase tracking-widest text-blue-700 transition hover:bg-blue-100">
+                  Reschedule date — one time only
+                </button>
+              )}
+              {!bookingIsAccepted && Number(clientSchedule.reschedule_count) >= 1 && (
+                <p className="text-center text-[10px] font-bold text-slate-400">Your one-time reschedule allowance has been used.</p>
+              )}
+              {bookingIsAccepted && (
+                <p className="text-center text-[10px] font-bold text-slate-400">The admin accepted this project. Its scheduled date is now locked.</p>
+              )}
+            </div> : <div className="bg-white border border-slate-200/80 rounded-3xl p-8 text-center text-xs text-slate-400">No project schedule is available yet.</div>}
           </div>
 
           {showCalendarView && (
@@ -449,17 +339,23 @@ export default function Home({
                     const today = new Date();
                     const isSelected = dayNum === selectedDate;
                     const isToday = dayNum === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+                    const candidateDate = new Date(currentYear, currentMonth, dayNum);
+                    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const isPast = candidateDate < todayStart;
+                    const canSelectDate = isRescheduling && canReschedule && !isPast;
 
                     return (
                       <button
                         key={dayNum}
-                        onClick={() => setSelectedDate(dayNum)}
-                        className={`h-9 sm:h-11 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center relative cursor-pointer border-none ${
+                        type="button"
+                        disabled={!canSelectDate}
+                        onClick={() => canSelectDate && setSelectedDate(dayNum)}
+                        className={`h-9 sm:h-11 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center relative border-none ${canSelectDate ? 'cursor-pointer' : 'cursor-default'} ${
                           isSelected 
                             ? 'bg-[#0070c0] text-white shadow-md shadow-blue-500/30' 
                             : isToday 
                               ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
+                              : `bg-slate-50 text-slate-700 ${canSelectDate ? 'hover:bg-slate-100' : 'opacity-70'}`
                         }`}
                       >
                         <span>{dayNum}</span>
@@ -472,12 +368,18 @@ export default function Home({
                 </div>
               </div>
 
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between text-xs">
-                <span className="text-slate-500 font-medium">Selected Date Status:</span>
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
+                <span className="text-slate-500 font-medium">{isRescheduling ? 'New requested date:' : 'Scheduled date:'}</span>
                 <span className="font-bold text-slate-800">
-                  {monthNames[currentMonth]} {selectedDate}, {currentYear} {clientSchedule ? `(${clientSchedule.service_type})` : '(Available)'}
+                  {monthNames[currentMonth]} {selectedDate}, {currentYear}
                 </span>
               </div>
+              {isRescheduling && (
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => { setIsRescheduling(false); setScheduleMessage(''); }} className="flex-1 rounded-xl border border-slate-200 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600">Cancel</button>
+                  <button type="button" disabled={isRescheduleSubmitting} onClick={() => void handleReschedule()} className="flex-1 rounded-xl bg-[#0070c0] py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-60">{isRescheduleSubmitting ? 'Saving...' : 'Confirm new date'}</button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -490,7 +392,7 @@ export default function Home({
     <div className="space-y-6 animate-fadeIn relative">
       <div className="bg-[#0070c0] text-white rounded-2xl p-6 shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-serif font-black tracking-wide">{userName}</h2>
+          <h2 className="text-xl font-serif font-black tracking-wide">{clientDisplayName}</h2>
           <p className="text-xs text-blue-100 font-light mt-0.5">Your dream home is in progress.</p>
         </div>
         
@@ -510,6 +412,7 @@ export default function Home({
           </div>
         </div>
       </div>
+      {homeError && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{homeError}</p>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-[#141b2d] text-white rounded-2xl p-6 shadow-xl border border-slate-800 flex flex-col justify-between space-y-6">
@@ -556,16 +459,13 @@ export default function Home({
               <div>
                 <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Design Style</label>
                 <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-blue-500 text-white font-bold">
-                  <option value="Modern">Modern</option>
-                  <option value="Luxury">Luxury</option>
-                  <option value="Minimalist">Minimalist</option>
+                  {styleOptions.map((option) => <option key={option.name} value={option.name}>{option.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Complexity</label>
                 <select value={complexity} onChange={(e) => setComplexity(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-blue-500 text-white font-bold">
-                  <option value="Standard">Standard</option>
-                  <option value="Premium">Premium</option>
+                  {complexityOptions.map((option) => <option key={option.name} value={option.name}>{option.name}</option>)}
                 </select>
               </div>
             </div>
@@ -600,7 +500,7 @@ export default function Home({
 
           <div className="grid grid-cols-2 gap-4">
             <div 
-              onClick={() => setCurrentView('payments')}
+              onClick={() => setActiveTab?.('payments')}
               className="bg-white border border-slate-200 rounded-2xl p-4 text-center shadow-sm hover:bg-slate-50 transition cursor-pointer flex flex-col items-center justify-center space-y-2 group"
             >
               <div className="p-2.5 bg-slate-50 rounded-xl group-hover:bg-blue-50 transition">

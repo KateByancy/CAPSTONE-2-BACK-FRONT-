@@ -12,6 +12,7 @@ import BookView from './book/page';
 import TrackView from './track/page';
 import ChatView from './chat/page';
 import ProfileView from './profile/page';
+import PaymentsView from './payments/page';
 import DashboardShell from './dashboardshell/page';
 import { getApiUrl } from '@/lib/api';
 
@@ -42,6 +43,8 @@ export default function ClientMasterController() {
       if (!stored) return;
       const client = JSON.parse(stored) as ClientAccount;
       setUserName(formatDashboardName(client.fullname));
+      setCurrentScreen('dashboard');
+      if (new URLSearchParams(window.location.search).has('payment')) setActiveTab('payments');
     } catch {
       localStorage.removeItem('clientAccount');
       localStorage.removeItem('clientToken');
@@ -121,6 +124,8 @@ export default function ClientMasterController() {
             userName={userName} 
           />
         );
+      case 'payments':
+        return <PaymentsView onBack={() => setActiveTab('home')} />;
       default:
         return <HomeView setActiveTab={setActiveTab} userName={userName} />;
     }

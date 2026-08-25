@@ -21,6 +21,7 @@ const profileRoutes = require("./routes/profileRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const designRoutes = require("./routes/designRoutes");
 const inquiryRoutes = require("./routes/inquiryRoutes");
+const clientHomeRoutes = require("./routes/clientHomeRoutes");
 
 
 const app = express();
@@ -58,6 +59,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/designs", designRoutes);
 app.use("/api/inquiries", inquiryRoutes);
+app.use("/api/client-home", clientHomeRoutes);
 
 app.get("/api/health", (req, res) => {
     db.ping((error) => {
@@ -116,7 +118,7 @@ if (require.main === module) {
         })
         .catch((error) => {
             if (error.code === "EADDRINUSE") {
-                console.error(`Server startup failed: port ${PORT} is already in use. Stop the existing backend process or configure a different PORT in .env.`);
+                console.error(`Server startup failed: port ${PORT} is already in use by another backend instance. Keep only one backend terminal running.`);
             } else {
                 console.error("Server startup failed:", error.message);
             }

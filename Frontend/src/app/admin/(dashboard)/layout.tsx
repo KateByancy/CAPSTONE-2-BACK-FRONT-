@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -9,12 +9,38 @@ import {
   Settings, 
   LogOut
 } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   
   // State to track if user is hovering over the sidebar
   const [isHovered, setIsHovered] = useState(false);
+
+  const markAdminOffline = React.useCallback(() => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) return;
+    void fetch(`${getApiUrl()}/auth/presence/offline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      keepalive: true,
+    });
+  }, []);
+
+  useEffect(() => {
+    const sendHeartbeat = () => {
+      const token = localStorage.getItem('adminToken');
+      if (!token) return;
+      void fetch(`${getApiUrl()}/auth/presence`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    };
+    sendHeartbeat();
+    const timer = window.setInterval(sendHeartbeat, 20000);
+    window.addEventListener('pagehide', markAdminOffline);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('pagehide', markAdminOffline);
+    };
+  }, [markAdminOffline]);
 
   const navItems = [
     { label: 'Overview', path: '/admin/dashboard', icon: LayoutDashboard },
@@ -82,6 +108,11 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         <div className="p-4 border-t border-white/10 shrink-0 overflow-hidden">
           <Link 
             href="/admin" 
+            onClick={() => {
+              markAdminOffline();
+              localStorage.removeItem('adminToken');
+              localStorage.removeItem('adminAccount');
+            }}
             className="flex items-center px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase text-rose-400 hover:bg-rose-500/10 transition-all"
           >
             <LogOut className="w-4 h-4 shrink-0" />

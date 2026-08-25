@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "title": "Carrier Reception Feature Wall",
+    "category": "Reception",
+    "image": "/1.jpg",
+    "description": "A welcoming reception area with a warm timber-slat feature wall, illuminated Carrier branding, and an integrated split-type air-conditioning unit."
+  },
+  {
+    "id": 2,
+    "title": "Residential and Light Commercial Gallery",
+    "category": "Showroom",
+    "image": "/3.jpg",
+    "description": "A dramatic showroom gallery presenting Carrier residential and light-commercial cooling systems with illuminated product towers and architectural lighting."
+  },
+  {
+    "id": 3,
+    "title": "Air-Conditioning Product Display",
+    "category": "Product Display",
+    "image": "/4.jpg",
+    "description": "A bright, modern display wall featuring floor-standing, tower, and wall-mounted Carrier air-conditioning units with neatly integrated controls and accent lighting."
+  }
+]

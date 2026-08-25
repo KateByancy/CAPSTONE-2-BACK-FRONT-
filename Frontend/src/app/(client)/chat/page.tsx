@@ -10,6 +10,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
+  const [adminOnline, setAdminOnline] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const loadMessages = async () => {
@@ -24,6 +25,21 @@ export default function Chat() {
   useEffect(() => {
     void loadMessages().catch((err) => setError(err.message));
     const timer = window.setInterval(() => void loadMessages().catch(() => undefined), 3000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const loadResponderStatus = async () => {
+      try {
+        const response = await fetch(`${getApiUrl()}/chat/admin-status`);
+        const result = await response.json();
+        if (response.ok) setAdminOnline(Boolean(result.adminOnline));
+      } catch {
+        setAdminOnline(false);
+      }
+    };
+    void loadResponderStatus();
+    const timer = window.setInterval(() => void loadResponderStatus(), 3000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -51,9 +67,14 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-[670px] bg-slate-50 animate-fadeIn">
       {/* Mini Title Section */}
-      <div className="px-4 py-3 bg-white border-b border-slate-200 flex items-center space-x-2 text-xs font-bold tracking-wider text-slate-500">
-        <MessageSquare className="w-4 h-4 text-blue-500" />
-        <span>DESIGN CONCIERGE</span>
+      <div className="px-4 py-3 bg-white border-b border-slate-200 flex items-center justify-between text-xs font-bold tracking-wider text-slate-500">
+        <div className="flex items-center space-x-2"><MessageSquare className="w-4 h-4 text-blue-500" /><span>DESIGN CONCIERGE</span></div>
+        {adminOnline !== null && (
+          <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider">
+            <span className={`h-2 w-2 rounded-full ${adminOnline ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+            <span>{adminOnline ? 'Admin online' : 'AI responder online'}</span>
+          </div>
+        )}
       </div>
       {error && <p className="mx-4 mt-3 rounded-lg bg-red-50 p-2 text-xs text-red-700">{error}</p>}
 
