@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "dev:backend": "nodemon server.js",
+    "dev": "node server.js",
+    "dev:backend": "node server.js",
     "db:init": "node createDatabase.js && node createTables.js",
     "db:migrate": "node createTables.js",
     "check": "node --check server.js && node --check config/db.js && node --check createDatabase.js && node --check createTables.js && node --check controllers/authController.js && node --check middeware/auth.js && node --check middeware/errorHandler.js && node --check middeware/validation.js && node --check routes/authRoutes.js && node --check routes/profileRoutes.js && node --check utils/authTokens.js"

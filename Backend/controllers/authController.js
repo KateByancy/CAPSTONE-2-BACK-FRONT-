@@ -333,9 +333,9 @@ exports.forgotPassword = async (req, res, next) => {
     const expirationMinutes = Number(process.env.PASSWORD_RESET_EXPIRES_MINUTES || 15);
     const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
 
-    await query("UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [users[0].id]);
+    await query("UPDATE password_reset_requests SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [users[0].id]);
     await query(
-      "INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)",
+      "INSERT INTO password_reset_requests (user_id, token_hash, expires_at) VALUES (?, ?, ?)",
       [users[0].id, tokenHash, expiresAt]
     );
 
@@ -357,7 +357,7 @@ exports.resetPassword = async (req, res, next) => {
     transactionStarted = true;
 
     const tokens = await query(
-      `SELECT id, user_id FROM password_reset_tokens
+      `SELECT id, user_id FROM password_reset_requests
        WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW()
        LIMIT 1 FOR UPDATE`,
       [tokenHash]
@@ -371,7 +371,7 @@ exports.resetPassword = async (req, res, next) => {
 
     const token = tokens[0];
     await query("UPDATE users SET password = ? WHERE id = ?", [passwordHash, token.user_id]);
-    await query("UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [token.user_id]);
+    await query("UPDATE password_reset_requests SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [token.user_id]);
     await commit();
     transactionStarted = false;
 
@@ -400,7 +400,7 @@ exports.changePassword = async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(req.body.newPassword, 12);
     await query("UPDATE users SET password = ? WHERE id = ?", [passwordHash, req.user.id]);
-    await query("UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [req.user.id]);
+    await query("UPDATE password_reset_requests SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [req.user.id]);
 
     return res.json({ success: true, message: "Password changed successfully." });
   } catch (error) {

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Home, LayoutGrid, Calendar, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface LandingProps {
@@ -11,8 +12,9 @@ interface LandingProps {
 export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNavigateToDashboard }: LandingProps) {
   // Gallery Slider State Data
   const galleryImages = [
-    "/placeholder-interior-1.jpg", 
-    "/placeholder-interior-2.jpg"
+    { src: '/1.jpg', alt: 'MARC interior showcase project 1' },
+    { src: '/3.jpg', alt: 'MARC interior showcase project 2' },
+    { src: '/4.jpg', alt: 'MARC interior showcase project 3' },
   ];
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -78,20 +80,35 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNav
             </div>
 
             <div className="relative w-full h-44 bg-slate-800 rounded-2xl overflow-hidden shadow-xl border border-white/10 group">
-              <div className="absolute inset-0 bg-gradient-to-tr from-slate-900 to-slate-800 flex items-center justify-center text-xs text-slate-500 font-serif">
-                [ Interior Showcase View Window ]
+              <Image
+                key={galleryImages[currentSlide].src}
+                src={galleryImages[currentSlide].src}
+                alt={galleryImages[currentSlide].alt}
+                fill
+                priority={currentSlide === 0}
+                sizes="(min-width: 768px) 848px, calc(100vw - 48px)"
+                className="object-cover transition-opacity duration-300"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
+
+              <div className="absolute bottom-3 left-3 z-20 rounded-md bg-slate-950/55 px-2 py-1 text-[9px] font-bold tracking-widest text-white backdrop-blur-sm">
+                {currentSlide + 1} / {galleryImages.length}
               </div>
               
               <div className="absolute bottom-3 right-3 flex space-x-1.5 z-20">
                 <button 
+                  type="button"
                   onClick={prevSlide}
-                  className="p-1 bg-white hover:bg-slate-100 text-slate-800 rounded-md transition shadow-md flex items-center justify-center cursor-pointer"
+                  aria-label="Show previous interior image"
+                  className="p-1 bg-white hover:bg-slate-100 active:bg-blue-600 text-slate-800 active:text-white rounded-md transition shadow-md flex items-center justify-center cursor-pointer"
                 >
                   <ChevronLeft className="w-3.5 h-3.5 stroke-[3]" />
                 </button>
                 <button 
+                  type="button"
                   onClick={nextSlide}
-                  className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition shadow-md flex items-center justify-center cursor-pointer"
+                  aria-label="Show next interior image"
+                  className="p-1 bg-white hover:bg-slate-100 active:bg-blue-600 text-slate-800 active:text-white rounded-md transition shadow-md flex items-center justify-center cursor-pointer"
                 >
                   <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
                 </button>

@@ -7,8 +7,8 @@ import { ChevronLeft, Home, Loader2, ShieldCheck, Layout, Eye } from 'lucide-rea
 
 interface LoginViewProps {
   onLoginSuccess?: (userName?: string) => void; // pass the authenticated user name back to the parent
-  onBackToLanding: () => void;
-  onNavigateToRegister: () => void; // Added prop for registration routing
+  onBackToLanding?: () => void;
+  onNavigateToRegister?: () => void; // Added prop for registration routing
 }
 
 interface LoginResponse {
@@ -83,7 +83,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
       if (onLoginSuccess) {
         onLoginSuccess(result.user.fullname);
       } else {
-        router.push('/home');
+        router.push('/');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to sign in.');
@@ -104,7 +104,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
       if (result.token) localStorage.setItem('clientToken', result.token);
       localStorage.setItem('clientAccount', JSON.stringify(result.user));
       if (onLoginSuccess) onLoginSuccess(result.user.fullname);
-      else router.push('/home');
+      else router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to sign in with Google.');
     } finally {
@@ -132,7 +132,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
           {/* Upper Nav Identity */}
           <button 
             type="button" 
-            onClick={onBackToLanding} 
+            onClick={() => onBackToLanding ? onBackToLanding() : router.push('/')} 
             className="flex items-center space-x-2 text-xs font-semibold tracking-wider uppercase text-slate-200/80 hover:text-white transition group self-start cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
@@ -183,7 +183,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
               <button 
                 type="button" 
                 disabled={isLoading}
-                onClick={onBackToLanding} 
+                onClick={() => onBackToLanding ? onBackToLanding() : router.push('/')} 
                 className="p-2.5 bg-white/15 hover:bg-white/20 active:scale-95 rounded-xl transition text-white cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -234,9 +234,18 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
 
               {/* Password Input */}
               <div className="space-y-1.5">
-                <label className="text-[10px] lg:text-xs font-bold text-slate-300 lg:text-slate-200 uppercase tracking-wider block px-1">
-                  Password
-                </label>
+                <div className="flex items-center justify-between px-1">
+                  <label className="text-[10px] lg:text-xs font-bold text-slate-300 lg:text-slate-200 uppercase tracking-wider">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/forgot-password')}
+                    className="text-[10px] font-semibold text-sky-300 hover:text-white hover:underline transition cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <div className="relative w-full">
                   <input 
                     type={showPassword ? "text" : "password"} 
@@ -293,12 +302,15 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
                 <div className="h-px bg-white/20 flex-1"></div>
               </div>
 
-              <div ref={googleButtonRef} className={`flex min-h-11 w-full justify-center overflow-hidden rounded-xl bg-white ${isLoading ? 'pointer-events-none opacity-60' : ''}`} />
+              <div
+                ref={googleButtonRef}
+                className={`flex min-h-11 w-full items-center justify-center overflow-hidden [&>div]:w-full ${isLoading ? 'pointer-events-none opacity-60' : ''}`}
+              />
 
               <div className="text-center pt-2">
                 <button 
                   type="button"
-                  onClick={onNavigateToRegister}
+                  onClick={() => onNavigateToRegister ? onNavigateToRegister() : router.push('/register')}
                   className="text-[9px] lg:text-xs font-bold tracking-widest text-slate-200 lg:text-slate-300 hover:text-white hover:underline uppercase transition cursor-pointer bg-transparent border-none"
                 >
                   New client? Create an account

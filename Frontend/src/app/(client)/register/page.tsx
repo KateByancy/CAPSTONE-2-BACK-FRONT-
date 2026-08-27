@@ -107,7 +107,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
         onRegisterSuccess(fullName);
       } else {
         // Fallback or development redirect strategy
-        router.push('/home');
+        router.push('/');
       }
     }, 1500);
     */

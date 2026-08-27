@@ -26,7 +26,7 @@ WHERE role IS NULL OR role = '' OR role NOT IN ('admin', 'client')`,
 `ALTER TABLE users
 MODIFY COLUMN role ENUM('admin', 'client') NOT NULL DEFAULT 'client'`,
 
-`CREATE TABLE IF NOT EXISTS password_reset_tokens(
+`CREATE TABLE IF NOT EXISTS password_reset_requests(
 id INT AUTO_INCREMENT PRIMARY KEY,
 user_id INT NOT NULL,
 token_hash CHAR(64) NOT NULL UNIQUE,
