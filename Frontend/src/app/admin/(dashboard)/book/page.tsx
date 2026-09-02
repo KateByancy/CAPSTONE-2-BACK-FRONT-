@@ -10,6 +10,7 @@ interface BookingRequest {
   scope: string;
   date: string;
   note: string;
+  landmark?: string;
   status: 'pending' | 'confirmed' | 'rejected';
   dismissFromPending?: boolean; // Hides from 'pending' after action
 }
@@ -23,10 +24,10 @@ export default function BookingsManagement() {
 
   const loadBookings = async () => {
     const response = await fetch(`${getApiUrl()}/booking`);
-    const result: { success: boolean; bookings?: Array<{ id: number; client_name?: string; service_type: string; project_description: string; created_at: string; status: string; accepted_at?: string | null }> } = await response.json();
+    const result: { success: boolean; bookings?: Array<{ id: number; client_name?: string; client_landmark?: string; service_type: string; project_description: string; created_at: string; status: string; accepted_at?: string | null }> } = await response.json();
     if (!response.ok || !result.success) throw new Error('Unable to load bookings.');
-    setBookings((result.bookings ?? []).filter(booking => !booking.accepted_at).map((booking): BookingRequest => {
-      const status: BookingRequest['status'] = booking.status.toLowerCase() === 'confirmed'
+    setBookings((result.bookings ?? []).map((booking): BookingRequest => {
+      const status: BookingRequest['status'] = booking.accepted_at || ['confirmed', 'approved'].includes(booking.status.toLowerCase())
         ? 'confirmed'
         : booking.status.toLowerCase() === 'rejected' ? 'rejected' : 'pending';
       return {
@@ -35,12 +36,16 @@ export default function BookingsManagement() {
         scope: booking.service_type,
         date: new Date(booking.created_at).toLocaleDateString(),
         note: booking.project_description,
+        landmark: booking.client_landmark,
         status,
       };
     }));
   };
 
-  useEffect(() => { void loadBookings(); }, []);
+  useEffect(() => {
+    const initialTimer = window.setTimeout(() => void loadBookings(), 0);
+    return () => window.clearTimeout(initialTimer);
+  }, []);
 
   // Handle confirmation action
   const updateBookingStatus = async (id: string, status: 'Confirmed' | 'Rejected') => {
@@ -204,6 +209,7 @@ export default function BookingsManagement() {
                             {booking.note}
                           </p>
                         )}
+                        {booking.landmark && <p className="text-xs font-semibold text-red-600">Landmark: {booking.landmark}</p>}
                       </div>
 
                       <div className="border-t border-slate-200/60 pt-5 grid grid-cols-2 gap-3">
@@ -311,6 +317,7 @@ export default function BookingsManagement() {
                             {booking.note}
                           </p>
                         )}
+                        {booking.landmark && <p className="rounded-xl bg-red-50 p-2.5 text-xs font-semibold text-red-700">Landmark: {booking.landmark}</p>}
                       </div>
                     </div>
                   )}

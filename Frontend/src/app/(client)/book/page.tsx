@@ -5,7 +5,7 @@ import { getApiUrl, getClientSession } from '@/lib/api';
 
 export default function Book() {
   const [modalMode, setModalMode] = useState<'none' | 'book_form' | 'book_done' | 'schedule_form' | 'schedule_done'>('none');
-  const [serviceType, setServiceType] = useState('Living Room Makeover');
+  const [serviceType, setServiceType] = useState('Living room');
   const [description, setDescription] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [bookingId, setBookingId] = useState<number | null>(null);

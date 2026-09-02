@@ -1,6 +1,10 @@
 const db = require("../config/db");
+const cache = require("../utils/cache");
 
 const getUnavailableSlots = (req, res) => {
+  const cached = cache.get("schedule:unavailable-slots");
+  if (cached) return cache.sendCachedJson(res, cached);
+
   db.query(
     `SELECT DATE_FORMAT(visit_date, '%Y-%m-%d') AS visit_date,
             TIME_FORMAT(time_start, '%H:%i') AS time_start
@@ -10,7 +14,7 @@ const getUnavailableSlots = (req, res) => {
      ORDER BY visit_date, time_start`,
     (err, rows) => {
       if (err) return res.status(500).json({ success:false, message:err.message });
-      res.json({ success:true, slots:rows });
+      cache.sendFreshJson(res, "schedule:unavailable-slots", { success:true, slots:rows }, cache.ttl.unavailableSlots);
     }
   );
 };
@@ -35,6 +39,8 @@ const scheduleVisit = (req, res) => {
         console.error(err);
         return res.status(500).json({ success: false, message: err.message });
       }
+
+      cache.clear("schedule:unavailable-slots");
 
       res.status(201).json({
         success: true,
@@ -123,6 +129,7 @@ const reschedulePendingVisit = (req, res) => {
             (updateError, result) => {
               if (updateError) return res.status(500).json({ success: false, message: updateError.message });
               if (!result.affectedRows) return res.status(409).json({ success: false, message: "The reschedule allowance has already been used." });
+              cache.clear("schedule:unavailable-slots");
               return res.json({ success: true, message: "Schedule rescheduled successfully.", visit_date: visitDate });
             },
           );
@@ -180,6 +187,8 @@ const updateSchedule = (req, res) => {
         });
       }
 
+      cache.clear("schedule:unavailable-slots");
+
       res.json({
         success: true,
         message: "Schedule updated successfully",
@@ -205,6 +214,8 @@ const deleteSchedule = (req, res) => {
           message: "Schedule not found",
         });
       }
+
+      cache.clear("schedule:unavailable-slots");
 
       res.json({
         success: true,

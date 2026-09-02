@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Home, ChevronLeft, Loader2, ShieldCheck, Layers } from 'lucide-react';
+import { Home, ChevronLeft, Loader2, ShieldCheck, Layers, Eye, EyeOff } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
 import { renderGoogleButton } from '@/lib/google-auth';
 
@@ -13,6 +13,7 @@ interface ClientAccount {
   email: string;
   phone: string;
   address: string;
+  landmark?: string;
 }
 
 interface RegisterViewProps {
@@ -27,6 +28,46 @@ interface RegisterResponse {
   user?: ClientAccount;
 }
 
+interface PsgcBarangay {
+  code: string;
+  name: string;
+  province?: { name?: string } | string | null;
+  city_municipality?: { name?: string } | string | null;
+}
+
+const VISAYAS_REGION_CODES = ['0600000000', '0700000000', '0800000000', '1800000000'];
+const VISAYAS_ADDRESS_FALLBACKS = [
+  'Cordova, Cebu',
+];
+let cachedVisayasBarangays: string[] | null = null;
+
+const getLocationName = (location: PsgcBarangay['province'] | PsgcBarangay['city_municipality']) => {
+  if (!location) return '';
+  return typeof location === 'string' ? location : location.name || '';
+};
+
+const loadVisayasBarangayAddresses = async () => {
+  if (cachedVisayasBarangays) return cachedVisayasBarangays;
+
+  const responses = await Promise.allSettled(
+    VISAYAS_REGION_CODES.map(async (regionCode) => {
+      const response = await fetch(`https://psgc.cloud/api/v2/regions/${regionCode}/barangays`);
+      if (!response.ok) return [];
+      const result: { data?: PsgcBarangay[] } = await response.json();
+      return result.data || [];
+    })
+  );
+
+  const barangays = responses.flatMap((response) => response.status === 'fulfilled' ? response.value : []);
+  cachedVisayasBarangays = Array.from(new Set([...VISAYAS_ADDRESS_FALLBACKS, ...barangays.map((barangay) => {
+    const cityMunicipality = getLocationName(barangay.city_municipality);
+    const province = getLocationName(barangay.province);
+    return [barangay.name, cityMunicipality, province].filter(Boolean).join(', ');
+  }).filter(Boolean)])).sort((first, second) => first.localeCompare(second));
+
+  return cachedVisayasBarangays;
+};
+
 export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }: RegisterViewProps) {
   const router = useRouter();
 
@@ -34,21 +75,56 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [projectAddress, setProjectAddress] = useState('');
+  const [landmark, setLandmark] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // UI States
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [visayasBarangayAddresses, setVisayasBarangayAddresses] = useState<string[]>([]);
+  const [addressLookupLoading, setAddressLookupLoading] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const addressSuggestions = useMemo(() => {
+    const typedAddress = projectAddress.trim();
+    if (typedAddress.length < 2) return [];
+
+    const search = typedAddress.toLowerCase();
+    const matchingAddresses = visayasBarangayAddresses.filter((suggestion) =>
+      suggestion.toLowerCase().includes(search)
+    );
+
+    return matchingAddresses.sort((first, second) => {
+      const firstBarangay = first.split(',')[0].trim().toLowerCase();
+      const secondBarangay = second.split(',')[0].trim().toLowerCase();
+      const firstStartsWithBarangay = firstBarangay.startsWith(search);
+      const secondStartsWithBarangay = secondBarangay.startsWith(search);
+      if (firstStartsWithBarangay !== secondStartsWithBarangay) return firstStartsWithBarangay ? -1 : 1;
+
+      const firstStartsWithAddress = first.toLowerCase().startsWith(search);
+      const secondStartsWithAddress = second.toLowerCase().startsWith(search);
+      if (firstStartsWithAddress !== secondStartsWithAddress) return firstStartsWithAddress ? -1 : 1;
+
+      return first.localeCompare(second);
+    }).slice(0, 8);
+  }, [projectAddress, visayasBarangayAddresses]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Confirm Password must match Password.');
       setIsLoading(false);
       return;
     }
@@ -61,6 +137,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
           fullname: fullName,
           phone: phoneNumber,
           address: projectAddress,
+          landmark,
           email,
           password,
         }),
@@ -147,6 +224,31 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
     void renderGoogleButton(googleButtonRef.current, (credential) => void handleGoogleRegister(credential))
       .catch((err) => setError(err instanceof Error ? err.message : 'Unable to load Google sign-in.'));
   }, []);
+
+  useEffect(() => {
+    if (projectAddress.trim().length < 2) return;
+    if (cachedVisayasBarangays) {
+      setVisayasBarangayAddresses(cachedVisayasBarangays);
+      return;
+    }
+
+    let isCurrent = true;
+    setAddressLookupLoading(true);
+    void loadVisayasBarangayAddresses()
+      .then((addresses) => {
+        if (isCurrent) setVisayasBarangayAddresses(addresses);
+      })
+      .catch(() => {
+        if (isCurrent) setVisayasBarangayAddresses([]);
+      })
+      .finally(() => {
+        if (isCurrent) setAddressLookupLoading(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [projectAddress]);
 
   return (
     <div className="min-h-screen w-full bg-[#031525] flex justify-center items-center p-0 md:p-6 text-slate-100 font-sans">
@@ -250,11 +352,18 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Project Address</label>
               <input 
                 type="text" 
+                list="project-address-suggestions"
                 value={projectAddress}
                 onChange={(e) => setProjectAddress(e.target.value)}
+                placeholder={addressLookupLoading ? 'Loading Visayas barangays...' : 'Start typing barangay, city, or province'}
                 required
                 className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium" 
               />
+              <datalist id="project-address-suggestions">
+                {addressSuggestions.map((suggestion) => (
+                  <option key={suggestion} value={suggestion} />
+                ))}
+              </datalist>
             </div>
 
             <div className="space-y-1.5">
@@ -269,14 +378,57 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Password</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Nearest Landmark</label>
+              <input
+                type="text"
+                value={landmark}
+                onChange={(e) => setLandmark(e.target.value)}
+                placeholder="e.g. Beside the barangay hall"
                 required
-                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition tracking-widest" 
+                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    minLength={8}
+                    required
+                    className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl pl-4 pr-11 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition tracking-widest"
+                  />
+                  {password && (
+                    <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 hover:text-white bg-transparent border-none cursor-pointer">
+                      {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </button>
+                  )}
+                </div>
+                <p className="px-1 text-[9px] text-slate-500">Use at least 8 characters.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Confirm Password</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    minLength={8}
+                    required
+                    className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl pl-4 pr-11 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition tracking-widest"
+                  />
+                  {confirmPassword && (
+                    <button type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 hover:text-white bg-transparent border-none cursor-pointer">
+                      {showConfirmPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </button>
+                  )}
+                </div>
+                {confirmPassword && password !== confirmPassword && <p className="px-1 text-[9px] text-red-400">Passwords do not match.</p>}
+              </div>
             </div>
 
             <button 

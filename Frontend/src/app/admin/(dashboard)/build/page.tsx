@@ -7,6 +7,7 @@ import { getApiUrl } from '@/lib/api';
 interface BuildProject {
   id: string;
   userId: number;
+  clientName: string;
   trackingId?: number;
   title: string;
   status: 'Pending' | 'Ongoing' | 'Completed';
@@ -28,10 +29,10 @@ export default function BuildManagement() {
   useEffect(() => {
     Promise.all([fetch(`${getApiUrl()}/booking`).then(r=>r.json()),fetch(`${getApiUrl()}/tracking`).then(r=>r.json()),fetch(`${getApiUrl()}/designs`).then(r=>r.json())]).then(([bookingData,trackingData,designData]) => {
       const tracks: Array<{id:number;booking_id:number;progress:number;current_stage:string}> = trackingData.tracking ?? [];
-      setBuilds((bookingData.bookings ?? []).filter((b:{accepted_at?:string|null})=>Boolean(b.accepted_at)).map((b:{id:number;user_id:number;service_type:string;status:string})=>{
+      setBuilds((bookingData.bookings ?? []).filter((b:{accepted_at?:string|null})=>Boolean(b.accepted_at)).map((b:{id:number;user_id:number;client_name?:string;service_type:string;status:string})=>{
         const track=tracks.find(t=>t.booking_id===b.id); const progress=track?.progress??0;
         const status:BuildProject['status']=progress>=100?'Completed':progress>=20?'Ongoing':'Pending';
-        return {id:String(b.id),userId:b.user_id,trackingId:track?.id,title:b.service_type,status,progress,concepts:(Array.isArray(designData)?designData:[]).filter((d:{user_id:number})=>d.user_id===b.user_id).map((d:{title:string;image?:string;description?:string})=>({title:d.title,url:d.image||'',description:d.description})),milestones:[20,40,60,80,100].map((point,index)=>({id:`${b.id}-${point}`,label:['Initial Consultation','Design Proposal','Material Selection','Execution','Final Handover'][index],completed:progress>=point}))};
+        return {id:String(b.id),userId:b.user_id,clientName:b.client_name||'Client',trackingId:track?.id,title:b.service_type,status,progress,concepts:(Array.isArray(designData)?designData:[]).filter((d:{user_id:number})=>d.user_id===b.user_id).map((d:{title:string;image?:string;description?:string})=>({title:d.title,url:d.image||'',description:d.description})),milestones:[20,40,60,80,100].map((point,index)=>({id:`${b.id}-${point}`,label:['Initial Consultation','Design Proposal','Material Selection','Execution','Final Handover'][index],completed:progress>=point}))};
       })); setMounted(true);
     }).catch(()=>setMounted(true));
   }, []);
@@ -175,9 +176,16 @@ export default function BuildManagement() {
                 </div>
               </div>
 
-              {/* Title */}
-              <div>
-                <h3 className="text-base font-bold text-slate-900 font-serif">{build.title}</h3>
+              {/* Client and project details */}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Client Name</p>
+                  <p className="mt-0.5 text-sm font-bold text-slate-800">{build.clientName}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Project Type</p>
+                  <h3 className="mt-0.5 text-base font-bold text-slate-900 font-serif">{build.title}</h3>
+                </div>
               </div>
 
               {/* AUTOMATIC PROGRESS BAR WITH CIRCLE INSIDE THE BLUE BAR */}

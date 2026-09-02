@@ -20,6 +20,7 @@ exports.register = async (req, res) => {
     const fullname = (req.body.fullname || req.body.fullName || "").trim();
     const phone = (req.body.phone || req.body.phoneNumber || "").trim();
     const address = (req.body.address || req.body.projectAddress || "").trim();
+    const landmark = (req.body.landmark || "").trim();
     const email = (req.body.email || "").trim().toLowerCase();
     const password = req.body.password;
 
@@ -28,6 +29,7 @@ exports.register = async (req, res) => {
       !fullname ||
       !phone ||
       !address ||
+      !landmark ||
       !email ||
       !password
     ) {
@@ -35,6 +37,10 @@ exports.register = async (req, res) => {
         success: false,
         message: "Please fill in all required fields.",
       });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, message: "Password must be at least 8 characters long." });
     }
 
     // Check if email exists
@@ -60,12 +66,13 @@ exports.register = async (req, res) => {
 
         db.query(
           `INSERT INTO users
-          (fullname, phone, address, email, password)
-          VALUES (?, ?, ?, ?, ?)`,
+          (fullname, phone, address, landmark, email, password)
+          VALUES (?, ?, ?, ?, ?, ?)`,
           [
             fullname,
             phone,
             address,
+            landmark,
             email,
             hashedPassword,
           ],
@@ -82,6 +89,7 @@ exports.register = async (req, res) => {
               fullname,
               phone,
               address,
+              landmark,
               email,
             };
 
@@ -230,11 +238,21 @@ exports.googleLogin = async (req, res) => {
   try {
     const tokenResponse = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
     const profile = await tokenResponse.json();
-    if (!tokenResponse.ok || profile.aud !== googleClientId || profile.email_verified !== "true") {
+    if (!tokenResponse.ok || profile.aud !== googleClientId || !profile.email) {
       return res.status(401).json({ success: false, message: "Google sign-in could not be verified." });
     }
 
-    db.query("SELECT id, fullname, phone, address, email FROM users WHERE email = ?", [profile.email], async (err, users) => {
+    const emailVerified = profile.email_verified === true || profile.email_verified === "true";
+    if (!emailVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "Please verify your email address in your Google account before signing in.",
+      });
+    }
+
+    const googleEmail = String(profile.email).trim().toLowerCase();
+
+    db.query("SELECT id, fullname, phone, address, landmark, email FROM users WHERE email = ?", [googleEmail], async (err, users) => {
       if (err) return res.status(500).json({ success: false, message: "Unable to sign in." });
       const issueToken = (user) => issueAccessToken({ ...user, role: "client" });
       if (users.length) {
@@ -242,13 +260,13 @@ exports.googleLogin = async (req, res) => {
         return res.json({ success: true, message: "Google sign-in successful.", token: issueToken(user), user });
       }
 
-      const fullname = profile.name || profile.email.split("@")[0];
+      const fullname = profile.name || googleEmail.split("@")[0];
       db.query(
         "INSERT INTO users (fullname, phone, address, email, password, role) VALUES (?, ?, ?, ?, ?, 'client')",
-        [fullname, "", "", profile.email, "GOOGLE_AUTH"],
+        [fullname, "", "", googleEmail, "GOOGLE_AUTH"],
         (insertError, result) => {
           if (insertError) return res.status(500).json({ success: false, message: insertError.message });
-          const user = { id: result.insertId, fullname, phone: "", address: "", email: profile.email };
+          const user = { id: result.insertId, fullname, phone: "", address: "", landmark: "", email: googleEmail };
           return res.status(201).json({ success: true, message: "Google account created.", token: issueToken(user), user });
         }
       );

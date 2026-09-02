@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Home, Grid, Calendar, Compass, MessageSquare, LogOut } from 'lucide-react';
+import { Home, Grid, Calendar, Compass, MessageSquare, LogOut, AlertCircle, X } from 'lucide-react';
+import { getApiUrl, getClientSession } from '@/lib/api';
 
 interface ShellProps {
   children?: React.ReactNode;
@@ -19,6 +20,7 @@ export default function DashboardShell({
 }: ShellProps) {
   const [internalTab, setInternalTab] = useState('home');
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [rejectionAlert, setRejectionAlert] = useState<{ id: number; message: string } | null>(null);
 
   // Use external states if provided, otherwise fallback to internal state management
   const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalTab;
@@ -36,6 +38,31 @@ export default function DashboardShell({
     setIsCollapsed(true);
   }, []);
 
+  useEffect(() => {
+    const loadRejectionAlert = async () => {
+      const client = getClientSession();
+      if (!client) return;
+      const response = await fetch(`${getApiUrl()}/notifications?user_id=${client.id}`);
+      const result: { success?: boolean; notifications?: Array<{ id: number; title: string; message: string; is_read: boolean | number }> } = await response.json();
+      if (!response.ok) return;
+      const rejected = (result.notifications ?? []).find((notification) =>
+        notification.title === 'Booking Rejected' && !Boolean(notification.is_read)
+      );
+      setRejectionAlert(rejected ? { id: rejected.id, message: rejected.message } : null);
+    };
+
+    void loadRejectionAlert();
+    const notificationTimer = window.setInterval(() => void loadRejectionAlert(), 10000);
+    return () => window.clearInterval(notificationTimer);
+  }, []);
+
+  const dismissRejectionAlert = async () => {
+    if (!rejectionAlert) return;
+    const notificationId = rejectionAlert.id;
+    setRejectionAlert(null);
+    await fetch(`${getApiUrl()}/notifications/${notificationId}/read`, { method: 'PUT' }).catch(() => undefined);
+  };
+
   const handleLogoutClick = () => {
     if (onLogout) {
       onLogout();
@@ -46,6 +73,18 @@ export default function DashboardShell({
 
   return (
     <div className="w-full min-h-screen bg-slate-100 flex flex-col md:flex-row font-sans text-slate-800">
+      {rejectionAlert && (
+        <div role="alert" className="fixed left-1/2 top-4 z-[100] flex w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-xl">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-black uppercase tracking-wider">Booking Rejected</p>
+            <p className="mt-1 text-xs leading-relaxed">{rejectionAlert.message}</p>
+          </div>
+          <button type="button" onClick={() => void dismissRejectionAlert()} aria-label="Dismiss booking rejection alert" className="rounded-lg p-1 text-red-500 hover:bg-red-100 cursor-pointer">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       
       {/* 1. DESKTOP SIDEBAR NAVIGATION */}
       <aside 

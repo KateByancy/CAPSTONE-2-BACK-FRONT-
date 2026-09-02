@@ -13,6 +13,7 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
   const [fullName, setFullName] = useState(userName);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [primaryAddress, setPrimaryAddress] = useState('');
+  const [landmark, setLandmark] = useState('');
   
   // Feedback states for interactive actions
   const [saveMessage, setSaveMessage] = useState(false);
@@ -28,6 +29,7 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
     setFullName(client.fullname);
     setPhoneNumber(client.phone || '');
     setPrimaryAddress(client.address || '');
+    setLandmark(client.landmark || '');
   }, []);
 
   const handleSaveChanges = async (e: React.FormEvent) => {
@@ -39,11 +41,11 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
     try {
       const response = await fetch(`${getApiUrl()}/profile/${client.id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ fullname: fullName, phone: phoneNumber, address: primaryAddress }),
+        body: JSON.stringify({ fullname: fullName, phone: phoneNumber, address: primaryAddress, landmark }),
       });
       const result: { success: boolean; message?: string } = await response.json();
       if (!response.ok || !result.success) throw new Error(result.message || 'Unable to update profile.');
-      localStorage.setItem('clientAccount', JSON.stringify({ ...client, fullname: fullName, phone: phoneNumber, address: primaryAddress }));
+      localStorage.setItem('clientAccount', JSON.stringify({ ...client, fullname: fullName, phone: phoneNumber, address: primaryAddress, landmark }));
       setSaveMessage(true);
       setTimeout(() => setSaveMessage(false), 3000);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to update profile.'); }
@@ -144,6 +146,20 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
                 value={primaryAddress}
                 onChange={(e) => setPrimaryAddress(e.target.value)}
                 placeholder="Enter your primary address"
+                className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#0070c0] transition"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Nearest Landmark
+              </label>
+              <input
+                type="text"
+                value={landmark}
+                onChange={(e) => setLandmark(e.target.value)}
+                placeholder="e.g. Beside the barangay hall"
+                required
                 className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#0070c0] transition"
               />
             </div>

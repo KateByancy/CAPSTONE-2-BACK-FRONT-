@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 // The installed lucide-react package does not ship declaration files.
 // @ts-ignore -- preserve the icon imports until the dependency is typed.
 import { User, Calculator, ArrowRight, Wallet, CalendarRange, Check, Calendar, ArrowLeft, Clock, ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
-import { getApiUrl, getClientSession } from '@/lib/api';
+import { formatClientName, getApiUrl, getClientSession } from '@/lib/api';
 
 interface HomeProps {
   setActiveTab?: (tab: string) => void;
@@ -12,8 +12,17 @@ interface HomeProps {
 
 interface PricingOption { name: string; value: number | string }
 
+const SERVICE_TYPE_OPTIONS = ['Living room', 'Kitchen', 'Office', 'Commercial room'];
+const SERVICE_TYPE_MULTIPLIERS: Record<string, number> = {
+  'Living room': 1,
+  Kitchen: 1.25,
+  Office: 1.1,
+  'Commercial room': 1.5,
+};
+
 export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const [area, setArea] = useState<number>(0);
+  const [estimateServiceType, setEstimateServiceType] = useState<string>('');
   const [style, setStyle] = useState<string>('');
   const [complexity, setComplexity] = useState<string>('');
   const [estimate, setEstimate] = useState<{ min: number; max: number }>({ min: 0, max: 0 });
@@ -51,7 +60,10 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   // --- BOOKING MODAL STATE ENGINE ---
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [bookingStep, setBookingStep] = useState<'form' | 'success'>('form');
-  const [serviceType, setServiceType] = useState<string>('Living Room Makeover');
+  const [serviceType, setServiceType] = useState<string>('');
+  const [isServiceTypeOpen, setIsServiceTypeOpen] = useState<boolean>(false);
+  const [projectAddress, setProjectAddress] = useState<string>('');
+  const [projectLandmark, setProjectLandmark] = useState<string>('');
   const [projectDescription, setProjectDescription] = useState<string>('');
   const [preferredStartDate, setPreferredStartDate] = useState<string>('');
   const [preferredStartTime, setPreferredStartTime] = useState<string>('');
@@ -82,7 +94,9 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
         setEstimateFactors(factors);
         setStyle((current) => current || styles[0]?.name || '');
         setComplexity((current) => current || complexities[0]?.name || '');
-        setClientDisplayName(result.client?.fullname || userName);
+        setClientDisplayName(result.client?.fullname ? formatClientName(result.client.fullname) : userName);
+        setProjectAddress((currentAddress) => currentAddress || result.client?.address || '');
+        setProjectLandmark((currentLandmark) => currentLandmark || result.client?.landmark || '');
         setHomeError('');
       } catch (error) {
         setHomeError(error instanceof Error ? error.message : 'Unable to load the dashboard.');
@@ -112,8 +126,9 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   useEffect(() => {
     const baseRate = Number(styleOptions.find((option) => option.name === style)?.value || 0);
     const complexityMultiplier = Number(complexityOptions.find((option) => option.name === complexity)?.value || 0);
+    const serviceMultiplier = SERVICE_TYPE_MULTIPLIERS[estimateServiceType] || 0;
 
-    const calculatedBase = area * baseRate * complexityMultiplier;
+    const calculatedBase = area * baseRate * complexityMultiplier * serviceMultiplier;
     const minFactor = Number(estimateFactors.find((option) => option.name === 'Minimum factor')?.value || 0);
     const maxFactor = Number(estimateFactors.find((option) => option.name === 'Maximum factor')?.value || 0);
     const minEstimate = Math.round(calculatedBase * minFactor);
@@ -124,10 +139,11 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
     } else {
       setEstimate({ min: minEstimate, max: maxEstimate });
     }
-  }, [area, style, complexity, styleOptions, complexityOptions, estimateFactors]);
+  }, [area, estimateServiceType, style, complexity, styleOptions, complexityOptions, estimateFactors]);
 
   const handleOpenBooking = () => {
     setBookingStep('form');
+    setIsServiceTypeOpen(false);
     setIsBookingOpen(true);
   };
 
@@ -136,6 +152,18 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
     const client = getClientSession();
     if (!client) {
       setBookingError('Please sign in again before creating a booking.');
+      return;
+    }
+    if (!serviceType) {
+      setBookingError('Please select a service type.');
+      return;
+    }
+    if (!projectAddress.trim()) {
+      setBookingError('Please enter the complete project address so the admin can locate the job site.');
+      return;
+    }
+    if (!projectLandmark.trim()) {
+      setBookingError('Please enter a nearby landmark so the admin can easily locate the project.');
       return;
     }
     if (!preferredStartDate || !preferredStartTime) {
@@ -152,7 +180,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       const response = await fetch(`${getApiUrl()}/booking`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: client.id, service_type: serviceType, project_description: projectDescription, preferred_start_date: preferredStartDate, preferred_start_time: preferredStartTime }),
+        body: JSON.stringify({ user_id: client.id, service_type: serviceType, project_description: projectDescription, project_address: projectAddress.trim(), project_landmark: projectLandmark.trim(), preferred_start_date: preferredStartDate, preferred_start_time: preferredStartTime }),
       });
       const result: { success: boolean; message?: string; bookingId?: number } = await response.json();
       if (!response.ok || !result.success || !result.bookingId) throw new Error(result.message || 'Unable to create booking.');
@@ -425,7 +453,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
               <h3 className="text-sm font-serif tracking-wide text-slate-200">Quick Quote Calculator</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 pt-2">
               <div className="relative group/input">
                 <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Total Floor Area (Sqm)</label>
                 <div className="relative flex items-center">
@@ -455,6 +483,13 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                     </button>
                   </div>
                 </div>
+              </div>
+              <div>
+                <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Service Type</label>
+                <select value={estimateServiceType} onChange={(e) => setEstimateServiceType(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-blue-500 text-white font-bold">
+                  <option value="">Select service type</option>
+                  {SERVICE_TYPE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
               </div>
               <div>
                 <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Design Style</label>
@@ -553,10 +588,80 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
                         Service Type
                       </label>
-                      <input 
-                        type="text" 
-                        value={serviceType}
-                        onChange={(e) => setServiceType(e.target.value)}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          aria-haspopup="listbox"
+                          aria-expanded={isServiceTypeOpen}
+                          onClick={() => setIsServiceTypeOpen((isOpen) => !isOpen)}
+                          className="flex w-full items-center justify-between gap-3 bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-left text-xs font-medium focus:outline-none focus:border-blue-500 shadow-inner cursor-pointer"
+                        >
+                          <span className={serviceType ? 'text-slate-200' : 'text-slate-500'}>
+                            {serviceType || 'Select service type'}
+                          </span>
+                          {isServiceTypeOpen ? (
+                            <ChevronUp className="h-4 w-4 shrink-0 text-blue-400" aria-hidden="true" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+                          )}
+                        </button>
+
+                        {isServiceTypeOpen && (
+                          <div
+                            role="listbox"
+                            aria-label="Service type"
+                            className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-slate-700 bg-[#121620] shadow-xl"
+                          >
+                            {SERVICE_TYPE_OPTIONS.map((option) => (
+                              <button
+                                key={option}
+                                type="button"
+                                role="option"
+                                aria-selected={serviceType === option}
+                                onClick={() => {
+                                  setServiceType(option);
+                                  setIsServiceTypeOpen(false);
+                                  setBookingError('');
+                                }}
+                                className={`block w-full px-4 py-3 text-left text-xs transition cursor-pointer ${
+                                  serviceType === option
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-slate-200 hover:bg-slate-800'
+                                }`}
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
+                        Project Address
+                      </label>
+                      <input
+                        type="text"
+                        value={projectAddress}
+                        onChange={(e) => setProjectAddress(e.target.value)}
+                        placeholder="Street, barangay, city, province"
+                        autoComplete="street-address"
+                        required
+                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
+                      />
+                      <p className="text-[9px] text-slate-500">This exact location will be shown to the admin and used on the Fleet Map.</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
+                        Nearest Landmark
+                      </label>
+                      <input
+                        type="text"
+                        value={projectLandmark}
+                        onChange={(e) => setProjectLandmark(e.target.value)}
+                        placeholder="e.g. Across the public market"
                         required
                         className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
                       />
@@ -585,7 +690,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         min={new Date().toISOString().slice(0, 10)}
                         onChange={(e) => setPreferredStartDate(e.target.value)}
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
+                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
                       />
                       {hasScheduleConflict && <p className="text-[10px] text-red-300">This date and time is unavailable. Choose another slot.</p>}
                     </div>
@@ -597,7 +702,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         value={preferredStartTime}
                         onChange={(e) => setPreferredStartTime(e.target.value)}
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
+                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
                       />
                     </div>
 

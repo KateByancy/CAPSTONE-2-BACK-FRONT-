@@ -6,11 +6,13 @@ const {
     getBookings,
     getBookingById,
     updateBooking,
-    deleteBooking
+    deleteBooking,
+    getFleetLocations
 } = require("../controllers/bookingController");
 
 router.post("/", createBooking);
 router.get("/", getBookings);
+router.get("/fleet-locations", getFleetLocations);
 router.get("/:id", getBookingById);
 router.put("/:id", updateBooking);
 router.delete("/:id", deleteBooking);

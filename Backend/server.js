@@ -123,7 +123,6 @@ if (require.main === module) {
                 console.error("Server startup failed:", error.message);
             }
 
-            db.end();
             process.exitCode = 1;
         });
 }

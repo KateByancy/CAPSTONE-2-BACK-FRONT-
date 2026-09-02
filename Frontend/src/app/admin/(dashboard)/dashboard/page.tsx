@@ -19,8 +19,8 @@ interface ClientProject {
 export default function DashboardOverview() {
   const router = useRouter();
 
-  // --- CLIENT PROJECTS PIPELINE STATE ENGINE (JOHN DOE ONLY) ---
-  const [activeFilter, setActiveFilter] = useState<'pending' | 'ongoing' | 'completed'>('ongoing');
+  // --- CLIENT PROJECTS PIPELINE STATE ENGINE ---
+  const [activeFilter, setActiveFilter] = useState<'pending' | 'ongoing' | 'completed'>('pending');
   
   const [projects, setProjects] = useState<ClientProject[]>([]);
 
@@ -32,13 +32,27 @@ export default function DashboardOverview() {
     const bookingData = await bookingResponse.json();
     const trackingData = await trackingResponse.json();
     const tracks: Array<{booking_id:number;progress:number}> = trackingData.tracking ?? [];
-    setProjects((bookingData.bookings ?? []).filter((b: {accepted_at?:string|null}) => Boolean(b.accepted_at)).map((b: {id:number;client_name?:string;service_type:string;status:string;client_address?:string}) => {
-      const progress = tracks.find(t => t.booking_id === b.id)?.progress ?? 0;
-      const status: ClientProject['status'] = progress >= 100 ? 'completed' : progress >= 20 ? 'ongoing' : 'pending';
+    setProjects((bookingData.bookings ?? [])
+      .filter((b: {status?:string}) => !['rejected', 'cancelled'].includes((b.status || '').toLowerCase()))
+      .map((b: {id:number;client_name?:string;service_type:string;status:string;client_address?:string}) => {
+      const progress = Number(tracks.find(t => t.booking_id === b.id)?.progress ?? 0);
+      const bookingStatus = (b.status || '').toLowerCase();
+      const status: ClientProject['status'] = progress >= 100 || bookingStatus === 'completed'
+        ? 'completed'
+        : progress >= 20 || bookingStatus === 'ongoing'
+          ? 'ongoing'
+          : 'pending';
       return { id:String(b.id), projectRef:`#${b.id}`, clientName:b.client_name || 'Client', service:b.service_type, location:b.client_address || 'Address not provided', status, progress };
     }));
   }, []);
-  useEffect(() => { void loadDashboard(); }, [loadDashboard]);
+  useEffect(() => {
+    const initialTimer = window.setTimeout(() => void loadDashboard(), 0);
+    const refreshTimer = window.setInterval(() => void loadDashboard(), 10000);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(refreshTimer);
+    };
+  }, [loadDashboard]);
 
   // --- CALCULATE COUNTS DYNAMICALLY ---
   const pendingCount = projects.filter(p => p.status === 'pending').length;

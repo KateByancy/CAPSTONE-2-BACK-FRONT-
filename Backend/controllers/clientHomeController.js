@@ -1,18 +1,36 @@
 const db = require("../config/db");
+const cache = require("../utils/cache");
 
 const query = (sql, values = []) => new Promise((resolve, reject) => {
   db.query(sql, values, (error, rows) => error ? reject(error) : resolve(rows));
 });
+
+const cachedQuery = async (key, ttlMs, sql, values = []) => {
+  const cached = cache.get(key);
+  if (cached) return { rows: cached, hit: true };
+
+  const rows = await query(sql, values);
+  cache.set(key, rows, ttlMs);
+  return { rows, hit: false };
+};
 
 const getClientHome = async (req, res) => {
   try {
     const userId = Number(req.query.user_id);
     if (!userId) return res.status(400).json({ success: false, message: "A client account is required." });
 
-    const [clients, pricingOptions, services, bookings] = await Promise.all([
-      query("SELECT id, fullname, email, phone, address FROM users WHERE id = ? LIMIT 1", [userId]),
-      query("SELECT option_type, name, value FROM pricing_options WHERE is_active = TRUE ORDER BY option_type, sort_order, id"),
-      query("SELECT id, name FROM booking_services WHERE is_active = TRUE ORDER BY sort_order, id"),
+    const [clients, pricingOptionsResult, servicesResult, bookings] = await Promise.all([
+      query("SELECT id, fullname, email, phone, address, landmark FROM users WHERE id = ? LIMIT 1", [userId]),
+      cachedQuery(
+        "client-home:pricing-options",
+        cache.ttl.clientHomeLookups,
+        "SELECT option_type, name, value FROM pricing_options WHERE is_active = TRUE ORDER BY option_type, sort_order, id",
+      ),
+      cachedQuery(
+        "client-home:booking-services",
+        cache.ttl.clientHomeLookups,
+        "SELECT id, name FROM booking_services WHERE is_active = TRUE ORDER BY sort_order, id",
+      ),
       query(
         `SELECT bookings.id, bookings.service_type, bookings.project_description, bookings.status,
                 bookings.created_at, schedules.id AS schedule_id,
@@ -29,6 +47,9 @@ const getClientHome = async (req, res) => {
     ]);
 
     if (!clients.length) return res.status(404).json({ success: false, message: "Client account not found." });
+    const pricingOptions = pricingOptionsResult.rows;
+    const services = servicesResult.rows;
+    res.set("X-Cache", pricingOptionsResult.hit && servicesResult.hit ? "HIT" : "MISS");
     return res.json({
       success: true,
       client: clients[0],

@@ -1,13 +1,17 @@
 const db = require("../config/db");
+const cache = require("../utils/cache");
 
 // Get settings
 const getSettings = (req, res) => {
+    const cached = cache.get("settings:current");
+    if (cached) return cache.sendCachedJson(res, cached);
+
     db.query("SELECT * FROM settings LIMIT 1", (err, result) => {
         if (err) {
             return res.status(500).json(err);
         }
 
-        res.json(result[0]);
+        cache.sendFreshJson(res, "settings:current", result[0], cache.ttl.settings);
     });
 };
 
@@ -37,6 +41,8 @@ const updateSettings = (req, res) => {
             if (err) {
                 return res.status(500).json(err);
             }
+
+            cache.clear("settings:current");
 
             res.json({
                 success: true,

@@ -8,6 +8,7 @@ id INT AUTO_INCREMENT PRIMARY KEY,
 fullname VARCHAR(100),
 phone VARCHAR(20),
 address VARCHAR(255),
+landmark VARCHAR(255),
 email VARCHAR(100) UNIQUE,
 password VARCHAR(255),
 role ENUM('admin', 'client') NOT NULL DEFAULT 'client',
@@ -15,6 +16,8 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )` ,
 
 `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen DATETIME NULL`,
+
+`ALTER TABLE users ADD COLUMN IF NOT EXISTS landmark VARCHAR(255) NULL`,
 
 `ALTER TABLE users
 MODIFY COLUMN role ENUM('admin', 'client', 'customer') NOT NULL DEFAULT 'client'`,
@@ -103,6 +106,8 @@ id INT AUTO_INCREMENT PRIMARY KEY,
 user_id INT,
 service_type VARCHAR(100),
 project_description TEXT,
+project_address VARCHAR(255),
+project_landmark VARCHAR(255),
 status VARCHAR(50) DEFAULT 'Pending',
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
@@ -110,6 +115,10 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 `ALTER TABLE bookings MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Pending'`,
 
 `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS accepted_at DATETIME NULL`,
+
+`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS project_address VARCHAR(255) NULL`,
+
+`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS project_landmark VARCHAR(255) NULL`,
 
 `UPDATE bookings SET accepted_at = COALESCE(accepted_at, created_at)
  WHERE LOWER(status) IN ('confirmed', 'approved', 'ongoing', 'completed')`,

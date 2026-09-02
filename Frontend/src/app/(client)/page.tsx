@@ -14,7 +14,7 @@ import ChatView from './chat/page';
 import ProfileView from './profile/page';
 import PaymentsView from './payments/page';
 import DashboardShell from './dashboardshell/page';
-import { getApiUrl } from '@/lib/api';
+import { formatClientName, getApiUrl } from '@/lib/api';
 
 interface ClientAccount {
   id: number;
@@ -23,13 +23,6 @@ interface ClientAccount {
   phone: string;
   address: string;
 }
-
-const formatDashboardName = (fullName: string) => {
-  const nameParts = fullName.trim().split(/\s+/).filter(Boolean);
-  if (nameParts.length < 2) return nameParts[0] || 'Client User';
-
-  return `${nameParts.at(-1)}, ${nameParts.slice(0, -1).join(' ')}`;
-};
 
 export default function ClientMasterController() {
   // Start on 'landing' so your landing page shows first
@@ -42,7 +35,7 @@ export default function ClientMasterController() {
       const stored = localStorage.getItem('clientAccount');
       if (!stored) return;
       const client = JSON.parse(stored) as ClientAccount;
-      setUserName(formatDashboardName(client.fullname));
+      setUserName(formatClientName(client.fullname));
       setCurrentScreen('dashboard');
       if (new URLSearchParams(window.location.search).has('payment')) setActiveTab('payments');
     } catch {
@@ -82,7 +75,7 @@ export default function ClientMasterController() {
     return (
       <LoginPage
         onLoginSuccess={(name = 'Client User') => {
-          setUserName(formatDashboardName(name));
+          setUserName(formatClientName(name));
           setCurrentScreen('dashboard');
         }}
         onNavigateToRegister={() => setCurrentScreen('register')}
@@ -96,7 +89,7 @@ export default function ClientMasterController() {
     return (
       <RegisterPage 
         onRegisterSuccess={(client: ClientAccount) => {
-          setUserName(formatDashboardName(client.fullname));
+          setUserName(formatClientName(client.fullname));
           setCurrentScreen('dashboard');
         }}
         onBackToLogin={() => setCurrentScreen('login')}

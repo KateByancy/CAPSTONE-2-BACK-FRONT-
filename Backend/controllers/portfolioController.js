@@ -1,7 +1,11 @@
 const db = require("../config/db");
+const cache = require("../utils/cache");
 
 // Get all portfolio items
 const getPortfolio = (req, res) => {
+    const cacheKey = req.params.id ? `portfolio:${req.params.id}` : "portfolio:all";
+    const cached = cache.get(cacheKey);
+    if (cached) return cache.sendCachedJson(res, cached);
 
     db.query(
         "SELECT * FROM portfolio",
@@ -10,7 +14,7 @@ const getPortfolio = (req, res) => {
             if (err)
                 return res.status(500).json(err);
 
-            res.json(result);
+            cache.sendFreshJson(res, cacheKey, result, cache.ttl.portfolio);
 
         }
     );
@@ -29,6 +33,9 @@ const addPortfolio = (req, res) => {
 
             if (err)
                 return res.status(500).json(err);
+
+            cache.clearByPrefix("portfolio:");
+            cache.clearByPrefix("landing:");
 
             res.json({
                 success: true,
@@ -54,6 +61,9 @@ const updatePortfolio = (req, res) => {
             if (err)
                 return res.status(500).json(err);
 
+            cache.clearByPrefix("portfolio:");
+            cache.clearByPrefix("landing:");
+
             res.json({
                 success: true,
                 message: "Portfolio updated successfully."
@@ -76,6 +86,9 @@ const deletePortfolio = (req, res) => {
 
             if (err)
                 return res.status(500).json(err);
+
+            cache.clearByPrefix("portfolio:");
+            cache.clearByPrefix("landing:");
 
             res.json({
                 success: true,
