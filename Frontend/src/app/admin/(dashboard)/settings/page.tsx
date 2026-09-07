@@ -1,10 +1,28 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { Camera, Plus, ShieldCheck, Trash2, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Plus, X } from 'lucide-react';
+import ProfileAvatar from '@/components/ProfileAvatar';
 import { getApiUrl } from '@/lib/api';
 
 export default function ProfileSettings() {
+  const imageInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  async function uploadImage(file?: File) {
+    if (!file) return;
+    setUploadError('');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { setUploadError('Choose a JPEG, PNG or WebP image up to 5 MB.'); return; }
+    setUploading(true);
+    try {
+      const body = new FormData(); body.append('image', file);
+      const response = await fetch(`${getApiUrl()}/portfolio/upload`, { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('adminToken') || ''}` }, body });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Image upload failed.');
+      setPortfolioData(current => ({ ...current, imageUrl: result.image }));
+    } catch (error) { setUploadError(error instanceof Error ? error.message : 'Image upload failed.'); }
+    finally { setUploading(false); }
+  }
   // --- FORM STATES ---
   const [formData, setFormData] = useState({
     fullName: '', phoneNumber: '', address: '',
@@ -33,6 +51,7 @@ export default function ProfileSettings() {
   // Handle portfolio submission
   const handlePublishPortfolio = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploading || !portfolioData.imageUrl) { setUploadError('Upload an image before publishing.'); return; }
     const response=await fetch(`${getApiUrl()}/portfolio`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:portfolioData.title,image:portfolioData.imageUrl,description:[portfolioData.category,portfolioData.stories].filter(Boolean).join(' — ')})});
     if(!response.ok)return setMessage('Unable to publish portfolio item.');
     setMessage('Portfolio item published successfully.');
@@ -61,18 +80,7 @@ export default function ProfileSettings() {
         
         {/* AVATAR SECTION */}
         <div className="flex flex-col items-center justify-center space-y-2 pt-2">
-          <div className="relative">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center shadow-inner">
-              <span className="text-3xl sm:text-4xl font-serif text-slate-800 font-bold">
-                {formData.fullName.charAt(0) || 'M'}
-              </span>
-            </div>
-            
-            {/* CAMERA BADGE */}
-            <button className="absolute bottom-0 right-0 p-2 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition cursor-pointer border-2 border-white shadow-md">
-              <Camera className="w-4 h-4" />
-            </button>
-          </div>
+          <ProfileAvatar role="admin" name={formData.fullName} />
 
           <div className="text-center">
             <h2 className="text-xl font-bold font-serif text-slate-900">
@@ -161,33 +169,6 @@ export default function ProfileSettings() {
 
         </div>
 
-        {/* APP CONFIGURATION SECTION */}
-        <div className="space-y-3 pt-2">
-          <p className="text-[10px] font-bold font-serif text-slate-400 uppercase tracking-widest text-center">
-            App Configuration
-          </p>
-
-          <div className="space-y-2 max-w-md mx-auto">
-            {/* TWO-FACTOR AUTHENTICATION */}
-            <button
-              onClick={() => alert('Two-Factor Authentication toggled!')}
-              className="w-full py-3 px-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-center space-x-2 text-xs font-serif font-semibold text-slate-700 shadow-sm transition cursor-pointer"
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Two-Factor Authentication</span>
-            </button>
-
-            {/* DELETE ACCOUNT */}
-            <button
-              onClick={() => confirm('Are you sure you want to delete your account?')}
-              className="w-full py-3 px-4 bg-white hover:bg-rose-50 border border-slate-200 rounded-2xl flex items-center justify-center space-x-2 text-xs font-serif font-semibold text-rose-600 shadow-sm transition cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4 text-rose-500" />
-              <span>Delete Account</span>
-            </button>
-          </div>
-        </div>
-
       </div>
 
       {/* 3. PORTFOLIO UPDATES MODAL */}
@@ -219,16 +200,6 @@ export default function ProfileSettings() {
                 className="w-full px-4 py-3 bg-[#f0f6fc] border border-blue-100 rounded-2xl text-xs font-serif text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0070c0]/30"
               />
 
-              {/* IMAGE URL */}
-              <input
-                type="text"
-                required
-                value={portfolioData.imageUrl}
-                onChange={(e) => setPortfolioData({ ...portfolioData, imageUrl: e.target.value })}
-                placeholder="Image URL (CDN Link)"
-                className="w-full px-4 py-3 bg-[#f0f6fc] border border-blue-100 rounded-2xl text-xs font-serif text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0070c0]/30"
-              />
-
               {/* CATEGORY */}
               <input
                 type="text"
@@ -248,6 +219,16 @@ export default function ProfileSettings() {
                 placeholder="Project Stories & Materials"
                 className="w-full px-4 py-3 bg-[#f0f6fc] border border-blue-100 rounded-2xl text-xs font-serif text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0070c0]/30 resize-none"
               />
+
+              <div className="space-y-2">
+                <input ref={imageInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" aria-label="Choose portfolio image" onChange={event => { void uploadImage(event.target.files?.[0]); event.target.value = ''; }} />
+                <button type="button" disabled={uploading} onClick={() => imageInput.current?.click()} className="w-full rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800 disabled:opacity-50">
+                  {uploading ? 'Uploading image...' : portfolioData.imageUrl ? 'Change Image' : 'Upload Image'}
+                </button>
+                <p className="text-xs text-slate-500">JPEG, PNG or WebP, up to 5 MB.</p>
+                {uploadError && <p role="alert" className="text-xs text-red-600">{uploadError}</p>}
+                {portfolioData.imageUrl && <img src={portfolioData.imageUrl} alt="Portfolio preview" className="max-h-48 w-full rounded-xl object-contain" />}
+              </div>
 
               {/* MODAL ACTION BUTTONS */}
               <div className="grid grid-cols-2 gap-3 pt-2">

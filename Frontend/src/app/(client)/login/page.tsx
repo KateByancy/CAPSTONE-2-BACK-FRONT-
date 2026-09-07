@@ -226,6 +226,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
                 <input 
                   type="email" 
                   value={email}
+                  placeholder="Enter your email address"
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="w-full bg-white text-slate-900 rounded-xl px-4 py-3 text-xs lg:text-sm outline-none shadow-md font-medium placeholder:text-slate-400 border border-transparent focus:border-[#00529b] transition"
@@ -250,6 +251,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
                   <input 
                     type={showPassword ? "text" : "password"} 
                     value={password}
+                    placeholder="Enter your password"
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className={`w-full bg-white text-slate-900 rounded-xl pl-4 pr-12 py-3 text-xs lg:text-sm outline-none shadow-md placeholder:text-slate-400 border border-transparent focus:border-[#00529b] transition ${

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { Camera, ShieldCheck, Trash2, Check } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Check } from 'lucide-react';
+import ProfileAvatar from '@/components/ProfileAvatar';
 import { getApiUrl, getClientSession } from '@/lib/api';
 
 interface AccountProfileProps {
@@ -17,11 +17,8 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
   
   // Feedback states for interactive actions
   const [saveMessage, setSaveMessage] = useState(false);
-  const [tfaActive, setTfaActive] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [error, setError] = useState('');
   
-  const router = useRouter();
 
   useEffect(() => {
     const client = getClientSession();
@@ -51,45 +48,26 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to update profile.'); }
   };
 
-  const handleToggleTfa = () => {
-    setTfaActive(!tfaActive);
-  };
-
-  const handleDeleteAccount = () => {
-    setShowDeleteModal(false);
-    router.push('/');
-  };
-
   return (
-    <div className="max-w-xl mx-auto px-4 py-6 space-y-6 animate-fadeIn pb-24 md:pb-12">
+    <div className="w-full p-4 sm:p-6 md:p-8 space-y-6 animate-fadeIn pb-24 md:pb-12">
       
       {/* Top Header */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80">
-        <h1 className="text-xl sm:text-2xl font-serif font-black tracking-tight text-slate-900">
+      <div className="bg-[#0070c0] text-white rounded-3xl p-6 sm:p-8 shadow-md">
+        <div className="space-y-1">
+        <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight">
           Profile Settings
         </h1>
-        <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400 mt-0.5">
-          Personal Identity & App Configuration
+        <p className="text-xs sm:text-sm font-semibold tracking-wider text-blue-100 uppercase font-serif">
+          Personal Identity
         </p>
+        </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="w-full max-w-2xl mx-auto space-y-6">
         
         {/* Avatar Section */}
         <div className="flex flex-col items-center justify-center pt-2">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full border border-slate-300 bg-white flex items-center justify-center text-3xl font-serif font-bold text-slate-800 shadow-sm">
-              {fullName ? fullName.charAt(0).toUpperCase() : 'J'}
-            </div>
-            <button 
-              type="button"
-              onClick={() => alert("Upload photo functionality triggered.")}
-              className="absolute bottom-0 right-0 p-2 bg-[#111c3a] text-white rounded-full shadow-md hover:bg-black transition cursor-pointer border-2 border-white"
-              title="Change Avatar"
-            >
-              <Camera className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <ProfileAvatar role="client" name={fullName} />
           <h2 className="mt-3 text-base sm:text-lg font-serif font-bold text-slate-900">
             {fullName || 'John Doe'}
           </h2>
@@ -175,77 +153,7 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
           </button>
         </form>
 
-        {/* App Configuration / Extra Settings */}
-        <div className="pt-2 space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
-            App Configuration
-          </p>
-          
-          <div className="space-y-2.5">
-            <button 
-              type="button"
-              onClick={handleToggleTfa}
-              className={`w-full border rounded-2xl p-4 flex items-center justify-between text-xs font-bold shadow-sm transition cursor-pointer ${
-                tfaActive 
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
-                  : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-800'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <ShieldCheck className={`w-4 h-4 ${tfaActive ? 'text-emerald-600' : 'text-slate-500'}`} />
-                <span>Two-Factor Authentication</span>
-              </div>
-              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${tfaActive ? 'bg-emerald-200/60 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
-                {tfaActive ? 'ENABLED' : 'DISABLED'}
-              </span>
-            </button>
-
-            <button 
-              type="button"
-              onClick={() => setShowDeleteModal(true)}
-              className="w-full bg-white hover:bg-rose-50/50 border border-slate-200/80 rounded-2xl p-4 flex items-center justify-center space-x-2 text-xs font-bold text-rose-600 shadow-sm transition cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4 text-rose-500" />
-              <span>Delete Account</span>
-            </button>
-          </div>
-        </div>
-
       </div>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-fadeIn">
-            <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600 mx-auto">
-              <Trash2 className="w-6 h-6" />
-            </div>
-            <div className="text-center space-y-2">
-              <h3 className="text-base font-serif font-black text-slate-900">Are you sure you want to delete your account?</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                This action is irreversible and will permanently clear all your project layouts and history.
-              </p>
-            </div>
-            <div className="flex space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider py-3.5 rounded-2xl transition cursor-pointer border-none"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteAccount}
-                className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs uppercase tracking-wider py-3.5 rounded-2xl transition cursor-pointer border-none shadow-md"
-              >
-                Confirm Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }

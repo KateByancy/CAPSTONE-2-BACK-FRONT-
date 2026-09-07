@@ -79,7 +79,7 @@ export default function ClientsManagement() {
 
   const loadConversation = useCallback(async (clientId: string) => {
     const requestId = ++conversationRequestRef.current;
-    const response = await fetch(`${getApiUrl()}/chat/${clientId}`);
+    const response = await fetch(`${getApiUrl()}/chat/${clientId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("adminToken") || ""}` } });
     const result: unknown = await response.json();
     if (!response.ok) {
       const message = typeof result === 'object' && result !== null && 'message' in result
@@ -118,7 +118,7 @@ export default function ClientsManagement() {
     setIsSending(true);
     setClientsError('');
     try {
-      const response = await fetch(`${getApiUrl()}/chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:Number(clientId),sender:'admin',message:text}) });
+      const response = await fetch(`${getApiUrl()}/chat`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('adminToken') || ''}`}, body:JSON.stringify({user_id:Number(clientId),sender:'admin',message:text}) });
       if (!response.ok) throw new Error('Unable to send message.');
       setNewMessageText('');
       await loadConversation(clientId);

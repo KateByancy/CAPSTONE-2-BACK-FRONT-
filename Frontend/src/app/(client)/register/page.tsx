@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Home, ChevronLeft, Loader2, ShieldCheck, Layers, Eye, EyeOff } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
-import { renderGoogleButton } from '@/lib/google-auth';
 
 interface ClientAccount {
   id: number;
@@ -87,7 +85,6 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
   const [error, setError] = useState('');
   const [visayasBarangayAddresses, setVisayasBarangayAddresses] = useState<string[]>([]);
   const [addressLookupLoading, setAddressLookupLoading] = useState(false);
-  const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const addressSuggestions = useMemo(() => {
     const typedAddress = projectAddress.trim();
     if (typedAddress.length < 2) return [];
@@ -199,32 +196,6 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
     }
   };
 
-  const handleGoogleRegister = async (credential: string) => {
-    setError('');
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${getApiUrl()}/auth/google`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }),
-      });
-      const result: RegisterResponse = await response.json();
-      if (!response.ok || !result.success || !result.user) throw new Error(result.message || 'Unable to register with Google.');
-      localStorage.setItem('clientAccount', JSON.stringify(result.user));
-      if (result.token) localStorage.setItem('clientToken', result.token);
-      if (onRegisterSuccess) onRegisterSuccess(result.user);
-      else router.push('/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to register with Google.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!googleButtonRef.current) return;
-    void renderGoogleButton(googleButtonRef.current, (credential) => void handleGoogleRegister(credential))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Unable to load Google sign-in.'));
-  }, []);
-
   useEffect(() => {
     if (projectAddress.trim().length < 2) return;
     if (cachedVisayasBarangays) {
@@ -330,6 +301,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
                 <input 
                   type="text" 
                   value={fullName}
+                  placeholder="Enter your full name"
                   onChange={(e) => setFullName(e.target.value)}
                   required 
                   className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium" 
@@ -341,6 +313,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
                 <input 
                   type="tel" 
                   value={phoneNumber}
+                  placeholder="09XXXXXXXXX"
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   required 
                   className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium" 
@@ -371,6 +344,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
               <input 
                 type="email" 
                 value={email}
+                placeholder="e.g. name@example.com"
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium" 
@@ -396,6 +370,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
+                    placeholder="At least 8 characters"
                     onChange={(e) => setPassword(e.target.value)}
                     minLength={8}
                     required
@@ -416,6 +391,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
+                    placeholder="Re-enter your password"
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     minLength={8}
                     required
@@ -448,14 +424,6 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
           </form>
 
           <div className="w-full space-y-4 mt-6">
-            <div className="flex items-center justify-center space-x-2 text-[8px] text-slate-400 uppercase tracking-wider">
-              <div className="h-px bg-white/5 flex-1"></div>
-              <span>Or continue with</span>
-              <div className="h-px bg-white/5 flex-1"></div>
-            </div>
-
-            <div ref={googleButtonRef} className={`flex min-h-11 w-full justify-center overflow-hidden rounded-xl bg-white ${isLoading ? 'pointer-events-none opacity-60' : ''}`} />
-
             <div className="text-center pt-2">
               <button 
                 type="button"

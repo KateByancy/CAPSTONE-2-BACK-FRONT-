@@ -66,7 +66,7 @@ export default function AdminPage() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="admin@example.com"
+              placeholder="Enter your email address"
               className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
@@ -78,7 +78,7 @@ export default function AdminPage() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 className="w-full rounded-2xl border border-slate-700 bg-slate-950 pl-4 pr-12 py-3 text-sm text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
               {/* FIXED LOGIC: When showPassword is false (hidden), it shows EyeOff (\). When true, it shows Eye. */}
