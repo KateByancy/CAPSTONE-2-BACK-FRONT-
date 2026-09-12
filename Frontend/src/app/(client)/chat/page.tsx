@@ -43,9 +43,14 @@ export default function Chat() {
   };
 
   useEffect(() => {
-    void loadMessages().catch((err) => setError(err.message));
+    const initialLoad = window.setTimeout(() => {
+      void loadMessages().catch((err) => setError(err.message));
+    }, 0);
     const timer = window.setInterval(() => void loadMessages().catch(() => undefined), 3000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {

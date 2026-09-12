@@ -23,10 +23,6 @@ export default function BuildManagement() {
   const [builds, setBuilds] = useState<BuildProject[]>([]);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
     Promise.all([fetch(`${getApiUrl()}/booking`).then(r=>r.json()),fetch(`${getApiUrl()}/tracking`).then(r=>r.json()),fetch(`${getApiUrl()}/designs`).then(r=>r.json())]).then(([bookingData,trackingData,designData]) => {
       const tracks: Array<{id:number;booking_id:number;progress:number;current_stage:string}> = trackingData.tracking ?? [];
       setBuilds((bookingData.bookings ?? []).filter((b:{accepted_at?:string|null})=>Boolean(b.accepted_at)).map((b:{id:number;user_id:number;client_name?:string;service_type:string;status:string})=>{

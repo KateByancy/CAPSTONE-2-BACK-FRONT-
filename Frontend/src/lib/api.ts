@@ -5,15 +5,18 @@ export function getApiUrl(): string {
 }
 
 export function formatClientName(fullName: string): string {
-  const trimmedName = fullName.trim();
+  const trimmedName = fullName.trim().replace(/\s+/g, ' ');
   if (!trimmedName) return "Client User";
-  const nameParts = trimmedName.replace(/,/g, " ").split(/\s+/).filter(Boolean);
-  if (nameParts.length < 2) return nameParts[0];
-
-  const lastName = nameParts.at(-1);
-  const firstName = nameParts[0];
-  const middleNames = nameParts.slice(1, -1).join(" ");
-  return middleNames ? `${lastName}, ${firstName}, ${middleNames}` : `${lastName}, ${firstName}`;
+  // A comma explicitly identifies surname-first input, including compound surnames.
+  const commaIndex = trimmedName.indexOf(',');
+  const parts = trimmedName.split(' ');
+  if (commaIndex < 0 && parts.length < 2) return trimmedName;
+  const lastName = commaIndex >= 0 ? trimmedName.slice(0, commaIndex).trim() : parts.pop()!;
+  const givenNames = (commaIndex >= 0 ? trimmedName.slice(commaIndex + 1).replace(/,/g, ' ') : parts.join(' '))
+    .trim().split(/\s+/).filter(Boolean)
+    .map(part => /^\p{L}\.?$/u.test(part) ? `${part.replace('.', '').toUpperCase()}.` : part)
+    .join(' ');
+  return givenNames ? `${lastName}, ${givenNames}` : lastName;
 }
 
 export interface ClientSession {

@@ -6,10 +6,9 @@ import { requestProfile, getClientSession } from '@/lib/api';
 
 interface AccountProfileProps {
   userName?: string;
-  setActiveTab?: (tab: string) => void;
 }
 
-export default function AccountProfile({ userName = 'John Doe', setActiveTab }: AccountProfileProps) {
+export default function AccountProfile({ userName = 'John Doe' }: AccountProfileProps) {
   const [fullName, setFullName] = useState(userName);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [primaryAddress, setPrimaryAddress] = useState('');
@@ -24,7 +23,13 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
 
   useEffect(() => {
     const client = getClientSession();
-    if (!client) { setError('Please sign in again to load your profile.'); setLoading(false); return; }
+    if (!client) {
+      const missingSession = window.setTimeout(() => {
+        setError('Please sign in again to load your profile.');
+        setLoading(false);
+      }, 0);
+      return () => window.clearTimeout(missingSession);
+    }
     const controller = new AbortController();
     void requestProfile('client', client.id, undefined, controller.signal).then(profile => {
       setFullName(profile.fullname);

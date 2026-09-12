@@ -15,9 +15,10 @@ These facts describe the current app. Edit this file when the business owner con
 - Project tracking is available in the app. The assistant cannot see a client's live booking, progress, balance, or payment status.
 
 ## Payments
-- Online GCash payments are currently unavailable while merchant setup is incomplete.
-- Ask the administrator about payment arrangements. No alternative bank account, wallet number, deposit percentage, refund terms, or payment deadline has been confirmed.
-- Never tell a client to pay through the existing PayMongo button while this limitation remains.
+- New payment requests use GCash through PayMongo hosted checkout. After accepting a booking, the admin requests the agreed amount. Clients open Payments and select Pay with GCash.
+- The backend checks PayMongo for a matching successful GCash payment before displaying Paid. Returning from checkout alone does not prove payment; refresh Payments to check status. Do not advise paying again when funds may already have been sent.
+- Test mode simulates payments without collecting real money. The Payments page shows when test mode is active. Chat cannot check account configuration or live transaction status.
+- Existing manual receipt requests remain available for admin review, but new requests use PayMongo. Never invent a wallet number or mark a payment verified in chat. No deposit percentage, refund terms or payment deadline has been confirmed.
 
 ## Human support
 - The assistant responds when the administrator is offline. Client messages are saved in this conversation for admin review.

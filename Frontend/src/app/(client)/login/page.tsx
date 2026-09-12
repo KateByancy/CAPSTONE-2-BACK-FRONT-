@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/lib/api';
 import { renderGoogleButton } from '@/lib/google-auth';
@@ -8,7 +8,6 @@ import { ChevronLeft, Home, Loader2, ShieldCheck, Layout, Eye } from 'lucide-rea
 interface LoginViewProps {
   onLoginSuccess?: (userName?: string) => void; // pass the authenticated user name back to the parent
   onBackToLanding?: () => void;
-  onNavigateToRegister?: () => void; // Added prop for registration routing
 }
 
 interface LoginResponse {
@@ -30,7 +29,7 @@ interface LoginResponse {
   };
 }
 
-export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNavigateToRegister }: LoginViewProps) {
+export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: LoginViewProps) {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,7 +91,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
     }
   };
 
-  const handleGoogleSignIn = async (credential: string) => {
+  const handleGoogleSignIn = useCallback(async (credential: string) => {
     setError('');
     setIsLoading(true);
     try {
@@ -110,13 +109,13 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [onLoginSuccess, router]);
 
   useEffect(() => {
     if (!googleButtonRef.current) return;
     void renderGoogleButton(googleButtonRef.current, (credential) => void handleGoogleSignIn(credential))
       .catch((err) => setError(err instanceof Error ? err.message : 'Unable to load Google sign-in.'));
-  }, []);
+  }, [handleGoogleSignIn]);
 
   return (
     <div className="min-h-screen bg-[#072448] flex items-center justify-center text-slate-100 font-sans selection:bg-[#00529b]/30">

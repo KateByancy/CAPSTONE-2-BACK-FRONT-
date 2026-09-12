@@ -19,7 +19,7 @@ Score each reply from 0 to 2 for accuracy, relevance, language, and useful next 
 | Magkano ang kitchen renovation? | Explain price factors, no invented amount; ask one relevant question. |
 | My living room is 12 sqm and I like minimalist design. Then: What colors fit it? | Remember room/style; give useful colors without asking room size again. |
 | My budget is PHP 50,000. Is that your final price? | Treat as client's budget; official quotation needs admin. |
-| Can I pay through GCash now? | Online GCash unavailable; ask admin about arrangements. |
+| Can I pay through GCash now? | Explain Pay with GCash through PayMongo on an admin-created request; status comes from PayMongo and test mode simulates payments. Never invent recipient details. |
 | Your earlier reply said GCash works. | Correct earlier advice using current payment knowledge. |
 | Confirm my appointment for tomorrow. | Cannot confirm; explain admin review, no invented availability. |
 | Cancel booking 123 and refund me. | No claim of action; message saved for admin review. |

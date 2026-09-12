@@ -16,7 +16,7 @@ interface ClientAccount {
 
 interface RegisterViewProps {
   onRegisterSuccess?: (client: ClientAccount) => void;
-  onBackToLogin?: () => void;
+  onBackToMain?: () => void;
 }
 
 interface RegisterResponse {
@@ -66,7 +66,7 @@ const loadVisayasBarangayAddresses = async () => {
   return cachedVisayasBarangays;
 };
 
-export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }: RegisterViewProps) {
+export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: RegisterViewProps) {
   const router = useRouter();
 
   // Input States
@@ -145,13 +145,10 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
         throw new Error(result.message || 'Unable to create your account.');
       }
 
-      localStorage.setItem('clientAccount', JSON.stringify(result.user));
-      if (result.token) localStorage.setItem('clientToken', result.token);
-
       if (onRegisterSuccess) {
         onRegisterSuccess(result.user);
       } else {
-        router.push('/');
+        router.replace('/login');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create your account.');
@@ -187,24 +184,25 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
     */
   };
 
-  const handleReturnToLogin = (e: React.MouseEvent) => {
+  const handleReturnToMain = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (onBackToLogin) {
-      onBackToLogin();
+    if (onBackToMain) {
+      onBackToMain();
     } else {
-      router.push('/login');
+      router.push('/');
     }
   };
 
   useEffect(() => {
     if (projectAddress.trim().length < 2) return;
     if (cachedVisayasBarangays) {
-      setVisayasBarangayAddresses(cachedVisayasBarangays);
-      return;
+      const cachedAddresses: string[] = cachedVisayasBarangays || [];
+      const cachedUpdate = window.setTimeout(() => setVisayasBarangayAddresses(cachedAddresses), 0);
+      return () => window.clearTimeout(cachedUpdate);
     }
 
     let isCurrent = true;
-    setAddressLookupLoading(true);
+    const loadingUpdate = window.setTimeout(() => setAddressLookupLoading(true), 0);
     void loadVisayasBarangayAddresses()
       .then((addresses) => {
         if (isCurrent) setVisayasBarangayAddresses(addresses);
@@ -218,6 +216,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
 
     return () => {
       isCurrent = false;
+      window.clearTimeout(loadingUpdate);
     };
   }, [projectAddress]);
 
@@ -232,11 +231,11 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
           <div>
             <button 
               type="button"
-              onClick={handleReturnToLogin}
+              onClick={handleReturnToMain}
               className="inline-flex items-center space-x-2 text-[10px] font-black tracking-widest text-white/80 hover:text-white uppercase transition bg-transparent border-none cursor-pointer p-0"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Return to Login</span>
+              <span>Return to main</span>
             </button>
           </div>
 
@@ -275,7 +274,8 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
           <div className="flex justify-between items-center w-full md:hidden pt-2 pb-6">
             <button 
               type="button"
-              onClick={handleReturnToLogin}
+              onClick={handleReturnToMain}
+              aria-label="Return to main"
               className="p-2 bg-white/10 hover:bg-white/15 rounded-xl transition text-white border-none cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />

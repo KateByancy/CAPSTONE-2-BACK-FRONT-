@@ -2,6 +2,8 @@ require("dotenv").config();
 const db = require("./config/db");
 
 const queries = [
+...require('./migrations/gcash'),
+require('./migrations/avatars'),
 
 `CREATE TABLE IF NOT EXISTS users(
 id INT AUTO_INCREMENT PRIMARY KEY,

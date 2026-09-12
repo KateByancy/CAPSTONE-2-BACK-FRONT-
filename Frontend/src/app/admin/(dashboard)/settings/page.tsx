@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { Plus, X } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import { getApiUrl, requestProfile } from '@/lib/api';
@@ -256,7 +257,7 @@ export default function ProfileSettings() {
                 </button>
                 <p className="text-xs text-slate-500">JPEG, PNG or WebP, up to 5 MB.</p>
                 {uploadError && <p role="alert" className="text-xs text-red-600">{uploadError}</p>}
-                {portfolioData.imageUrl && <img src={portfolioData.imageUrl} alt="Portfolio preview" className="max-h-48 w-full rounded-xl object-contain" />}
+                {portfolioData.imageUrl && <Image src={portfolioData.imageUrl} alt="Portfolio preview" width={640} height={192} unoptimized className="max-h-48 w-full rounded-xl object-contain" />}
               </div>
 
               {/* MODAL ACTION BUTTONS */}

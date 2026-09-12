@@ -6,10 +6,9 @@ import { Home, LayoutGrid, Calendar, MessageSquare, ChevronLeft, ChevronRight } 
 interface LandingProps {
   onNavigateToLogin: () => void;
   onNavigateToRegister: () => void;
-  onNavigateToDashboard: (tab?: string) => void;
 }
 
-export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNavigateToDashboard }: LandingProps) {
+export default function Landing({ onNavigateToLogin, onNavigateToRegister }: LandingProps) {
   // Gallery Slider State Data
   const galleryImages = [
     { src: '/1.jpg', alt: 'MARC interior showcase project 1' },

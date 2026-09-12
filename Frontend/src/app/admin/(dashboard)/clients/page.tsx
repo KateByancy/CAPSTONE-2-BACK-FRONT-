@@ -56,7 +56,7 @@ export default function ClientsManagement() {
           initial: client.fullname.trim().charAt(0).toUpperCase() || 'C',
           projectName: 'Registered client',
           isOnline: Boolean(client.is_online),
-        })));
+        })).sort((first, second) => Number(second.isOnline) - Number(first.isOnline)));
       } catch (err) {
         setClientsError(err instanceof Error ? err.message : 'Unable to load clients.');
       }
@@ -302,7 +302,7 @@ export default function ClientsManagement() {
             /* EMPTY STATE UNTIL "VIEW CHAT" IS CLICKED */
             <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400 space-y-2">
               <MessageSquare className="w-8 h-8 opacity-40" />
-              <p className="text-xs font-serif italic">Select "View Chat" next to a client to open project communications.</p>
+              <p className="text-xs font-serif italic">Select &quot;View Chat&quot; next to a client to open project communications.</p>
             </div>
           )}
         </div>

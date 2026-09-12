@@ -1,7 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-// The installed lucide-react package does not ship declaration files.
-// @ts-ignore -- preserve the icon imports until the dependency is typed.
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, Calculator, ArrowRight, Wallet, CalendarRange, Check, Calendar, ArrowLeft, Clock, ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatClientName, getApiUrl, getClientSession } from '@/lib/api';
 
@@ -26,7 +24,6 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const [estimateServiceType, setEstimateServiceType] = useState<string>('');
   const [style, setStyle] = useState<string>('');
   const [complexity, setComplexity] = useState<string>('');
-  const [estimate, setEstimate] = useState<{ min: number; max: number }>({ min: 0, max: 0 });
   const [styleOptions, setStyleOptions] = useState<PricingOption[]>([]);
   const [complexityOptions, setComplexityOptions] = useState<PricingOption[]>([]);
   const [estimateFactors, setEstimateFactors] = useState<PricingOption[]>([]);
@@ -44,6 +41,9 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [isRescheduleSubmitting, setIsRescheduleSubmitting] = useState(false);
   const [scheduleMessage, setScheduleMessage] = useState('');
+  const [currentMonth, setCurrentMonth] = useState<number>(() => new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState<number>(() => new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState<number>(() => new Date().getDate());
 
   useEffect(() => {
     const loadSchedule = async () => {
@@ -128,15 +128,9 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       }, 2000); // Automatically closes modal after 2 seconds
     }
     return () => clearTimeout(timer);
-  }, [isBookingOpen, bookingStep]);
+  }, [isBookingOpen, bookingStep, setActiveTab]);
 
-  // --- SCHEDULES INTERACTION STATE ---
-  const [currentMonth, setCurrentMonth] = useState<number>(() => new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState<number>(() => new Date().getFullYear());
-  const [selectedDate, setSelectedDate] = useState<number>(() => new Date().getDate());
-
-  // Calculation Logic Engine
-  useEffect(() => {
+  const estimate = useMemo(() => {
     const baseRate = Number(styleOptions.find((option) => option.name === style)?.value || 0);
     const complexityMultiplier = Number(complexityOptions.find((option) => option.name === complexity)?.value || 0);
     const serviceMultiplier = SERVICE_TYPE_MULTIPLIERS[estimateServiceType] || 0;
@@ -148,10 +142,9 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
     const maxEstimate = Math.round(calculatedBase * maxFactor);
 
     if (isNaN(area) || area <= 0) {
-      setEstimate({ min: 0, max: 0 });
-    } else {
-      setEstimate({ min: minEstimate, max: maxEstimate });
+      return { min: 0, max: 0 };
     }
+    return { min: minEstimate, max: maxEstimate };
   }, [area, estimateServiceType, style, complexity, styleOptions, complexityOptions, estimateFactors]);
 
   const handleOpenBooking = () => {
@@ -535,7 +528,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
         <div className="space-y-4 flex flex-col justify-between">
           <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm flex flex-col justify-center items-center space-y-3 flex-1">
             <p className="text-xs font-serif font-medium text-slate-700 leading-relaxed">
-              No active projects yet. Let's start something beautiful.
+              No active projects yet. Let&apos;s start something beautiful.
             </p>
             <button 
               onClick={handleOpenBooking}

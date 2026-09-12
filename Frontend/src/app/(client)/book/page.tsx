@@ -5,8 +5,6 @@ import { getApiUrl, getClientSession } from '@/lib/api';
 
 export default function Book() {
   const [modalMode, setModalMode] = useState<'none' | 'book_form' | 'book_done' | 'schedule_form' | 'schedule_done'>('none');
-  const [serviceType, setServiceType] = useState('Living room');
-  const [description, setDescription] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [bookingId, setBookingId] = useState<number | null>(null);
   const [project, setProject] = useState({ serviceType: '', description: '' });
@@ -107,36 +105,6 @@ export default function Book() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const submitBooking = async () => {
-    const client = getClientSession();
-    if (!client) {
-      setError('Please sign in again before creating a booking.');
-      return;
-    }
-    if (!serviceType.trim() || !description.trim()) {
-      setError('Service type and project description are required.');
-      return;
-    }
-    setIsSubmitting(true);
-    setError('');
-    try {
-      const response = await fetch(`${getApiUrl()}/booking`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: client.id, service_type: serviceType, project_description: description }),
-      });
-      const result: { success: boolean; message?: string; bookingId?: number } = await response.json();
-      if (!response.ok || !result.success || !result.bookingId) throw new Error(result.message || 'Unable to create booking.');
-      setBookingId(result.bookingId);
-      setScheduleStatus('pending');
-      setModalMode('book_done');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to create booking.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const submitSchedule = async () => {
     if (!bookingId || !selectedDate) {
       setError('Create a booking and select a date first.');
@@ -169,9 +137,10 @@ export default function Book() {
       <div className="flex items-center">
         <div className="flex items-center space-x-2 text-xs font-bold tracking-wider text-slate-400">
           <Calendar className="w-4 h-4 text-blue-500" />
-          <span>PROJECT SCHEDULING</span>
+          <h1>My Pending Bookings</h1>
         </div>
       </div>
+      <p className="text-xs text-slate-500">View and reschedule your bookings while awaiting admin confirmation.</p>
 
       {/* Baseline Overview Card - Visible only while not yet fully confirmed by admin */}
       {scheduleStatus !== 'confirmed' && (
@@ -183,9 +152,9 @@ export default function Book() {
                 <span>Pending</span>
               </span>
             )}
-            <h3 className="text-xs font-bold text-slate-800">{project.serviceType || 'No booking yet'}</h3>
+            <h3 className="text-xs font-bold text-slate-800">{project.serviceType || 'No pending bookings.'}</h3>
             <p className="text-[11px] text-slate-500 italic">
-              {selectedDate ? `Scheduled for: ${selectedDate}` : project.description || 'Create a booking from your dashboard to choose a date.'}
+              {selectedDate ? `Scheduled for: ${selectedDate}` : project.description || 'Confirmed bookings will no longer appear here.'}
             </p>
           </div>
           {scheduleStatus === 'pending' && <button 
@@ -337,7 +306,7 @@ export default function Book() {
 
                 <div className="space-y-2">
                   <button 
-                    disabled={!selectedDate} 
+                    disabled={!selectedDate || isSubmitting} 
                     onClick={submitSchedule}
                     className="w-full bg-[#0070c0] text-white text-[10px] font-bold tracking-widest py-3 rounded-xl disabled:opacity-40 shadow-md cursor-pointer hover:bg-blue-600 transition disabled:cursor-not-allowed"
                   >

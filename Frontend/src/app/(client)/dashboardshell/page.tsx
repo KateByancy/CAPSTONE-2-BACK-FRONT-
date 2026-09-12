@@ -29,14 +29,10 @@ export default function DashboardShell({
   const tabs = [
     { id: 'home', label: 'HOME', icon: Home, desktopLabel: 'Dashboard Home' },
     { id: 'work', label: 'WORK', icon: Grid, desktopLabel: 'Inspirations Portfolio' },
-    { id: 'book', label: 'BOOK', icon: Calendar, desktopLabel: 'Book Consultations' },
+    { id: 'book', label: 'PENDING BOOKINGS', icon: Calendar, desktopLabel: 'Pending Bookings' },
     { id: 'track', label: 'TRACK', icon: Compass, desktopLabel: 'Live Build Tracking' },
     { id: 'chat', label: 'CHAT', icon: MessageSquare, desktopLabel: 'Design Concierge' },
   ];
-
-  useEffect(() => {
-    setIsCollapsed(true);
-  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -182,7 +178,7 @@ export default function DashboardShell({
       <main className="flex-1 overflow-y-auto bg-slate-50 relative p-4 md:p-8 pb-24 md:pb-8 w-full max-w-7xl mx-auto">
         {React.Children.map(children, child => {
           if (React.isValidElement(child)) {
-            return React.cloneElement(child, { userName, setActiveTab } as any);
+            return React.cloneElement(child, { userName, setActiveTab } as { userName: string; setActiveTab: (tab: string) => void });
           }
           return child;
         })}

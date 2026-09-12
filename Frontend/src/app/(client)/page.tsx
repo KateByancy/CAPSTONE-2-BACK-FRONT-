@@ -40,17 +40,20 @@ export default function ClientMasterController() {
   }, []);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('clientAccount');
-      if (!stored) return;
-      const client = JSON.parse(stored) as ClientAccount;
-      setUserName(formatClientName(client.fullname));
-      setCurrentScreen('dashboard');
-      if (new URLSearchParams(window.location.search).has('payment')) setActiveTab('payments');
-    } catch {
-      localStorage.removeItem('clientAccount');
-      localStorage.removeItem('clientToken');
-    }
+    const restoreSession = window.setTimeout(() => {
+      try {
+        const stored = localStorage.getItem('clientAccount');
+        if (!stored) return;
+        const client = JSON.parse(stored) as ClientAccount;
+        setUserName(formatClientName(client.fullname));
+        setCurrentScreen('dashboard');
+        if (new URLSearchParams(window.location.search).has('payment')) setActiveTab('payments');
+      } catch {
+        localStorage.removeItem('clientAccount');
+        localStorage.removeItem('clientToken');
+      }
+    }, 0);
+    return () => window.clearTimeout(restoreSession);
   }, []);
 
   useEffect(() => {
@@ -71,10 +74,6 @@ export default function ClientMasterController() {
       <LandingPage 
         onNavigateToLogin={() => setCurrentScreen('login')}
         onNavigateToRegister={() => setCurrentScreen('register')}
-        onNavigateToDashboard={(tab = 'home') => {
-          setActiveTab(tab);
-          setCurrentScreen('dashboard');
-        }}
       />
     );
   }
@@ -87,21 +86,17 @@ export default function ClientMasterController() {
           setUserName(formatClientName(name));
           setCurrentScreen('dashboard');
         }}
-        onNavigateToRegister={() => setCurrentScreen('register')}
         onBackToLanding={() => setCurrentScreen('landing')}
       />
     );
   }
 
-  // 3. Register Page: Allows account creation and back to login
+  // 3. Register Page: Returns to main or opens login after account creation
   if (currentScreen === 'register') {
     return (
       <RegisterPage 
-        onRegisterSuccess={(client: ClientAccount) => {
-          setUserName(formatClientName(client.fullname));
-          setCurrentScreen('dashboard');
-        }}
-        onBackToLogin={() => setCurrentScreen('login')}
+        onRegisterSuccess={() => setCurrentScreen('login')}
+        onBackToMain={() => setCurrentScreen('landing')}
       />
     );
   }
@@ -122,7 +117,6 @@ export default function ClientMasterController() {
       case 'profile':
         return (
           <ProfileView 
-            setActiveTab={setActiveTab} 
             userName={userName} 
           />
         );

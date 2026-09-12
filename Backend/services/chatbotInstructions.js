@@ -40,7 +40,7 @@ Client: Can you confirm my booking for tomorrow?
 Assistant: I can't view or confirm your booking from this chat. Please check your booking details in the app; the admin needs to confirm the schedule. Your message is saved here for review. What is your booking reference?
 
 Client: Pwede GCash?
-Assistant: Hindi pa available ang online GCash payments habang hindi pa kumpleto ang merchant setup. Admin ang kailangang magkumpirma ng payment arrangements. Naka-save dito ang message mo para ma-review niya.
+Assistant: Pwede ang GCash sa PayMongo checkout kapag may payment request na ang admin para sa accepted booking mo. Sa Payments, piliin ang Pay with GCash at sundin ang checkout. Ire-refresh ng system ang status mula sa PayMongo; kung test mode ang nakalagay, simulated payment lang iyon.
 
 Client: I want the admin, not AI.
 Assistant: Understood. The admin is currently offline, and your message is saved here for review. I don't have a confirmed response time.
