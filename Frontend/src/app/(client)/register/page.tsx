@@ -423,17 +423,6 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToLogin }:
             </button>
           </form>
 
-          <div className="w-full space-y-4 mt-6">
-            <div className="text-center pt-2">
-              <button 
-                type="button"
-                onClick={handleReturnToLogin}
-                className="text-[9px] font-black tracking-widest text-slate-300 hover:text-white hover:underline uppercase transition bg-transparent border-none cursor-pointer"
-              >
-                Already a member? Log In
-              </button>
-            </div>
-          </div>
 
         </div>
 

@@ -206,7 +206,7 @@ exports.adminLogin = async (req, res) => {
     await query(
       `INSERT INTO users (fullname, email, password, role, last_seen)
        VALUES ('Administrator', ?, 'ADMIN_ENV_AUTH', 'admin', NOW())
-       ON DUPLICATE KEY UPDATE fullname = VALUES(fullname), role = 'admin', last_seen = NOW()`,
+       ON DUPLICATE KEY UPDATE role = 'admin', last_seen = NOW()`,
       [adminEmail]
     );
     const adminRows = await query("SELECT id, fullname, email, role FROM users WHERE email = ? LIMIT 1", [adminEmail]);

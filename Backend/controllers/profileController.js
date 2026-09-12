@@ -11,19 +11,27 @@ const getProfile = (req, res) => {
 
 // Update profile
 const updateProfile = (req, res) => {
-    const fullname = req.body.fullname || req.body.fullName;
-    const phone = req.body.phone || req.body.phoneNumber;
-    const address = req.body.address || req.body.primaryAddress || req.body.projectAddress;
-    const landmark = req.body.landmark;
-
-    if (!fullname || !phone || !address || !landmark) {
-        return res.status(400).json({ success: false, message: "fullname, phone, address, and landmark are required." });
+    const body = req.body || {};
+    const fields = {
+        fullname: body.fullname ?? body.fullName,
+        phone: body.phone ?? body.phoneNumber,
+        address: body.address ?? body.primaryAddress ?? body.projectAddress,
+        landmark: body.landmark
+    };
+    const updates = Object.entries(fields).filter(([, value]) => value !== undefined);
+    const limits = { fullname: 150, phone: 30, address: 16383, landmark: 255 };
+    if (!updates.length || updates.some(([field, value]) =>
+        typeof value !== "string" || value.trim().length > limits[field] ||
+        (field === "fullname" && !value.trim())
+    )) {
+        return res.status(400).json({ success: false, message: "Provide valid profile fields. Full name cannot be empty (150 characters maximum); phone allows 30 characters and landmark 255." });
     }
 
-    db.query("UPDATE users SET fullname = ?, phone = ?, address = ?, landmark = ? WHERE id = ?", [fullname, phone, address, landmark, req.params.id], (err, result) => {
+    // Only allow profile columns; omitted fields retain their stored values.
+    db.query(`UPDATE users SET ${updates.map(([field]) => `${field} = ?`).join(", ")} WHERE id = ?`, [...updates.map(([, value]) => value.trim()), req.params.id], (err, result) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
         if (!result.affectedRows) return res.status(404).json({ success: false, message: "Profile not found." });
-        res.json({ success: true, message: "Profile updated successfully." });
+        return getProfile(req, res);
     });
 };
 

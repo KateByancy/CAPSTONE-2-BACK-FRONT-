@@ -98,6 +98,7 @@ VALUES (1, 'MARC Interior Design', 'active', FALSE)`,
 id INT AUTO_INCREMENT PRIMARY KEY,
 title VARCHAR(150),
 description TEXT,
+category VARCHAR(100),
 image VARCHAR(255)
 )`,
 
@@ -149,7 +150,8 @@ id INT AUTO_INCREMENT PRIMARY KEY,
 booking_id INT,
 amount DECIMAL(10,2),
 reference_number VARCHAR(100),
-status VARCHAR(30) DEFAULT 'Pending',
+payment_method ENUM('GCash','Maya','Bank Transfer','Cash') NOT NULL,
+payment_status ENUM('Pending','Verifying','Settled','Failed') DEFAULT 'Pending',
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
 

@@ -120,19 +120,19 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
 
   return (
     <div className="min-h-screen bg-[#072448] flex items-center justify-center text-slate-100 font-sans selection:bg-[#00529b]/30">
-      
+
       {/* Dynamic Shell Container: Seamless adaptive desktop flex layout */}
       <div className="w-full min-h-screen lg:min-h-[850px] lg:max-w-6xl lg:grid lg:grid-cols-12 lg:bg-[#102243]/30 lg:backdrop-blur-md lg:rounded-[40px] lg:overflow-hidden lg:shadow-2xl lg:border lg:border-white/5 lg:m-6">
-        
+
         {/* LEFT COLUMN: Cinematic Desktop Brand Panel */}
         <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-b from-[#00529b] to-[#002d62] p-12 flex-col justify-between relative overflow-hidden border-r border-white/5">
           <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full bg-white/5 blur-3xl pointer-events-none" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-black/20 blur-2xl pointer-events-none" />
 
           {/* Upper Nav Identity */}
-          <button 
-            type="button" 
-            onClick={() => onBackToLanding ? onBackToLanding() : router.push('/')} 
+          <button
+            type="button"
+            onClick={() => onBackToLanding ? onBackToLanding() : router.push('/')}
             className="flex items-center space-x-2 text-xs font-semibold tracking-wider uppercase text-slate-200/80 hover:text-white transition group self-start cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
@@ -144,7 +144,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
             <div className="w-20 h-20 bg-[#102243]/80 rounded-3xl flex items-center justify-center border border-white/10 shadow-xl">
               <Home className="w-10 h-10 text-slate-100" />
             </div>
-            
+
             <div className="space-y-3">
               <h1 className="text-4xl font-bold tracking-wider font-serif text-white">MARC</h1>
               <p className="text-xs uppercase tracking-widest text-slate-300 font-bold">
@@ -177,18 +177,17 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
         {/* RIGHT COLUMN: Interactive Form Sheet Container */}
         <div className="col-span-12 lg:col-span-7 flex justify-center items-center py-6 px-4 md:px-8">
           <div className="w-full max-w-md bg-gradient-to-b from-[#00529b] to-[#002d62] lg:from-transparent lg:to-transparent rounded-[32px] lg:rounded-none overflow-hidden shadow-2xl lg:shadow-none p-6 md:p-8 flex flex-col min-h-[740px] lg:min-h-0 justify-between relative border border-white/10 lg:border-none">
-            
+
             {/* Top Header Utilities (Visible on mobile screens) */}
             <div className="flex justify-between items-center w-full pt-2 lg:hidden">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 disabled={isLoading}
-                onClick={() => onBackToLanding ? onBackToLanding() : router.push('/')} 
+                onClick={() => onBackToLanding ? onBackToLanding() : router.push('/')}
                 className="p-2.5 bg-white/15 hover:bg-white/20 active:scale-95 rounded-xl transition text-white cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-[10px] opacity-40 font-mono tracking-widest">9:41</span>
             </div>
 
             {/* Branding Module (Visible on mobile screens) */}
@@ -223,8 +222,8 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
                 <label className="text-[10px] lg:text-xs font-bold text-slate-300 lg:text-slate-200 uppercase tracking-wider block px-1">
                   Email Address
                 </label>
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   value={email}
                   placeholder="Enter your email address"
                   onChange={(e) => setEmail(e.target.value)}
@@ -248,15 +247,14 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
                   </button>
                 </div>
                 <div className="relative w-full">
-                  <input 
-                    type={showPassword ? "text" : "password"} 
+                  <input
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     placeholder="Enter your password"
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className={`w-full bg-white text-slate-900 rounded-xl pl-4 pr-12 py-3 text-xs lg:text-sm outline-none shadow-md placeholder:text-slate-400 border border-transparent focus:border-[#00529b] transition ${
-                      !showPassword ? 'tracking-widest' : 'tracking-normal'
-                    }`}
+                    className={`w-full bg-white text-slate-900 rounded-xl pl-4 pr-12 py-3 text-xs lg:text-sm outline-none shadow-md placeholder:text-slate-400 border border-transparent focus:border-[#00529b] transition ${!showPassword ? 'tracking-widest' : 'tracking-normal'
+                      }`}
                   />
                   {password.length > 0 && (
                     <button
@@ -280,8 +278,8 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
               </div>
 
               {/* Submit Button */}
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isLoading}
                 className="w-full bg-[#161f38] hover:bg-[#10172a] focus:ring-2 focus:ring-[#00529b] focus:ring-offset-2 focus:ring-offset-[#072448] disabled:opacity-75 text-white font-bold text-xs lg:text-sm py-3.5 rounded-xl transition uppercase tracking-wider shadow-lg mt-4 flex items-center justify-center space-x-2 cursor-pointer"
               >
@@ -309,15 +307,6 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding, onNav
                 className={`flex min-h-11 w-full items-center justify-center overflow-hidden [&>div]:w-full ${isLoading ? 'pointer-events-none opacity-60' : ''}`}
               />
 
-              <div className="text-center pt-2">
-                <button 
-                  type="button"
-                  onClick={() => onNavigateToRegister ? onNavigateToRegister() : router.push('/register')}
-                  className="text-[9px] lg:text-xs font-bold tracking-widest text-slate-200 lg:text-slate-300 hover:text-white hover:underline uppercase transition cursor-pointer bg-transparent border-none"
-                >
-                  New client? Create an account
-                </button>
-              </div>
             </div>
 
           </div>

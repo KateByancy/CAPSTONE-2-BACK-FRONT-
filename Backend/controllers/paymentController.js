@@ -45,7 +45,7 @@ const syncPendingPayments = async (payments) => Promise.all(payments.map(async (
       : null;
     if (!paidPayment) return payment;
 
-    await query("UPDATE payments SET status='Paid', provider_payment_id=? WHERE id=?", [paidPayment.id, payment.id]);
+    await query("UPDATE payments SET payment_status='Settled', provider_payment_id=? WHERE id=?", [paidPayment.id, payment.id]);
     return { ...payment, status: "Paid", provider_payment_id: paidPayment.id };
   } catch (error) {
     console.error(`Unable to sync PayMongo checkout ${payment.checkout_session_id}:`, error.message);
@@ -65,11 +65,13 @@ const createCheckoutSession = async (req, res) => {
     const bookings = await query(
       `SELECT bookings.id, bookings.service_type, users.fullname, users.email, users.phone
        FROM bookings JOIN users ON users.id = bookings.user_id
-       WHERE bookings.id = ? AND bookings.user_id = ? LIMIT 1`,
+       WHERE bookings.id = ? AND bookings.user_id = ?
+         AND (bookings.accepted_at IS NOT NULL OR LOWER(bookings.status) IN ('confirmed', 'approved'))
+         AND LOWER(bookings.status) NOT IN ('rejected', 'cancelled') LIMIT 1`,
       [bookingId, userId],
     );
     if (!bookings.length) {
-      return res.status(404).json({ success: false, message: "The selected booking was not found for this account." });
+      return res.status(404).json({ success: false, message: "An accepted booking was not found for this account. Refresh your projects and try again." });
     }
 
     const booking = bookings[0];
@@ -96,8 +98,8 @@ const createCheckoutSession = async (req, res) => {
 
     await query(
       `INSERT INTO payments
-       (booking_id, amount, reference_number, status, checkout_session_id, checkout_url, payment_provider)
-       VALUES (?, ?, ?, 'Pending', ?, ?, 'PayMongo')`,
+       (booking_id, amount, reference_number, payment_status, payment_method, checkout_session_id, checkout_url, payment_provider)
+       VALUES (?, ?, ?, 'Pending', 'GCash', ?, ?, 'PayMongo')`,
       [bookingId, amount, referenceNumber, checkout.id, checkout.attributes.checkout_url],
     );
 
@@ -112,7 +114,9 @@ const getPayments = async (req, res) => {
     const userId = Number(req.query.user_id);
     const payments = await query(
       `SELECT payments.id, payments.booking_id, payments.amount, payments.reference_number,
-              payments.status, payments.created_at, payments.checkout_session_id,
+              CASE payments.payment_status WHEN 'Settled' THEN 'Paid' WHEN 'Failed' THEN 'Declined'
+                ELSE 'Pending' END AS status,
+              payments.created_at, payments.checkout_session_id,
               payments.checkout_url, payments.payment_provider, bookings.service_type,
               users.fullname AS client_name
        FROM payments JOIN bookings ON bookings.id = payments.booking_id
@@ -129,7 +133,7 @@ const getPayments = async (req, res) => {
 };
 
 const declinePayment = (req, res) => {
-  db.query("UPDATE payments SET status='Declined' WHERE id=?", [req.params.id], (err, result) => {
+  db.query("UPDATE payments SET payment_status='Failed' WHERE id=?", [req.params.id], (err, result) => {
     if (err) return res.status(500).json(err);
     if (!result.affectedRows) return res.status(404).json({ success: false, message: "Payment not found." });
     res.json({ success: true, message: "Payment declined." });
@@ -137,7 +141,7 @@ const declinePayment = (req, res) => {
 };
 
 const verifyPayment = (req, res) => {
-  db.query("UPDATE payments SET status='Paid' WHERE id=?", [req.params.id], (err, result) => {
+  db.query("UPDATE payments SET payment_status='Settled' WHERE id=?", [req.params.id], (err, result) => {
     if (err) return res.status(500).json(err);
     if (!result.affectedRows) return res.status(404).json({ success: false, message: "Payment not found." });
     res.json({ success: true, message: "Payment verified." });

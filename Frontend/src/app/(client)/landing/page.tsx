@@ -40,18 +40,22 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNav
               backgroundImage: 'linear-gradient(135deg, #0b4f86 0%, #0070c0 52%, #051329 100%)'
             }}
           >
+            <div className="mb-4 space-y-1 text-center">
+              <p className="text-white font-serif font-black text-[11px]">READY TO BEGIN?</p>
+              <p className="text-[9px] text-blue-100 font-sans font-bold uppercase">Launch Client Workspace</p>
+            </div>
             <div className="grid grid-cols-2 gap-4 w-full max-w-xs pb-2">
               <button 
                 onClick={onNavigateToLogin}
                 className="bg-[#0056b3] hover:bg-[#004494] text-white text-[10px] font-bold tracking-widest py-2 rounded-lg border border-blue-400/20 shadow transition uppercase cursor-pointer"
               >
-                Consult
+                Log in
               </button>
               <button 
-                onClick={onNavigateToLogin}
+                onClick={onNavigateToRegister}
                 className="bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-bold tracking-widest py-2 rounded-lg shadow transition uppercase cursor-pointer"
               >
-                Gallery
+                Register
               </button>
             </div>
           </div>
@@ -163,16 +167,6 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNav
             </div>
           </div>
 
-          {/* 5. FOOTER WORKSPACE TRIGGER BUTTON */}
-          <div className="px-6 py-4">
-            <button 
-              onClick={onNavigateToLogin}
-              className="w-full bg-[#101935] hover:bg-[#162249] text-blue-300 font-serif font-black tracking-widest text-xs py-4 rounded-2xl border border-blue-900/40 transition shadow-xl uppercase flex flex-col items-center space-y-0.5 justify-center cursor-pointer"
-            >
-              <span className="text-white tracking-widest text-[11px]">READY TO BEGIN?</span>
-              <span className="text-[9px] text-blue-400 font-sans font-bold uppercase">Launch Client Workspace</span>
-            </button>
-          </div>
         </div>
 
         {/* 6. SOCIAL MEDIAS AND SYSTEM COPYRIGHTS */}

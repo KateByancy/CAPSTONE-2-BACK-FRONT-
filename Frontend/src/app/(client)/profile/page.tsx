@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
-import { getApiUrl, getClientSession } from '@/lib/api';
+import { requestProfile, getClientSession } from '@/lib/api';
 
 interface AccountProfileProps {
   userName?: string;
@@ -18,34 +18,45 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
   // Feedback states for interactive actions
   const [saveMessage, setSaveMessage] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   
 
   useEffect(() => {
     const client = getClientSession();
-    if (!client) return;
-    setFullName(client.fullname);
-    setPhoneNumber(client.phone || '');
-    setPrimaryAddress(client.address || '');
-    setLandmark(client.landmark || '');
+    if (!client) { setError('Please sign in again to load your profile.'); setLoading(false); return; }
+    const controller = new AbortController();
+    void requestProfile('client', client.id, undefined, controller.signal).then(profile => {
+      setFullName(profile.fullname);
+      setPhoneNumber(profile.phone || '');
+      setPrimaryAddress(profile.address || '');
+      setLandmark(profile.landmark || '');
+    }).catch(err => {
+      if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Unable to load profile.');
+    }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
 
   const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || saving) return;
+    setError('');
+    setSaveMessage(false);
     const client = getClientSession();
     if (!client) { setError('Please sign in again before saving your profile.'); return; }
     const token = localStorage.getItem('clientToken');
     if (!token) { setError('Please sign in again before saving your profile.'); return; }
+    setSaving(true);
     try {
-      const response = await fetch(`${getApiUrl()}/profile/${client.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ fullname: fullName, phone: phoneNumber, address: primaryAddress, landmark }),
-      });
-      const result: { success: boolean; message?: string } = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.message || 'Unable to update profile.');
-      localStorage.setItem('clientAccount', JSON.stringify({ ...client, fullname: fullName, phone: phoneNumber, address: primaryAddress, landmark }));
+      const profile = await requestProfile('client', client.id, { fullname: fullName, phone: phoneNumber, address: primaryAddress, landmark });
+      setFullName(profile.fullname);
+      setPhoneNumber(profile.phone || '');
+      setPrimaryAddress(profile.address || '');
+      setLandmark(profile.landmark || '');
       setSaveMessage(true);
       setTimeout(() => setSaveMessage(false), 3000);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to update profile.'); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -87,6 +98,7 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
 
         {/* Form Container */}
         <form onSubmit={handleSaveChanges} className="space-y-6">
+          <fieldset disabled={loading || saving} className="space-y-6">
           <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-5">
             
             <div className="space-y-1.5">
@@ -96,6 +108,8 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
               <input 
                 type="text" 
                 value={fullName}
+                required
+                maxLength={150}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your full name"
                 className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#0070c0] transition"
@@ -109,6 +123,7 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
               <input 
                 type="tel" 
                 value={phoneNumber}
+                maxLength={30}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="Enter your phone number"
                 className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#0070c0] transition"
@@ -135,9 +150,9 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
               <input
                 type="text"
                 value={landmark}
+                maxLength={255}
                 onChange={(e) => setLandmark(e.target.value)}
                 placeholder="e.g. Beside the barangay hall"
-                required
                 className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#0070c0] transition"
               />
             </div>
@@ -149,8 +164,9 @@ export default function AccountProfile({ userName = 'John Doe', setActiveTab }: 
             type="submit"
             className="w-full bg-[#111c3a] hover:bg-[#1b2a54] text-white text-xs font-black uppercase tracking-widest py-4 rounded-2xl shadow-md transition cursor-pointer border-none"
           >
-            Save Changes
+            {loading ? 'Loading...' : saving ? 'Saving...' : 'Save Changes'}
           </button>
+          </fieldset>
         </form>
 
       </div>

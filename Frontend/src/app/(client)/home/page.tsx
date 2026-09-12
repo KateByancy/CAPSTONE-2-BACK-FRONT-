@@ -11,8 +11,9 @@ interface HomeProps {
 }
 
 interface PricingOption { name: string; value: number | string }
+interface BookingService { id: number; name: string }
 
-const SERVICE_TYPE_OPTIONS = ['Living room', 'Kitchen', 'Office', 'Commercial room'];
+const ESTIMATE_SERVICE_TYPE_OPTIONS = ['Living room', 'Kitchen', 'Office', 'Commercial room'];
 const SERVICE_TYPE_MULTIPLIERS: Record<string, number> = {
   'Living room': 1,
   Kitchen: 1.25,
@@ -31,6 +32,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const [estimateFactors, setEstimateFactors] = useState<PricingOption[]>([]);
   const [clientDisplayName, setClientDisplayName] = useState(userName);
   const [homeError, setHomeError] = useState('');
+  const [bookingServices, setBookingServices] = useState<BookingService[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
 
   // --- VIEW ROUTING STATE ---
   const [currentView, setCurrentView] = useState<'dashboard' | 'schedules'>('dashboard');
@@ -79,16 +82,21 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const hasScheduleConflict=Boolean(preferredStartDate&&preferredStartTime&&unavailableSlots.some(slot=>slot.visit_date===preferredStartDate&&slot.time_start.slice(0,5)===preferredStartTime));
 
   useEffect(() => {
+    const controller = new AbortController();
     const loadHome = async () => {
       const client = getClientSession();
-      if (!client) { setHomeError('Please sign in again to load your dashboard.'); return; }
+      if (!client) { setHomeError('Please sign in again to load your dashboard.'); setServicesLoading(false); return; }
+      setServicesLoading(true);
       try {
-        const response = await fetch(`${getApiUrl()}/client-home?user_id=${client.id}`);
+        const response = await fetch(`${getApiUrl()}/client-home?user_id=${client.id}`, { signal: controller.signal });
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.message || 'Unable to load the dashboard.');
         const styles: PricingOption[] = result.pricing?.styles || [];
         const complexities: PricingOption[] = result.pricing?.complexities || [];
         const factors: PricingOption[] = result.pricing?.estimateFactors || [];
+        const services: BookingService[] = result.services || [];
+        setBookingServices(services);
+        setServiceType(current => services.some(service => service.name === current) ? current : '');
         setStyleOptions(styles);
         setComplexityOptions(complexities);
         setEstimateFactors(factors);
@@ -99,10 +107,15 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
         setProjectLandmark((currentLandmark) => currentLandmark || result.client?.landmark || '');
         setHomeError('');
       } catch (error) {
+        if (controller.signal.aborted) return;
+        setBookingServices([]);
         setHomeError(error instanceof Error ? error.message : 'Unable to load the dashboard.');
+      } finally {
+        if (!controller.signal.aborted) setServicesLoading(false);
       }
     };
     void loadHome();
+    return () => controller.abort();
   }, [userName]);
 
   // --- AUTO-CLOSE TIMEOUT EFFECT FOR BOOKING SUCCESS ---
@@ -154,7 +167,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       setBookingError('Please sign in again before creating a booking.');
       return;
     }
-    if (!serviceType) {
+    if (servicesLoading || !bookingServices.some(service => service.name === serviceType)) {
       setBookingError('Please select a service type.');
       return;
     }
@@ -488,7 +501,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                 <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Service Type</label>
                 <select value={estimateServiceType} onChange={(e) => setEstimateServiceType(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-blue-500 text-white font-bold">
                   <option value="">Select service type</option>
-                  {SERVICE_TYPE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                  {ESTIMATE_SERVICE_TYPE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
               </div>
               <div>
@@ -584,6 +597,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
 
                   <form onSubmit={handleBookingSubmit} className="space-y-4">
                     {bookingError && <p className="rounded-xl bg-red-500/10 p-3 text-xs text-red-300">{bookingError}</p>}
+                    {!servicesLoading && bookingServices.length === 0 && <p role="status" className="text-xs text-red-300">{homeError || 'No booking services are currently available.'}</p>}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
                         Service Type
@@ -593,11 +607,12 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                           type="button"
                           aria-haspopup="listbox"
                           aria-expanded={isServiceTypeOpen}
+                          disabled={servicesLoading || bookingServices.length === 0}
                           onClick={() => setIsServiceTypeOpen((isOpen) => !isOpen)}
                           className="flex w-full items-center justify-between gap-3 bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-left text-xs font-medium focus:outline-none focus:border-blue-500 shadow-inner cursor-pointer"
                         >
                           <span className={serviceType ? 'text-slate-200' : 'text-slate-500'}>
-                            {serviceType || 'Select service type'}
+                            {servicesLoading ? 'Loading services...' : serviceType || 'Select service type'}
                           </span>
                           {isServiceTypeOpen ? (
                             <ChevronUp className="h-4 w-4 shrink-0 text-blue-400" aria-hidden="true" />
@@ -612,24 +627,24 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                             aria-label="Service type"
                             className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-slate-700 bg-[#121620] shadow-xl"
                           >
-                            {SERVICE_TYPE_OPTIONS.map((option) => (
+                            {bookingServices.map((service) => (
                               <button
-                                key={option}
+                                key={service.id}
                                 type="button"
                                 role="option"
-                                aria-selected={serviceType === option}
+                                aria-selected={serviceType === service.name}
                                 onClick={() => {
-                                  setServiceType(option);
+                                  setServiceType(service.name);
                                   setIsServiceTypeOpen(false);
                                   setBookingError('');
                                 }}
                                 className={`block w-full px-4 py-3 text-left text-xs transition cursor-pointer ${
-                                  serviceType === option
+                                  serviceType === service.name
                                     ? 'bg-blue-600 text-white'
                                     : 'text-slate-200 hover:bg-slate-800'
                                 }`}
                               >
-                                {option}
+                                {service.name}
                               </button>
                             ))}
                           </div>
@@ -708,7 +723,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
 
                     <button 
                       type="submit"
-                      disabled={isBookingSubmitting || hasScheduleConflict}
+                      disabled={isBookingSubmitting || hasScheduleConflict || servicesLoading || bookingServices.length === 0}
                       className="w-full py-3.5 bg-[#141b2f] hover:bg-[#1d2642] text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md border border-slate-700 cursor-pointer"
                     >
                       {isBookingSubmitting ? 'Submitting...' : 'Submit Booking Form'}

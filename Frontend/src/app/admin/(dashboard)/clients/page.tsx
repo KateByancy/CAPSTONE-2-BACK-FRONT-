@@ -133,14 +133,14 @@ export default function ClientsManagement() {
     <div className="w-full h-[calc(100vh-6rem)] flex flex-col space-y-4">
       
       {/* 1. TOP DIRECTORY BLUE HEADER BANNER (Chevron icon removed) */}
-      <div className="bg-[#0070c0] text-white rounded-2xl p-4 sm:p-5 shadow-md flex items-center justify-between shrink-0">
+      <div className="bg-[#0070c0] text-white rounded-2xl p-4 sm:p-5 shadow-md flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold font-serif tracking-tight">Client Directory</h2>
           <p className="text-[10px] sm:text-xs uppercase font-bold tracking-widest text-blue-100 opacity-90 mt-0.5">
             Active Partners & Communications
           </p>
         </div>
-        <Link href="/admin/dashboard" className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
+        <Link href="/admin/dashboard" className="min-h-11 shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
       </div>
 
       {/* 2. RESPONSIVE WEB APP CONTAINER GRID */}

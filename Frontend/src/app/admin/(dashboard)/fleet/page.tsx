@@ -74,7 +74,7 @@ export default function FleetMapManagement() {
     <div className="space-y-6 pb-10">
       
       {/* HEADER BANNER MATCHING THE PROVIDED BANNER DESIGN */}
-      <div className="bg-[#0070c0] text-white rounded-2xl px-6 py-5 shadow-md flex items-center justify-between gap-4">
+      <div className="bg-[#0070c0] text-white rounded-2xl px-6 py-5 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div><h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight leading-none">
           Fleet & Project Tracker Map
         </h1>
@@ -82,7 +82,7 @@ export default function FleetMapManagement() {
           REAL-TIME GEO-LOCATION MONITORING OF ACTIVE CLIENT PROJECTS
         </p>
         </div>
-        <Link href="/admin/dashboard" className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
+        <Link href="/admin/dashboard" className="min-h-11 shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
       </div>
 
       {/* MAIN HARDWARE VISUALIZATION PORT */}

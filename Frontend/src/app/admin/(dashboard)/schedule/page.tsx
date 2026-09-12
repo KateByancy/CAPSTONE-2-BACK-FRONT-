@@ -90,7 +90,7 @@ export default function ScheduleManagement() {
     <div className="w-full max-w-5xl mx-auto space-y-5 pb-12 px-2 sm:px-4">
       
       {/* 1. TOP BLUE HEADER BANNER */}
-      <div className="bg-[#0070c0] text-white rounded-2xl p-4 sm:p-5 shadow-md flex items-center justify-between gap-3">
+      <div className="bg-[#0070c0] text-white rounded-2xl p-4 sm:p-5 shadow-md flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
           {/* Dynamic Month & Year Selection Header */}
           <div className="flex items-center space-x-2">
@@ -119,7 +119,7 @@ export default function ScheduleManagement() {
           </p>
         </div>
 
-        <Link href="/admin/dashboard" className="order-last ml-auto shrink-0 inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
+        <Link href="/admin/dashboard" className="min-h-11 order-last ml-auto shrink-0 inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
 
         {/* Month Navigation Controls */}
         <div className="flex items-center space-x-1 bg-white/10 p-1 rounded-xl border border-white/20">

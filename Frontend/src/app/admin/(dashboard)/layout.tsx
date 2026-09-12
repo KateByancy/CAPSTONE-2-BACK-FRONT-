@@ -126,12 +126,12 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
       </aside>
 
       {/* INTERACTIVE WORK AREA */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-20 md:pb-8">
+      <main className="min-w-0 flex-1 overflow-y-auto p-4 md:p-8 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
         {children}
       </main>
 
       {/* MOBILE BOTTOM NAV BAR */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0070c0] border-t border-white/15 flex justify-around items-center px-1 z-40 shadow-lg">
+      <nav aria-label="Admin navigation" className="md:hidden fixed bottom-0 left-0 right-0 min-h-16 bg-[#0070c0] border-t border-white/15 grid grid-cols-4 items-center gap-1 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40 shadow-lg">
         {navItems.slice(0, 5).map((item) => {
           const active = checkActive(item.path);
           const Icon = item.icon;
@@ -139,12 +139,13 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
             <Link
               key={item.path}
               href={item.path}
-              className={`flex flex-col items-center justify-center flex-1 h-12 rounded-xl transition-all max-w-[64px] ${
-                active ? 'bg-white text-[#0070c0] scale-105 font-bold shadow-sm' : 'text-white/80'
+              aria-current={active ? 'page' : undefined}
+              className={`flex min-w-0 flex-col items-center justify-center h-12 rounded-lg transition-colors ${
+                active ? 'bg-white text-[#0070c0] font-bold shadow-sm' : 'text-white/80'
               }`}
             >
               <Icon className="w-4 h-4 mb-0.5" />
-              <span className="text-[7.5px] tracking-wider uppercase font-bold">{item.label}</span>
+              <span className="text-[10px] tracking-normal font-bold">{item.label}</span>
             </Link>
           );
         })}

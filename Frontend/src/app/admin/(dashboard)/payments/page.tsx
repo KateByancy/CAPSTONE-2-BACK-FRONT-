@@ -38,10 +38,19 @@ export default function PaymentsVerification() {
   // --- STATE SYSTEM ---
   const [activeTab, setActiveTab] = useState<FilterTab>('pending');
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
+  const [loadError, setLoadError] = useState('');
   const loadPayments = useCallback(async () => {
+    setLoadError('');
+    try {
     const response = await fetch(`${getApiUrl()}/payment`);
-    const rows: Array<{id:number;reference_number?:string;client_name?:string;amount:string;created_at:string;status:string}> = await response.json();
+    const result = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(result?.message || `Unable to load payments (HTTP ${response.status}).`);
+    if (!Array.isArray(result)) throw new Error('The payment server returned an invalid response.');
+    const rows: Array<{id:number;reference_number?:string;client_name?:string;amount:string;created_at:string;status:string;payment_provider?:string}> = result;
     setTransactions(rows.map(row => ({ id:row.id, reference:row.reference_number || `PAY-${row.id}`, client:row.client_name || 'Client', amount:Number(row.amount).toLocaleString(), date:new Date(row.created_at).toLocaleDateString(), method:row.payment_provider || 'Client payment submission', status:['verified', 'paid'].includes(row.status.toLowerCase()) ? 'accepted' : row.status.toLowerCase() === 'declined' ? 'declined' : 'pending' })));
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Unable to load payments.');
+    }
   }, []);
   useEffect(() => { void loadPayments(); }, [loadPayments]);
 
@@ -96,6 +105,7 @@ export default function PaymentsVerification() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 w-full p-4 sm:p-6 md:p-8 space-y-6">
+      {loadError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{loadError}<button type="button" onClick={() => void loadPayments()} className="ml-3 underline">Retry</button></div>}
       
       {/* 1. TOP HEADER BANNER */}
       <div className="bg-[#0070c0] text-white rounded-3xl p-6 sm:p-8 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -110,7 +120,7 @@ export default function PaymentsVerification() {
 
         {/* CLICKABLE STATUS FILTER BADGES */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-white/10 p-2 rounded-2xl border border-white/20 backdrop-blur-sm">
-          <Link href="/admin/dashboard" className="order-last ml-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 text-white hover:bg-white/20 transition"><ChevronLeft className="w-3.5 h-3.5"/>Overview</Link>
+          <Link href="/admin/dashboard" className="min-h-11 shrink-0 order-last ml-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white/10 text-white hover:bg-white/20 transition"><ChevronLeft className="w-3.5 h-3.5"/>Overview</Link>
           
           {/* PENDING TAB */}
           <button

@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ExternalLink, LoaderCircle, RefreshCw, Smartphone, Wallet } from 'lucide-react';
 import { getApiUrl, getClientSession } from '@/lib/api';
 
 interface PaymentsProps { onBack?: () => void }
-interface Booking { id: number; service_type: string; status: string }
+interface Booking { id: number; service_type: string; status: string; accepted_at?: string | null }
 interface Payment {
   id: number;
   booking_id: number;
@@ -29,27 +29,35 @@ export default function Payments({ onBack = () => undefined }: PaymentsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const loadingBilling = useRef(false);
 
   const loadBilling = useCallback(async () => {
+    if (loadingBilling.current) return;
     const client = getClientSession();
     if (!client) { setError('Please sign in again to view billing.'); setIsLoading(false); return; }
+    loadingBilling.current = true;
     setError('');
     try {
       const [bookingsResponse, paymentsResponse] = await Promise.all([
-        fetch(`${getApiUrl()}/booking?user_id=${client.id}`),
-        fetch(`${getApiUrl()}/payment?user_id=${client.id}`),
+        fetch(`${getApiUrl()}/booking?user_id=${client.id}`, { cache: 'no-store' }),
+        fetch(`${getApiUrl()}/payment?user_id=${client.id}`, { cache: 'no-store' }),
       ]);
       const bookingsResult = await bookingsResponse.json();
       const paymentsResult = await paymentsResponse.json();
       if (!bookingsResponse.ok) throw new Error(bookingsResult.message || 'Unable to load bookings.');
       if (!paymentsResponse.ok) throw new Error(paymentsResult.message || 'Unable to load payments.');
-      const nextBookings = bookingsResult.bookings || [];
+      const nextBookings: Booking[] = (bookingsResult.bookings || []).filter((booking: Booking) =>
+        !['rejected', 'cancelled'].includes(booking.status.toLowerCase()) &&
+        (Boolean(booking.accepted_at) || ['confirmed', 'approved'].includes(booking.status.toLowerCase()))
+      );
       setBookings(nextBookings);
       setPayments(paymentsResult.payments || []);
-      setBookingId((current) => current || (nextBookings[0]?.id ? String(nextBookings[0].id) : ''));
+      setBookingId((current) => nextBookings.some(booking => String(booking.id) === current)
+        ? current : (nextBookings[0]?.id ? String(nextBookings[0].id) : ''));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Unable to load billing information.');
     } finally {
+      loadingBilling.current = false;
       setIsLoading(false);
     }
   }, []);
@@ -59,6 +67,15 @@ export default function Payments({ onBack = () => undefined }: PaymentsProps) {
     if (paymentResult === 'success') setNotice('GCash checkout completed. Payment status is being confirmed.');
     if (paymentResult === 'cancelled') setNotice('GCash checkout was cancelled. You were not charged.');
     void loadBilling();
+    const refresh = () => { if (document.visibilityState === 'visible') void loadBilling(); };
+    const timer = window.setInterval(refresh, 30000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, [loadBilling]);
 
   const paidTotal = useMemo(
@@ -76,6 +93,7 @@ export default function Payments({ onBack = () => undefined }: PaymentsProps) {
     event.preventDefault();
     const client = getClientSession();
     if (!client) return setError('Please sign in again before paying.');
+    if (!bookings.some(booking => String(booking.id) === bookingId)) return setError('Select a project accepted by the admin.');
     setIsSubmitting(true);
     setError('');
     try {
@@ -150,7 +168,7 @@ export default function Payments({ onBack = () => undefined }: PaymentsProps) {
             <div><label className="mb-1.5 block text-[9px] font-black uppercase tracking-widest text-slate-400">Amount (PHP)</label><input required min="100" step="0.01" type="number" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0.00" className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-xs text-white" /></div>
             <button disabled={isSubmitting || !bookings.length} type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0070c0] py-3 text-xs font-black tracking-wider transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">{isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}{isSubmitting ? 'OPENING CHECKOUT' : 'CONTINUE TO GCASH'}<ExternalLink className="h-3.5 w-3.5" /></button>
           </form>
-          {!bookings.length && !isLoading && <p className="mt-4 text-[10px] text-amber-300">Create a booking before making a payment.</p>}
+          {!bookings.length && !isLoading && <p className="mt-4 text-[10px] text-amber-300">No accepted projects available for payment.</p>}
         </aside>
       </div>
     </div>

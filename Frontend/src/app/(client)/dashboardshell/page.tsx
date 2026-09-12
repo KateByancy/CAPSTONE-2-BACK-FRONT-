@@ -39,21 +39,35 @@ export default function DashboardShell({
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let loading = false;
     const loadRejectionAlert = async () => {
+      if (loading || controller.signal.aborted) return;
       const client = getClientSession();
       if (!client) return;
-      const response = await fetch(`${getApiUrl()}/notifications?user_id=${client.id}`);
-      const result: { success?: boolean; notifications?: Array<{ id: number; title: string; message: string; is_read: boolean | number }> } = await response.json();
+      loading = true;
+      try {
+      const response = await fetch(`${getApiUrl()}/notifications?user_id=${client.id}`, { signal: controller.signal });
       if (!response.ok) return;
-      const rejected = (result.notifications ?? []).find((notification) =>
+      const result: { success?: boolean; notifications?: Array<{ id: number; title: string; message: string; is_read: boolean | number }> } = await response.json();
+      if (controller.signal.aborted || result?.success === false || !Array.isArray(result?.notifications)) return;
+      const rejected = result.notifications.find((notification) =>
         notification.title === 'Booking Rejected' && !Boolean(notification.is_read)
       );
       setRejectionAlert(rejected ? { id: rejected.id, message: rejected.message } : null);
+      } catch {
+        // Keep the last known alert; the next poll retries transient failures.
+      } finally {
+        loading = false;
+      }
     };
 
     void loadRejectionAlert();
     const notificationTimer = window.setInterval(() => void loadRejectionAlert(), 10000);
-    return () => window.clearInterval(notificationTimer);
+    return () => {
+      controller.abort();
+      window.clearInterval(notificationTimer);
+    };
   }, []);
 
   const dismissRejectionAlert = async () => {

@@ -14,7 +14,7 @@ import ChatView from './chat/page';
 import ProfileView from './profile/page';
 import PaymentsView from './payments/page';
 import DashboardShell from './dashboardshell/page';
-import { formatClientName, getApiUrl } from '@/lib/api';
+import { formatClientName, getApiUrl, getClientSession } from '@/lib/api';
 
 interface ClientAccount {
   id: number;
@@ -29,6 +29,15 @@ export default function ClientMasterController() {
   const [currentScreen, setCurrentScreen] = useState<'landing' | 'login' | 'register' | 'dashboard'>('landing');
   const [activeTab, setActiveTab] = useState('home');
   const [userName, setUserName] = useState('Doe, John');
+
+  useEffect(() => {
+    const refreshName = () => {
+      const client = getClientSession();
+      if (client) setUserName(formatClientName(client.fullname));
+    };
+    window.addEventListener('profile-updated', refreshName);
+    return () => window.removeEventListener('profile-updated', refreshName);
+  }, []);
 
   useEffect(() => {
     try {

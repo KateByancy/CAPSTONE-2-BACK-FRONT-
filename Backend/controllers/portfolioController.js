@@ -24,11 +24,11 @@ const getPortfolio = (req, res) => {
 // Add portfolio item
 const addPortfolio = (req, res) => {
 
-    const { title, description, image } = req.body;
+    const { title, description, image, category } = req.body;
 
     db.query(
-        "INSERT INTO portfolio(title, description, image) VALUES(?,?,?)",
-        [title, description, image],
+        "INSERT INTO portfolio(title, description, image, category) VALUES(?,?,?,?)",
+        [title, description, image, category || null],
         (err, result) => {
 
             if (err)
@@ -51,11 +51,11 @@ const addPortfolio = (req, res) => {
 const updatePortfolio = (req, res) => {
 
     const { id } = req.params;
-    const { title, description, image } = req.body;
+    const { title, description, image, category } = req.body;
 
     db.query(
-        "UPDATE portfolio SET title=?, description=?, image=? WHERE id=?",
-        [title, description, image, id],
+        "UPDATE portfolio SET title=?, description=?, image=?, category=COALESCE(?, category) WHERE id=?",
+        [title, description, image, category ?? null, id],
         (err) => {
 
             if (err)

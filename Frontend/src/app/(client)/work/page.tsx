@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from 'react';
 import { Layers, Eye, X } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 interface PortfolioItem {
   id: number;
@@ -15,25 +16,40 @@ export default function Work() {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
   
   // Track the active image item for the fullscreen preview modal
   const [activePreviewItem, setActivePreviewItem] = useState<PortfolioItem | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     const loadPortfolio = async () => {
+      setIsLoading(true);
+      setLoadError('');
       try {
-        const response = await fetch('/data/inspirations.json');
-        if (!response.ok) throw new Error('Unable to load the inspiration portfolio.');
-        setPortfolioItems(await response.json() as PortfolioItem[]);
+        const response = await fetch(`${getApiUrl()}/portfolio`, { signal: controller.signal });
+        const result = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(result?.message || 'Unable to load the inspiration portfolio.');
+        if (!Array.isArray(result)) throw new Error('The portfolio server returned an invalid response.');
+        setPortfolioItems(result.map((item) => ({
+          id: item.id, title: item.title || 'Untitled project',
+          category: item.category || 'Uncategorized',
+          image: item.image || '', description: item.description || '',
+        })));
+        setSelectedCategory('All');
+        setFailedImages(new Set());
       } catch (error) {
+        if (controller.signal.aborted) return;
         setLoadError(error instanceof Error ? error.message : 'Unable to load the inspiration portfolio.');
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
     void loadPortfolio();
-  }, []);
+    return () => controller.abort();
+  }, [loadAttempt]);
 
   const categories = useMemo(
     () => ['All', ...Array.from(new Set(portfolioItems.map((item) => item.category)))],
@@ -78,17 +94,21 @@ export default function Work() {
         {loadError && (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center text-xs text-red-600">
             {loadError}
+            <button type="button" onClick={() => setLoadAttempt(value => value + 1)} className="ml-3 underline">Retry</button>
           </div>
         )}
+        {!isLoading && !loadError && filteredItems.length === 0 && <p role="status" className="p-8 text-center text-xs text-slate-400">No inspirations published yet.</p>}
         {filteredItems.map((item) => (
           <div key={item.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm group">
             <div className="relative block w-full h-48 bg-slate-100 overflow-hidden text-left">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              {item.image && !failedImages.has(item.id) ? <img
                 src={item.image}
                 alt={item.title}
+                loading="lazy"
+                onError={() => setFailedImages(current => new Set(current).add(item.id))}
                 className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-              />
+              /> : <div className="flex h-full items-center justify-center text-xs text-slate-500">Image unavailable</div>}
               <span className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm text-white font-bold text-[9px] tracking-widest px-2 py-0.5 rounded">
                 {item.category.toUpperCase()}
               </span>
@@ -101,6 +121,7 @@ export default function Work() {
               <button
                 type="button"
                 onClick={() => setActivePreviewItem(item)}
+                disabled={!item.image || failedImages.has(item.id)}
                 className="text-blue-500 hover:text-blue-600 transition p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer"
                 aria-label={`Open preview for ${item.title}`}
               >

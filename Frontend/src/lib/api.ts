@@ -35,3 +35,28 @@ export function getClientSession(): ClientSession | null {
     return null;
   }
 }
+
+export async function requestProfile(
+  role: 'admin' | 'client',
+  id: number,
+  changes?: Partial<Pick<ClientSession, 'fullname' | 'phone' | 'address' | 'landmark'>>,
+  signal?: AbortSignal,
+): Promise<ClientSession> {
+  const token = localStorage.getItem(`${role}Token`);
+  if (!token) throw new Error('Please sign in again to access your profile.');
+  const response = await fetch(`${getApiUrl()}/profile/${id}`, {
+    method: changes ? 'PUT' : 'GET',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: changes ? JSON.stringify(changes) : undefined,
+    cache: 'no-store',
+    signal,
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result?.success || !result.profile) {
+    throw new Error(result?.message || `Unable to ${changes ? 'save' : 'load'} profile (HTTP ${response.status}). Please try again.`);
+  }
+  const profile: ClientSession = result.profile;
+  localStorage.setItem(`${role}Account`, JSON.stringify(profile));
+  window.dispatchEvent(new Event('profile-updated'));
+  return profile;
+}

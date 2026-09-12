@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
-import { getApiUrl } from '@/lib/api';
+import { getApiUrl, requestProfile } from '@/lib/api';
 
 export default function ProfileSettings() {
   const imageInput = useRef<HTMLInputElement>(null);
@@ -29,7 +29,24 @@ export default function ProfileSettings() {
   });
   const [adminId, setAdminId] = useState<number | null>(null);
   const [message, setMessage] = useState('');
-  useEffect(() => { const raw=localStorage.getItem('adminAccount'); if(!raw)return; try { const a=JSON.parse(raw); setAdminId(a.id); setFormData({fullName:a.fullname||'',phoneNumber:a.phone||'',address:a.address||''}); } catch { setMessage('Unable to read the admin profile.'); } }, []);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadProfile() {
+      try {
+        const account = JSON.parse(localStorage.getItem('adminAccount') || 'null');
+        if (!account?.id) throw new Error('Please sign in again to load your profile.');
+        const profile = await requestProfile('admin', account.id, undefined, controller.signal);
+        setAdminId(profile.id);
+        setFormData({ fullName: profile.fullname, phoneNumber: profile.phone || '', address: profile.address || '' });
+      } catch (err) {
+        if (!controller.signal.aborted) setMessage(err instanceof Error ? err.message : 'Unable to load profile.');
+      } finally { if (!controller.signal.aborted) setLoading(false); }
+    }
+    void loadProfile();
+    return () => controller.abort();
+  }, []);
 
   // --- PORTFOLIO MODAL STATE ---
   const [isPortfolioOpen, setIsPortfolioOpen] = useState(false);
@@ -43,16 +60,23 @@ export default function ProfileSettings() {
   // Handle main profile update submit
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || saving) return;
     if(!adminId)return setMessage('Please sign in again.');
-    const response=await fetch(`${getApiUrl()}/profile/${adminId}`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('adminToken')||''}`},body:JSON.stringify({fullname:formData.fullName,phone:formData.phoneNumber,address:formData.address})});
-    setMessage(response.ok?'Profile settings saved.':'Unable to save profile settings.');
+    setMessage('');
+    setSaving(true);
+    try {
+      const profile = await requestProfile('admin', adminId, { fullname: formData.fullName, phone: formData.phoneNumber, address: formData.address });
+      setFormData({ fullName: profile.fullname, phoneNumber: profile.phone || '', address: profile.address || '' });
+      setMessage('Profile settings saved.');
+    } catch (err) { setMessage(err instanceof Error ? err.message : 'Unable to save profile.'); }
+    finally { setSaving(false); }
   };
 
   // Handle portfolio submission
   const handlePublishPortfolio = async (e: React.FormEvent) => {
     e.preventDefault();
     if (uploading || !portfolioData.imageUrl) { setUploadError('Upload an image before publishing.'); return; }
-    const response=await fetch(`${getApiUrl()}/portfolio`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:portfolioData.title,image:portfolioData.imageUrl,description:[portfolioData.category,portfolioData.stories].filter(Boolean).join(' — ')})});
+    const response=await fetch(`${getApiUrl()}/portfolio`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:portfolioData.title,image:portfolioData.imageUrl,category:portfolioData.category,description:portfolioData.stories})});
     if(!response.ok)return setMessage('Unable to publish portfolio item.');
     setMessage('Portfolio item published successfully.');
     setIsPortfolioOpen(false);
@@ -112,6 +136,7 @@ export default function ProfileSettings() {
 
           {/* MAIN PROFILE INPUT FORM */}
           <form onSubmit={handleSaveProfile} className="space-y-5">
+            <fieldset disabled={loading || saving || !adminId} className="space-y-5">
             <div className="bg-[#f0f6fc] border border-blue-100/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
               
               {/* FULL NAME */}
@@ -122,6 +147,8 @@ export default function ProfileSettings() {
                 <input
                   type="text"
                   value={formData.fullName}
+                  required
+                  maxLength={150}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0070c0]/30 shadow-inner"
                   placeholder="Enter full name"
@@ -136,6 +163,7 @@ export default function ProfileSettings() {
                 <input
                   type="text"
                   value={formData.phoneNumber}
+                  maxLength={30}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0070c0]/30 shadow-inner"
                   placeholder="Enter phone number"
@@ -163,8 +191,9 @@ export default function ProfileSettings() {
               type="submit"
               className="w-full py-4 bg-[#111827] hover:bg-[#1f2937] active:scale-[0.99] text-white font-serif font-bold text-xs tracking-widest uppercase rounded-2xl transition shadow-md border-none cursor-pointer"
             >
-              Save Changes
+              {loading ? 'Loading...' : saving ? 'Saving...' : 'Save Changes'}
             </button>
+            </fieldset>
           </form>
 
         </div>
