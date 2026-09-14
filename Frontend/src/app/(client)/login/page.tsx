@@ -118,13 +118,13 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
   }, [handleGoogleSignIn]);
 
   return (
-    <div className="min-h-screen bg-[#072448] flex items-center justify-center text-slate-100 font-sans selection:bg-[#00529b]/30">
+    <div className="min-h-dvh px-3 py-[0.5in] sm:px-4 bg-[#072448] flex items-center justify-center text-slate-100 font-sans selection:bg-[#00529b]/30">
 
       {/* Dynamic Shell Container: Seamless adaptive desktop flex layout */}
-      <div className="w-full min-h-screen lg:min-h-[850px] lg:max-w-6xl lg:grid lg:grid-cols-12 lg:bg-[#102243]/30 lg:backdrop-blur-md lg:rounded-[40px] lg:overflow-hidden lg:shadow-2xl lg:border lg:border-white/5 lg:m-6">
+      <div className="w-full max-w-xl md:max-w-5xl min-h-[min(560px,calc(100dvh-1in))] bg-[#102243]/30 rounded-[24px] overflow-hidden shadow-2xl flex flex-col md:flex-row border border-white/5 relative">
 
         {/* LEFT COLUMN: Cinematic Desktop Brand Panel */}
-        <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-b from-[#00529b] to-[#002d62] p-12 flex-col justify-between relative overflow-hidden border-r border-white/5">
+        <div className="hidden md:flex md:w-[45%] bg-gradient-to-b from-[#00529b] to-[#002d62] p-6 lg:p-8 flex-col justify-between relative overflow-hidden border-r border-white/5">
           <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full bg-white/5 blur-3xl pointer-events-none" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-black/20 blur-2xl pointer-events-none" />
 
@@ -174,11 +174,11 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
         </div>
 
         {/* RIGHT COLUMN: Interactive Form Sheet Container */}
-        <div className="col-span-12 lg:col-span-7 flex justify-center items-center py-6 px-4 md:px-8">
-          <div className="w-full max-w-md bg-gradient-to-b from-[#00529b] to-[#002d62] lg:from-transparent lg:to-transparent rounded-[32px] lg:rounded-none overflow-hidden shadow-2xl lg:shadow-none p-6 md:p-8 flex flex-col min-h-[740px] lg:min-h-0 justify-between relative border border-white/10 lg:border-none">
+        <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 flex flex-col justify-center">
+          <div className="w-full flex flex-col gap-4 relative">
 
             {/* Top Header Utilities (Visible on mobile screens) */}
-            <div className="flex justify-between items-center w-full pt-2 lg:hidden">
+            <div className="flex justify-between items-center w-full md:hidden">
               <button
                 type="button"
                 disabled={isLoading}
@@ -190,8 +190,8 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
             </div>
 
             {/* Branding Module (Visible on mobile screens) */}
-            <div className="flex flex-col items-center text-center my-auto lg:my-0 lg:mb-8 space-y-4 lg:hidden">
-              <div className="w-16 h-16 bg-[#102243] rounded-2xl flex items-center justify-center border border-white/10 shadow-inner">
+            <div className="flex items-center justify-center gap-3 text-center md:hidden">
+              <div className="w-12 h-12 bg-[#102243] rounded-2xl flex items-center justify-center border border-white/10 shadow-inner">
                 <Home className="w-8 h-8 text-slate-100" />
               </div>
               <div>
@@ -203,13 +203,13 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
             </div>
 
             {/* Desktop Section Header Title */}
-            <div className="hidden lg:block space-y-2 mb-8">
+            <div className="hidden md:block space-y-2 mb-2">
               <h2 className="text-2xl font-bold tracking-tight text-white">Welcome Back</h2>
               <p className="text-xs text-slate-300/80">Please enter your authentication details below.</p>
             </div>
 
             {/* Interactive Form Context */}
-            <form onSubmit={handleSubmit} className="space-y-5 w-full">
+            <form onSubmit={handleSubmit} className="space-y-4 w-full">
               {error && (
                 <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl text-center font-medium">
                   {error}
@@ -294,7 +294,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
             </form>
 
             {/* Divider Utilities */}
-            <div className="w-full space-y-5 mt-8 lg:mt-6 mb-4">
+            <div className="w-full space-y-3">
               <div className="flex items-center justify-center space-x-2 text-[9px] lg:text-xs text-slate-300/60 uppercase tracking-wider">
                 <div className="h-px bg-white/20 flex-1"></div>
                 <span>Or continue with</span>
@@ -303,7 +303,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
 
               <div
                 ref={googleButtonRef}
-                className={`flex min-h-11 w-full items-center justify-center overflow-hidden [&>div]:w-full ${isLoading ? 'pointer-events-none opacity-60' : ''}`}
+                className={`flex min-h-11 w-full items-center justify-center overflow-hidden [&>div]:flex [&>div]:justify-center ${isLoading ? 'pointer-events-none opacity-60' : ''}`}
               />
 
             </div>

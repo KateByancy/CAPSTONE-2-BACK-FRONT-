@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Check, X, Clock, CheckCircle2, XCircle, Calendar, User, ShieldCheck, Trash2 } from 'lucide-react';
+import { useNavigationSelection } from '@/lib/use-navigation-selection';
 import { getApiUrl } from '@/lib/api';
 
 interface BookingRequest {
@@ -19,7 +20,7 @@ type FilterTab = 'pending' | 'confirmed' | 'rejected';
 
 export default function BookingsManagement() {
   // --- STATE SYSTEM ---
-  const [activeTab, setActiveTab] = useState<FilterTab>('pending');
+  const [activeTab, setActiveTab] = useNavigationSelection<FilterTab>('status', 'pending', ['pending', 'confirmed', 'rejected']);
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
 
   const loadBookings = async () => {

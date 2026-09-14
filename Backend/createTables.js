@@ -2,6 +2,7 @@ require("dotenv").config();
 const db = require("./config/db");
 
 const queries = [
+...require('./migrations/adminSmsReset'),
 ...require('./migrations/gcash'),
 require('./migrations/avatars'),
 

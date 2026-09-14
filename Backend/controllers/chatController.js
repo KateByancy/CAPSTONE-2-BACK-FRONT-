@@ -4,6 +4,7 @@ const query = (sql, values = []) => new Promise((resolve, reject) => {
     db.query(sql, values, (error, rows) => error ? reject(error) : resolve(rows));
 });
 const { isPortfolioRequest, encodePortfolio, decodePortfolio, safeImage } = require("../services/portfolioChat");
+const { getMarcProfileReply } = require("../services/marcProfileReply");
 const pending = new Set();
 const adminIsOnline = async () => (await query(
     "SELECT id FROM users WHERE role='admin' AND last_seen >= DATE_SUB(NOW(), INTERVAL 45 SECOND) LIMIT 1"
@@ -25,6 +26,11 @@ const sendMessage = async (req, res) => {
     if (sender === "client") pending.add(userId);
     try {
         await query("INSERT INTO messages (user_id, sender, message) VALUES (?, ?, ?)", [userId, sender, message]);
+        const profileReply = sender === 'client' ? getMarcProfileReply(message) : null;
+        if (profileReply) {
+            await query("INSERT INTO messages (user_id, sender, message) VALUES (?, 'bot', ?)", [userId, profileReply]);
+            return res.status(201).json({ success: true, responder: 'knowledge' });
+        }
         if (sender === "admin" || await adminIsOnline()) {
             return res.status(201).json({ success: true, responder: "admin" });
         }

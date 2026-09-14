@@ -13,7 +13,9 @@
     "test:gcash": "node tests/gcash.test.js",
     "db:migrate:avatars": "node migrateAvatars.js",
     "test:avatars": "node tests/avatar.test.js",
-    "check": "node --check server.js && node --check config/db.js && node --check createDatabase.js && node --check createTables.js && node --check controllers/authController.js && node --check middeware/auth.js && node --check middeware/errorHandler.js && node --check middeware/validation.js && node --check routes/authRoutes.js && node --check routes/profileRoutes.js && node --check utils/authTokens.js"
+    "check": "node --check server.js && node --check config/db.js && node --check createDatabase.js && node --check createTables.js && node --check controllers/authController.js && node --check middeware/auth.js && node --check middeware/errorHandler.js && node --check middeware/validation.js && node --check routes/authRoutes.js && node --check routes/profileRoutes.js && node --check utils/authTokens.js",
+    "db:migrate:admin-sms": "node migrateAdminSmsReset.js",
+    "test:admin-sms": "node tests/adminSmsReset.test.js"
   },
   "keywords": [
     "express",

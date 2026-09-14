@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useNavigationSelection } from '@/lib/use-navigation-selection';
 
 // Import your existing pages and views
 import LandingPage from './landing/page';
@@ -25,9 +26,10 @@ interface ClientAccount {
 }
 
 export default function ClientMasterController() {
-  // Start on 'landing' so your landing page shows first
-  const [currentScreen, setCurrentScreen] = useState<'landing' | 'login' | 'register' | 'dashboard'>('landing');
-  const [activeTab, setActiveTab] = useState('home');
+  // Restore the requested screen after checking the existing client session.
+  const [currentScreen, setCurrentScreen] = useNavigationSelection('screen', 'landing', ['landing', 'login', 'register', 'dashboard']);
+  const [activeTab, setActiveTab] = useNavigationSelection('tab', 'home', ['home', 'work', 'book', 'track', 'chat', 'profile', 'payments']);
+  const [isRestoring, setIsRestoring] = useState(true);
   const [userName, setUserName] = useState('Doe, John');
 
   useEffect(() => {
@@ -43,18 +45,25 @@ export default function ClientMasterController() {
     const restoreSession = window.setTimeout(() => {
       try {
         const stored = localStorage.getItem('clientAccount');
-        if (!stored) return;
+        if (!stored) {
+          if (new URLSearchParams(window.location.search).get('screen') === 'dashboard') setCurrentScreen('landing');
+          return;
+        }
         const client = JSON.parse(stored) as ClientAccount;
         setUserName(formatClientName(client.fullname));
         setCurrentScreen('dashboard');
-        if (new URLSearchParams(window.location.search).has('payment')) setActiveTab('payments');
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('payment') && !params.has('tab')) setActiveTab('payments');
       } catch {
         localStorage.removeItem('clientAccount');
         localStorage.removeItem('clientToken');
+        setCurrentScreen('landing');
+      } finally {
+        setIsRestoring(false);
       }
     }, 0);
     return () => window.clearTimeout(restoreSession);
-  }, []);
+  }, [setCurrentScreen, setActiveTab]);
 
   useEffect(() => {
     if (currentScreen !== 'dashboard') return;
@@ -67,6 +76,10 @@ export default function ClientMasterController() {
     const timer = window.setInterval(sendHeartbeat, 20000);
     return () => window.clearInterval(timer);
   }, [currentScreen]);
+
+  if (isRestoring) {
+    return <div className="min-h-dvh bg-[#072448]" role="status" aria-label="Restoring your page" />;
+  }
 
   // 1. Landing Page: "Launch Client Workspace" button triggers login
   if (currentScreen === 'landing') {
@@ -136,6 +149,7 @@ export default function ClientMasterController() {
       onLogout={() => {
         localStorage.removeItem('clientAccount');
         localStorage.removeItem('clientToken');
+        setActiveTab('home');
         setCurrentScreen('landing');
       }}
     >

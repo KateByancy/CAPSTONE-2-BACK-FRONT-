@@ -1,7 +1,10 @@
 const jwt = require("jsonwebtoken");
 const { getJwtSecret } = require("../utils/authTokens");
 
-const verifyToken = (req, res, next) => {
+const db = require('../config/db');
+const { createHash } = require('node:crypto');
+
+const verifyToken = async (req, res, next) => {
 
     const authorization = req.headers.authorization || "";
     const [scheme, token] = authorization.split(" ");
@@ -20,6 +23,15 @@ const verifyToken = (req, res, next) => {
             getJwtSecret()
         );
 
+        if (decoded.role === 'admin') {
+            const users = await new Promise((resolve, reject) => db.query("SELECT password FROM users WHERE id = ? AND role = 'admin'", [decoded.id], (error, rows) => error ? reject(error) : resolve(rows)));
+            const password = users[0]?.password;
+            // Legacy sessions remain valid only until the bootstrap password is replaced.
+            const valid = password && (decoded.passwordVersion
+                ? decoded.passwordVersion === createHash('sha256').update(password).digest('hex')
+                : password === 'ADMIN_ENV_AUTH');
+            if (!valid) return res.status(401).json({ success: false, message: 'Please sign in again.' });
+        }
         req.user = decoded;
 
         next();

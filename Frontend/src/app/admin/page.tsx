@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
@@ -93,6 +94,8 @@ export default function AdminPage() {
               )}
             </div>
           </div>
+
+          <div className="text-right"><Link href="/admin/forgot-password" className="text-sm text-sky-300 hover:underline">Forgot password?</Link></div>
 
           {error && <p className="text-sm text-rose-400">{error}</p>}
 

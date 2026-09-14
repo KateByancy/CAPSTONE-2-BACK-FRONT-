@@ -167,8 +167,10 @@ export default function ProfileSettings() {
                   maxLength={30}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0070c0]/30 shadow-inner"
-                  placeholder="Enter phone number"
+                  placeholder="09XXXXXXXXX or +639XXXXXXXXX"
+                  aria-describedby="admin-phone-help"
                 />
+                <p id="admin-phone-help" className="mt-2 text-xs text-slate-500">SMS password recovery uses this saved mobile number. Keep it up to date.</p>
               </div>
 
               {/* PRIMARY ADDRESS */}

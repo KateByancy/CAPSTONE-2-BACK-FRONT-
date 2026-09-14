@@ -221,13 +221,13 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
   }, [projectAddress]);
 
   return (
-    <div className="min-h-screen w-full bg-[#031525] flex justify-center items-center p-0 md:p-6 text-slate-100 font-sans">
+    <div className="min-h-dvh w-full bg-[#031525] flex justify-center items-center px-3 py-[0.5in] sm:px-4 text-slate-100 font-sans">
       
       {/* Main Split Layout Container */}
-      <div className="w-full h-screen md:h-auto md:max-w-5xl md:min-h-[750px] bg-[#051a30] md:rounded-[24px] overflow-hidden shadow-2xl flex flex-col md:flex-row border border-white/5 relative">
+      <div className="w-full max-w-xl md:max-w-5xl min-h-[min(560px,calc(100dvh-1in))] bg-[#051a30] rounded-[24px] overflow-hidden shadow-2xl flex flex-col md:flex-row border border-white/5 relative">
         
         {/* ================= LEFT SIDE: BRAND PANEL ================= */}
-        <div className="hidden md:flex md:w-[45%] bg-gradient-to-b from-[#004b8d] to-[#012a52] p-10 flex-col justify-between relative border-r border-white/5">
+        <div className="hidden md:flex md:w-[45%] bg-gradient-to-b from-[#004b8d] to-[#012a52] p-6 lg:p-8 flex-col justify-between relative border-r border-white/5">
           <div>
             <button 
               type="button"
@@ -269,9 +269,9 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
         </div>
 
         {/* ================= RIGHT SIDE: FORM PANEL ================= */}
-        <div className="flex-1 bg-[#051a30] p-6 md:p-12 flex flex-col justify-between overflow-y-auto">
+        <div className="flex-1 bg-[#051a30] p-4 sm:p-6 lg:p-8 flex flex-col justify-center">
           
-          <div className="flex justify-between items-center w-full md:hidden pt-2 pb-6">
+          <div className="flex justify-between items-center w-full md:hidden pb-3">
             <button 
               type="button"
               onClick={handleReturnToMain}
@@ -283,19 +283,19 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
             <span className="text-[10px] opacity-40 font-mono tracking-widest">MARC DESIGN</span>
           </div>
 
-          <div className="space-y-1.5 mb-6 md:mb-4">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Create Account</h2>
+          <div className="space-y-1.5 mb-3">
+            <h2 className="text-2xl font-bold tracking-tight text-white">Create Account</h2>
             <p className="text-xs text-slate-400 font-light">Please fill out your details to sign up with us.</p>
           </div>
 
-          <form onSubmit={handleRegister} className="space-y-4 flex-1 flex flex-col justify-center">
+          <form onSubmit={handleRegister} className="space-y-3 flex flex-col">
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl text-center font-medium">
                 {error}
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Full Name</label>
                 <input 
@@ -304,7 +304,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
                   placeholder="Enter your full name"
                   onChange={(e) => setFullName(e.target.value)}
                   required 
-                  className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium" 
+                  className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
                 />
               </div>
 
@@ -316,7 +316,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
                   placeholder="09XXXXXXXXX"
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   required 
-                  className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium" 
+                  className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
                 />
               </div>
             </div>
@@ -330,7 +330,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
                 onChange={(e) => setProjectAddress(e.target.value)}
                 placeholder={addressLookupLoading ? 'Loading Visayas barangays...' : 'Start typing barangay, city, or province'}
                 required
-                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium" 
+                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
               />
               <datalist id="project-address-suggestions">
                 {addressSuggestions.map((suggestion) => (
@@ -347,7 +347,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
                 placeholder="e.g. name@example.com"
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium" 
+                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
               />
             </div>
 
@@ -359,11 +359,11 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
                 onChange={(e) => setLandmark(e.target.value)}
                 placeholder="e.g. Beside the barangay hall"
                 required
-                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
+                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Password</label>
                 <div className="relative">
@@ -374,7 +374,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
                     onChange={(e) => setPassword(e.target.value)}
                     minLength={8}
                     required
-                    className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl pl-4 pr-11 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition tracking-widest"
+                    className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl pl-3 pr-10 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition tracking-widest"
                   />
                   {password && (
                     <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 hover:text-white bg-transparent border-none cursor-pointer">
@@ -395,7 +395,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     minLength={8}
                     required
-                    className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl pl-4 pr-11 py-3 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition tracking-widest"
+                    className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl pl-3 pr-10 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition tracking-widest"
                   />
                   {confirmPassword && (
                     <button type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 hover:text-white bg-transparent border-none cursor-pointer">
@@ -410,7 +410,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
             <button 
               type="submit" 
               disabled={isLoading}
-              className="w-full bg-[#102542] hover:bg-[#16335a] active:bg-[#0d1d33] disabled:opacity-75 text-white font-bold text-xs py-3.5 rounded-xl transition uppercase tracking-widest shadow-lg mt-2 flex items-center justify-center space-x-2 border border-white/10 cursor-pointer"
+              className="w-full bg-[#102542] hover:bg-[#16335a] active:bg-[#0d1d33] disabled:opacity-75 text-white font-bold text-xs py-3 rounded-xl transition uppercase tracking-widest shadow-lg mt-2 flex items-center justify-center space-x-2 border border-white/10 cursor-pointer"
             >
               {isLoading ? (
                 <>

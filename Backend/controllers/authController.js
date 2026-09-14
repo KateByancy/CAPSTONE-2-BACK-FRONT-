@@ -138,7 +138,7 @@ exports.login = (req, res) => {
         });
       }
 
-      if (result.length === 0) {
+      if (result.length === 0 || result[0].role === 'admin') {
         return res.status(401).json(authenticationError);
       }
 
@@ -189,30 +189,24 @@ exports.adminLogin = async (req, res) => {
       });
     }
 
-    if (!adminEmail || !adminPassword) {
-      return res.status(503).json({
-        success: false,
-        message: "Administrator authentication has not been configured.",
-      });
+    let rows = await query("SELECT id, fullname, email, role, password FROM users WHERE email = ? LIMIT 1", [email]);
+    let account = rows[0];
+    let matches = false;
+    if (account?.role === 'admin' && account.password !== 'ADMIN_ENV_AUTH') {
+      matches = await bcrypt.compare(password, account.password);
+    } else if ((!account || account.role === 'admin') && email === adminEmail && adminPassword) {
+      // Environment credentials bootstrap only; a saved password always takes precedence.
+      matches = crypto.timingSafeEqual(crypto.createHash('sha256').update(password).digest(), crypto.createHash('sha256').update(adminPassword).digest());
+      if (matches && !account) {
+        await query("INSERT INTO users (fullname, email, password, role) VALUES ('Administrator', ?, 'ADMIN_ENV_AUTH', 'admin')", [email]);
+        rows = await query("SELECT id, fullname, email, role, password FROM users WHERE email = ? LIMIT 1", [email]);
+        account = rows[0];
+      }
     }
-
-    if (email !== adminEmail || password !== adminPassword) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid administrator credentials.",
-      });
-    }
-
-    await query(
-      `INSERT INTO users (fullname, email, password, role, last_seen)
-       VALUES ('Administrator', ?, 'ADMIN_ENV_AUTH', 'admin', NOW())
-       ON DUPLICATE KEY UPDATE role = 'admin', last_seen = NOW()`,
-      [adminEmail]
-    );
-    const adminRows = await query("SELECT id, fullname, email, role FROM users WHERE email = ? LIMIT 1", [adminEmail]);
-    const admin = adminRows[0];
-
-    const token = issueAccessToken(admin);
+    if (!matches || !account) return res.status(401).json(authenticationError);
+    await query('UPDATE users SET last_seen = NOW() WHERE id = ?', [account.id]);
+    const token = issueAccessToken(account);
+    const admin = { id: account.id, fullname: account.fullname, email: account.email, role: account.role };
 
     return res.json({
       success: true,
@@ -305,13 +299,8 @@ exports.getClients = (req, res) => {
 };
 
 exports.updatePresence = (req, res) => {
-  const isAdmin = req.user.role === "admin";
-  const sql = isAdmin
-    ? `INSERT INTO users (fullname, email, password, role, last_seen)
-       VALUES ('Administrator', ?, 'ADMIN_ENV_AUTH', 'admin', NOW())
-       ON DUPLICATE KEY UPDATE role = 'admin', last_seen = NOW()`
-    : "UPDATE users SET last_seen = NOW() WHERE id = ?";
-  const identity = isAdmin ? process.env.ADMIN_EMAIL : req.user.id;
+  const sql = 'UPDATE users SET last_seen = NOW() WHERE id = ?';
+  const identity = req.user.id;
   db.query(sql, [identity], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: "Unable to update presence.", detail: process.env.NODE_ENV === "production" ? undefined : err.message });
     if (!result.affectedRows) return res.status(404).json({ success: false, message: "Client account not found." });
@@ -320,11 +309,7 @@ exports.updatePresence = (req, res) => {
 };
 
 exports.clearPresence = (req, res) => {
-  const isAdmin = req.user.role === "admin";
-  const sql = isAdmin
-    ? "UPDATE users SET last_seen = NULL WHERE email = ? AND role = 'admin'"
-    : "UPDATE users SET last_seen = NULL WHERE id = ?";
-  db.query(sql, [isAdmin ? process.env.ADMIN_EMAIL : req.user.id], (err, result) => {
+  db.query("UPDATE users SET last_seen = NULL WHERE id = ?", [req.user.id], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: "Unable to update offline status." });
     if (!result.affectedRows) return res.status(404).json({ success: false, message: "Account not found." });
     return res.json({ success: true });
@@ -342,7 +327,7 @@ exports.forgotPassword = async (req, res, next) => {
 
   try {
     const email = req.body.email.trim().toLowerCase();
-    const users = await query("SELECT id FROM users WHERE email = ? LIMIT 1", [email]);
+    const users = await query("SELECT id FROM users WHERE email = ? AND role <> 'admin' LIMIT 1", [email]);
 
     if (!users.length) return res.json(genericResponse);
 
@@ -375,8 +360,8 @@ exports.resetPassword = async (req, res, next) => {
     transactionStarted = true;
 
     const tokens = await query(
-      `SELECT id, user_id FROM password_reset_requests
-       WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW()
+      `SELECT r.id, r.user_id FROM password_reset_requests r JOIN users u ON u.id = r.user_id
+       WHERE r.token_hash = ? AND r.used_at IS NULL AND r.expires_at > NOW() AND u.role <> 'admin'
        LIMIT 1 FOR UPDATE`,
       [tokenHash]
     );

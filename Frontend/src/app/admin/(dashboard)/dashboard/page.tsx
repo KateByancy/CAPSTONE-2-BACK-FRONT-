@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Calendar, Users, CreditCard, Clock, Trash2 } from 'lucide-react';
+import { useNavigationSelection } from '@/lib/use-navigation-selection';
 import { getApiUrl } from '@/lib/api';
 
 interface ClientProject {
@@ -20,7 +21,7 @@ export default function DashboardOverview() {
   const router = useRouter();
 
   // --- CLIENT PROJECTS PIPELINE STATE ENGINE ---
-  const [activeFilter, setActiveFilter] = useState<'pending' | 'ongoing' | 'completed'>('pending');
+  const [activeFilter, setActiveFilter] = useNavigationSelection('status', 'pending', ['pending', 'ongoing', 'completed']);
   
   const [projects, setProjects] = useState<ClientProject[]>([]);
 
