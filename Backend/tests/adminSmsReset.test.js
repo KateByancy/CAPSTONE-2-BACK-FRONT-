@@ -18,6 +18,9 @@ test('SMS recovery uses saved admin phone, enforces verification, and updates re
     process.env.ADMIN_EMAIL = 'sms-admin@example.test';
     process.env.ADMIN_PASSWORD = 'Old-password-123';
     process.env.JWT_SECRET = 'sms-test-secret-only';
+    process.env.RESEND_API_KEY = 'test-only';
+    process.env.PASSWORD_RESET_FROM = 'test@example.test';
+    process.env.FRONTEND_URL = 'http://localhost:3000';
     process.env.TWILIO_ACCOUNT_SID = 'AC' + '1'.repeat(32);
     process.env.TWILIO_VERIFY_SERVICE_SID = 'VA' + '2'.repeat(32);
     process.env.TWILIO_AUTH_TOKEN = 'test-only';
@@ -26,7 +29,16 @@ test('SMS recovery uses saved admin phone, enforces verification, and updates re
     let sends = 0;
     let providerFails = false;
     let server;
+    let deliveredToken;
+    let mailFails = false;
     global.fetch = async (url, options) => {
+        if (String(url) === 'https://api.resend.com/emails') {
+            if (mailFails) return new Response('{}', { status: 503 });
+            const message = JSON.parse(options.body);
+            assert.deepEqual(message.to, ['client@example.test']);
+            deliveredToken = new URL(message.text.match(/http:\/\/localhost:3000\/reset-password\?token=[a-f0-9]+/)[0]).searchParams.get('token');
+            return Response.json({ id: 'mock-email' });
+        }
         if (!String(url).startsWith('https://verify.twilio.com/')) return realFetch(url, options);
         if (providerFails) return new Response('{}', { status: 503 });
         const body = new URLSearchParams(options.body);
@@ -46,6 +58,8 @@ test('SMS recovery uses saved admin phone, enforces verification, and updates re
         await query(`CREATE TEMPORARY TABLE users (id INT PRIMARY KEY AUTO_INCREMENT, fullname VARCHAR(100),
             email VARCHAR(100) UNIQUE, password VARCHAR(255), role VARCHAR(20), phone VARCHAR(30), last_seen DATETIME)`);
         for (const sql of require('../migrations/adminSmsReset')) await query(sql.replace('CREATE TABLE IF NOT EXISTS', 'CREATE TEMPORARY TABLE'));
+        await query(`CREATE TEMPORARY TABLE password_reset_requests (
+            id INT PRIMARY KEY AUTO_INCREMENT, user_id INT, token_hash VARCHAR(64), expires_at DATETIME, used_at DATETIME)`);
         await query("INSERT INTO users (fullname, email, password, role, phone) VALUES ('Admin', ?, 'ADMIN_ENV_AUTH', 'admin', '09925280374')", [process.env.ADMIN_EMAIL]);
         await query("INSERT INTO users (fullname, email, password, role, phone) VALUES ('Client', 'client@example.test', 'unused', 'client', '09911111111')");
         const app = express(); app.use(express.json()); app.use('/auth', require('../routes/authRoutes'));
@@ -109,6 +123,25 @@ test('SMS recovery uses saved admin phone, enforces verification, and updates re
         assert.equal((await reset('invalid')).status, 422);
         delete process.env.TWILIO_AUTH_TOKEN;
         assert.equal((await request()).status, 503);
+
+        const clientRequest = () => call('/forgot-password', { email: 'client@example.test' });
+        const clientReset = token => call('/reset-password', { token, password: 'Client-new-password-456' });
+        const emailed = await clientRequest();
+        assert.equal(emailed.status, 200);
+        assert.equal(emailed.resetToken, undefined);
+        assert.equal(deliveredToken.length, 64);
+        assert.equal((await clientReset('0'.repeat(64))).status, 400);
+        assert.equal((await clientReset(deliveredToken)).status, 200);
+        assert.equal((await clientReset(deliveredToken)).status, 400);
+        const client = await query("SELECT password FROM users WHERE email = 'client@example.test'");
+        assert.equal(await bcrypt.compare('Client-new-password-456', client[0].password), true);
+        await clientRequest();
+        await query('UPDATE password_reset_requests SET expires_at = DATE_SUB(NOW(), INTERVAL 1 MINUTE)');
+        assert.equal((await clientReset(deliveredToken)).status, 400);
+        mailFails = true;
+        assert.equal((await clientRequest()).status, 503);
+        delete process.env.RESEND_API_KEY;
+        assert.equal((await clientRequest()).status, 503);
     } finally {
         global.fetch = realFetch;
         if (server) { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }

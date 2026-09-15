@@ -1,5 +1,11 @@
 # Admin SMS password recovery
 
+The admin recovery page now uses Gmail email links. Follow [ADMIN_EMAIL_RECOVERY.md](ADMIN_EMAIL_RECOVERY.md) for the active flow. These SMS endpoints remain available for existing integrations, but Twilio is not required for the email form.
+
+If the page says SMS recovery is not configured, run `npm --prefix Backend run sms:check` from the workspace root. This prints only whether each required credential is missing or has the expected format; it never prints credentials or sends an SMS.
+
+In Twilio Console, obtain the Account SID (starts with AC) and Auth Token. Under Verify > Services create a service and copy its Service SID (starts with VA, not MG). Fill the existing TWILIO entries in Backend/.env with those actual values. Empty entries are intentionally not working credentials. Google, Resend and PayMongo keys cannot send Twilio verification SMS. See [Twilio's setup guide](https://www.twilio.com/docs/verify/quickstarts/node-express).
+
 1. Run `npm run db:migrate:admin-sms` from Backend (also included in the normal table migration).
 2. Create a dedicated Twilio Verify service for admin password recovery, with SMS enabled. Configure `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_VERIFY_SERVICE_SID` in the backend environment. Never place these values in frontend variables or commit them.
 3. Enable the destination country in Twilio's Verify geographic permissions and ensure the account can send to the destination number. Trial accounts may require a verified recipient. Restart the backend after configuring it.

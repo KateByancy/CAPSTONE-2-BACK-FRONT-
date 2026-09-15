@@ -3,6 +3,8 @@ const db = require("./config/db");
 
 const queries = [
 ...require('./migrations/adminSmsReset'),
+...require('./migrations/adminEmailReset'),
+...require('./migrations/clientEmailCode'),
 ...require('./migrations/gcash'),
 require('./migrations/avatars'),
 

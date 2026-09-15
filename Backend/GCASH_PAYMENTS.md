@@ -10,7 +10,7 @@ New payment requests use PayMongo hosted GCash checkout. Existing manual request
 4. Client opens Payments and selects Pay with GCash. The amount comes from the saved admin request, never the client body.
 5. The backend retrieves the stored checkout session and verifies a paid GCash payment matching its amount, PHP currency and key mode. It then marks the request Paid. Admin cannot manually mark a PayMongo request paid.
 
-The page checks statuses on load, focus, every 30 seconds while visible, and Refresh. This local-development integration uses authenticated provider polling; it does not have an unattended webhook listener. Closing both payment pages delays local status updates until the next refresh, without changing the PayMongo payment itself.
+The page checks statuses on load, focus, every 30 seconds while visible, and Refresh. The signed POST /api/payment/webhook endpoint also records verified checkout payments when both pages are closed. Register checkout_session.payment.paid and configure PAYMONGO_WEBHOOK_SECRET for the same mode as your API key. See [PAYMENT_DEPLOYMENT.md](PAYMENT_DEPLOYMENT.md) for live setup, production configuration checks and deployment verification.
 
 ## Duplicate prevention and recovery
 

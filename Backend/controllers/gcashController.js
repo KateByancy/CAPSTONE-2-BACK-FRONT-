@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const paymongo = require('../services/paymongoCheckout');
+const paymentConfig = require('../services/paymentConfig');
 const query = (sql, values = []) => new Promise((resolve, reject) => db.query(sql, values, (error, rows) => error ? reject(error) : resolve(rows)));
 const wrap = handler => async (req, res) => {
     try { await handler(req, res); }
@@ -19,7 +20,8 @@ const imageType = buffer => {
 };
 exports.getSettings = wrap(async (_req, res) => {
     const rows = await query('SELECT account_name, account_number FROM gcash_settings WHERE id=1');
-    res.json({ settings: rows[0] || null, provider: 'PayMongo', configured: Boolean(process.env.PAYMONGO_SECRET_KEY), testMode: process.env.PAYMONGO_SECRET_KEY?.startsWith('sk_test_') || false });
+    const config = paymentConfig.configuration();
+    res.json({ settings: rows[0] || null, provider: 'PayMongo', configured: config.configured, testMode: config.mode === 'test', mode: config.mode });
 });
 exports.saveSettings = wrap(async (req, res) => {
     const name = typeof req.body.account_name === 'string' ? req.body.account_name.trim() : '';
@@ -54,7 +56,7 @@ exports.create = wrap(async (req, res) => {
     if (!Number.isSafeInteger(Number(booking_id)) || Number(booking_id) < 1 || !/^[0-9]+(?:\.[0-9]{1,2})?$/.test(String(amount)) || Number(amount) < 100 || Number(amount) > 99999999.99 || typeof description !== 'string' || !description.trim() || description.trim().length > 200) {
         return res.status(400).json({ message: 'Select an accepted booking, enter at least PHP 100 with up to two decimal places, and a description (up to 200 characters).' });
     }
-    if (!process.env.PAYMONGO_SECRET_KEY) return res.status(503).json({ message: 'Configure PAYMONGO_SECRET_KEY on the backend first.' });
+    paymentConfig.assertConfigured();
     const result = await query(`INSERT INTO gcash_requests (booking_id, amount, description, account_name, account_number, payment_provider)
         SELECT b.id, ?, ?, '', '', 'PayMongo' FROM bookings b
         WHERE b.id=? AND ${accepted}`, [amount, description.trim(), booking_id]);
@@ -99,12 +101,13 @@ async function syncPayment(payment) {
     const session = await paymongo.request(`/checkout_sessions/${encodeURIComponent(payment.checkout_session_id)}`);
     const paid = paymongo.paidPayment(session, payment);
     if (paid) {
-        await query("UPDATE gcash_requests SET status='Paid', provider_payment_id=?, reviewed_at=NOW() WHERE id=? AND checkout_session_id=? AND payment_provider='PayMongo'", [paid.id, payment.id, payment.checkout_session_id]);
+        await query("UPDATE gcash_requests SET status='Paid', provider_payment_id=?, reviewed_at=NOW() WHERE id=? AND checkout_session_id=? AND payment_provider='PayMongo' AND status <> 'Paid'", [paid.id, payment.id, payment.checkout_session_id]);
         payment.status = 'Paid';
     }
     return session;
 }
 exports.checkout = wrap(async (req, res) => {
+    const config = paymentConfig.assertConfigured();
     const rows = await query(`SELECT p.*, b.service_type FROM gcash_requests p JOIN bookings b ON b.id=p.booking_id
         WHERE p.id=? AND b.user_id=? AND p.payment_provider='PayMongo' AND ${accepted}`, [req.params.id, req.user.id]);
     const payment = rows[0];
@@ -119,12 +122,13 @@ exports.checkout = wrap(async (req, res) => {
     const lock = await query("UPDATE gcash_requests SET checkout_creating=TRUE WHERE id=? AND status='Awaiting payment' AND checkout_creating=FALSE AND checkout_session_id IS NULL", [payment.id]);
     if (!lock.affectedRows) return res.status(409).json({ message: 'Checkout is being prepared or needs reconciliation. Refresh shortly; contact the admin if this persists.' });
     try {
-        const frontend = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0].trim().replace(/\/$/, '');
+        const frontend = config.frontendUrl;
         const session = await paymongo.request('/checkout_sessions', { method: 'POST', body: JSON.stringify({ data: { attributes: {
             line_items: [{ amount: Math.round(Number(payment.amount) * 100), currency: 'PHP', name: payment.description, quantity: 1 }],
             payment_method_types: ['gcash'], reference_number: `GCASH-${payment.id}`,
             description: `Booking #${payment.booking_id}: ${payment.service_type}`,
-            success_url: `${frontend}/?payment=success`, cancel_url: `${frontend}/?payment=cancelled`,
+            success_url: `${frontend}/payments?payment=success`, cancel_url: `${frontend}/payments?payment=cancelled`,
+            send_email_receipt: true,
             show_description: true, show_line_items: true,
         } } }) });
         const url = new URL(session.attributes.checkout_url);

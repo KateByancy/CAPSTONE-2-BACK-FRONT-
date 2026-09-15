@@ -4,6 +4,8 @@ const express = require('express');
 require('dotenv').config({ quiet: true });
 process.env.JWT_SECRET = 'payment-test-only';
 process.env.PAYMONGO_SECRET_KEY = 'sk_test_fixture';
+process.env.NODE_ENV = 'test';
+process.env.PAYMENTS_MODE = 'test';
 const db = require('../config/db');
 const provider = require('../services/paymongoCheckout');
 const { issueAccessToken } = require('../utils/authTokens');
@@ -25,10 +27,10 @@ test('PayMongo GCash: ownership, fixed amount, duplicate checkout, provider conf
   };
   try {
     for (const sql of require('../migrations/gcash')) await query(sql.replace('CREATE TABLE IF NOT EXISTS', 'CREATE TEMPORARY TABLE'));
-    await query('CREATE TEMPORARY TABLE users (id INT PRIMARY KEY, fullname VARCHAR(100))');
+    await query('CREATE TEMPORARY TABLE users (id INT PRIMARY KEY, fullname VARCHAR(100), role VARCHAR(20), password VARCHAR(255))');
     await query('CREATE TEMPORARY TABLE bookings (id INT PRIMARY KEY, user_id INT, service_type VARCHAR(100), status VARCHAR(30), accepted_at DATETIME)');
     await query('CREATE TEMPORARY TABLE payments (id INT, booking_id INT, amount DECIMAL(10,2), reference_number VARCHAR(100), payment_status VARCHAR(30), created_at DATETIME)');
-    await query("INSERT INTO users VALUES (2,'Test Client'),(3,'Other Client')");
+    await query("INSERT INTO users VALUES (1,'Test Admin','admin','ADMIN_ENV_AUTH'),(2,'Test Client','client','unused'),(3,'Other Client','client','unused')");
     await query("INSERT INTO bookings VALUES (1,2,'Kitchen','Approved',NOW()),(2,3,'Bedroom','Approved',NOW()),(3,2,'Office','Pending',NULL)");
     const app = express(); app.use(express.json()); app.use('/payment', require('../routes/paymentRoutes'));
     server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));

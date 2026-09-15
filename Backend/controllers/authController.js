@@ -246,11 +246,12 @@ exports.googleLogin = async (req, res) => {
 
     const googleEmail = String(profile.email).trim().toLowerCase();
 
-    db.query("SELECT id, fullname, phone, address, landmark, email FROM users WHERE email = ?", [googleEmail], async (err, users) => {
+    db.query("SELECT id, fullname, phone, address, landmark, email, role FROM users WHERE email = ?", [googleEmail], async (err, users) => {
       if (err) return res.status(500).json({ success: false, message: "Unable to sign in." });
       const issueToken = (user) => issueAccessToken({ ...user, role: "client" });
       if (users.length) {
         const user = users[0];
+        if (user.role !== 'client') return res.status(403).json({ success: false, message: 'Use the admin sign-in page for this account.' });
         return res.json({ success: true, message: "Google sign-in successful.", token: issueToken(user), user });
       }
 
@@ -320,6 +321,11 @@ exports.clearPresence = (req, res) => {
 // PASSWORD RECOVERY
 // ==============================
 exports.forgotPassword = async (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  const mail = require('../services/passwordResetMail');
+  if (process.env.NODE_ENV !== 'test' && !mail.configured()) {
+    return res.status(503).json({ success: false, code: 'EMAIL_RECOVERY_UNAVAILABLE', message: 'Password reset emails are currently unavailable. Please contact support or try again later.' });
+  }
   const genericResponse = {
     success: true,
     message: "If an account matches that email, password reset instructions will be sent."
@@ -333,7 +339,8 @@ exports.forgotPassword = async (req, res, next) => {
 
     const resetToken = crypto.randomBytes(32).toString("hex");
     const tokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
-    const expirationMinutes = Number(process.env.PASSWORD_RESET_EXPIRES_MINUTES || 15);
+    const configuredMinutes = Number(process.env.PASSWORD_RESET_EXPIRES_MINUTES || 15);
+    const expirationMinutes = Number.isFinite(configuredMinutes) && configuredMinutes > 0 ? Math.min(configuredMinutes, 60) : 15;
     const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
 
     await query("UPDATE password_reset_requests SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [users[0].id]);
@@ -342,8 +349,16 @@ exports.forgotPassword = async (req, res, next) => {
       [users[0].id, tokenHash, expiresAt]
     );
 
-    // A mail provider should deliver resetToken. It is exposed only to automated tests.
-    if (process.env.NODE_ENV === "test") genericResponse.resetToken = resetToken;
+    if (process.env.NODE_ENV === 'test' && !mail.configured()) {
+      genericResponse.resetToken = resetToken;
+    } else {
+      try {
+        await mail.send(email, resetToken, expirationMinutes);
+      } catch {
+        await query('UPDATE password_reset_requests SET used_at = NOW() WHERE token_hash = ?', [tokenHash]);
+        return res.status(503).json({ success: false, message: 'Unable to send the reset email right now. Please try again later.' });
+      }
+    }
     return res.json(genericResponse);
   } catch (error) {
     return next(error);

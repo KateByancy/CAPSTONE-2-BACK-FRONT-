@@ -43,6 +43,13 @@ app.use(cors({
     },
     credentials: true
 }));
+// Signature verification needs the original bytes, before the JSON parser and login middleware.
+app.post('/api/payment/webhook', express.raw({ type: 'application/json', limit: '256kb' }),
+    require('./services/paymongoWebhook').createHandler({
+        query: (sql, values) => new Promise((resolve, reject) => db.query(sql, values, (error, rows) => error ? reject(error) : resolve(rows))),
+        provider: require('./services/paymongoCheckout'),
+        configuration: require('./services/paymentConfig').configuration,
+    }));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
@@ -89,6 +96,7 @@ app.use(errorHandler);
 const PORT = Number(process.env.PORT || 5000);
 
 const startServer = async () => {
+    if (process.env.NODE_ENV === 'production' || process.env.PAYMENTS_MODE === 'live') require('./services/paymentConfig').assertConfigured();
     await connectDatabase();
 
     return new Promise((resolve, reject) => {

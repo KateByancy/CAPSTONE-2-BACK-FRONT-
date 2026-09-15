@@ -1,4 +1,5 @@
 const request = async (path, options = {}) => {
+    require('./paymentConfig').assertConfigured();
     const key = process.env.PAYMONGO_SECRET_KEY;
     if (!key) throw Object.assign(new Error('PayMongo is not configured on the backend.'), { statusCode: 503 });
     const response = await fetch(`https://api.paymongo.com/v1${path}`, {
@@ -11,7 +12,7 @@ const request = async (path, options = {}) => {
 };
 const paidPayment = (session, payment) => {
     if (session.id !== payment.checkout_session_id || session.attributes?.livemode !== process.env.PAYMONGO_SECRET_KEY?.startsWith('sk_live_')) return null;
-    return session.attributes?.payments?.find(item => item.attributes?.status === 'paid'
+    return session.attributes?.payments?.find(item => typeof item.id === 'string' && item.attributes?.status === 'paid'
         && item.attributes.currency === 'PHP' && item.attributes.amount === Math.round(Number(payment.amount) * 100)
         && item.attributes.source?.type === 'gcash') || null;
 };

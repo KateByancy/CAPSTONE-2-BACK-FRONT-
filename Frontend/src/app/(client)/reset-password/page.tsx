@@ -53,6 +53,8 @@ function ResetPasswordForm() {
         throw new Error(result.errors?.[0]?.message || result.message || 'Unable to reset the password.');
       }
       setMessage(result.message || 'Password reset successful.');
+      localStorage.removeItem('clientToken');
+      localStorage.removeItem('clientAccount');
       setPassword('');
       setConfirmPassword('');
     } catch (caughtError) {

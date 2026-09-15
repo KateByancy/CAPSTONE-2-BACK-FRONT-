@@ -20,6 +20,27 @@ const {
 } = require("../controllers/authController");
 
 const adminSmsReset = require('../controllers/adminSmsResetController');
+const clientEmailCode = require('../controllers/clientEmailCodeController');
+router.post('/forgot-password/code',
+    body('email').isString().bail().trim().isEmail().isLength({ max: 254 }).withMessage('Enter your registered email address.'),
+    validateRequest, clientEmailCode.requestCode);
+router.post('/reset-password/code', [
+    body('challenge').isString().matches(/^[a-f0-9]{64}$/).withMessage('Request a new recovery code.'),
+    body('code').isString().matches(/^\d{6}$/).withMessage('Enter the 6-digit code from your email.'),
+    body('password').isString().bail().isLength({ min: 8, max: 72 }).withMessage('Use 8 to 72 characters.'),
+    body('password').custom(value => typeof value === 'string' && Buffer.byteLength(value, 'utf8') <= 72).withMessage('Password is too long.'),
+    validateRequest,
+], clientEmailCode.resetPassword);
+const adminEmailReset = require('../controllers/adminEmailResetController');
+router.post('/admin/forgot-password/email',
+    body('email').isString().bail().trim().isEmail().isLength({ max: 254 }).withMessage('Enter your admin email address.'),
+    validateRequest, adminEmailReset.requestLink);
+router.post('/admin/reset-password/email', [
+    body('token').isString().matches(/^[a-f0-9]{64}$/).withMessage('A valid reset link is required.'),
+    body('password').isString().bail().isLength({ min: 8, max: 72 }).withMessage('Use 8 to 72 characters.'),
+    body('password').custom(value => typeof value === 'string' && Buffer.byteLength(value, 'utf8') <= 72).withMessage('Password is too long.'),
+    validateRequest,
+], adminEmailReset.resetPassword);
 router.post('/admin/forgot-password',
     body('phone').isString().bail().trim().isLength({ max: 30 }).bail()
         .custom(value => Boolean(require('../services/adminSmsVerify').normalizePhone(value)))
