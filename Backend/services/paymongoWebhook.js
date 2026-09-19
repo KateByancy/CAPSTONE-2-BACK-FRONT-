@@ -20,7 +20,11 @@ function createHandler({ query, provider, configuration }) {
             return res.status(401).json({ message: 'Invalid payment notification signature.' });
         }
         let event;
-        try { event = JSON.parse(req.body.toString('utf8')).data?.attributes; }
+        try {
+            const payload = JSON.parse(req.body.toString('utf8'));
+            // Support the existing v1 envelope and the documented send.webhook envelope.
+            event = payload?.event_type === 'send.webhook' ? payload.data : payload?.data?.attributes;
+        }
         catch { return res.status(400).json({ message: 'Invalid notification JSON.' }); }
         if (!event || typeof event.type !== 'string' || typeof event.livemode !== 'boolean') return res.status(400).json({ message: 'Invalid payment event.' });
         if (event.livemode !== live) return res.status(400).json({ message: 'Payment mode mismatch.' });

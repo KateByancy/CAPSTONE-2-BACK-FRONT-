@@ -8,9 +8,10 @@ const getUnavailableSlots = (req, res) => {
   db.query(
     `SELECT DATE_FORMAT(visit_date, '%Y-%m-%d') AS visit_date,
             TIME_FORMAT(time_start, '%H:%i') AS time_start
-     FROM schedules
+     FROM schedules JOIN bookings ON bookings.id = schedules.booking_id
      WHERE visit_date IS NOT NULL AND time_start IS NOT NULL
-       AND LOWER(status) NOT IN ('cancelled', 'rejected')
+       AND LOWER(schedules.status) NOT IN ('cancelled', 'rejected')
+       AND LOWER(bookings.status) NOT IN ('cancelled', 'rejected')
      ORDER BY visit_date, time_start`,
     (err, rows) => {
       if (err) return res.status(500).json({ success:false, message:err.message });

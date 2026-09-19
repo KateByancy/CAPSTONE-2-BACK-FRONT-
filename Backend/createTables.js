@@ -118,6 +118,8 @@ status VARCHAR(50) DEFAULT 'Pending',
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
 
+require('./migrations/bookingEstimate'),
+
 `ALTER TABLE bookings MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Pending'`,
 
 `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS accepted_at DATETIME NULL`,

@@ -1,4 +1,5 @@
 "use client";
+import BookingEstimate, { type EstimateSnapshot } from '@/components/BookingEstimate';
 import React, { useState, useEffect } from 'react';
 import { Calendar, CheckCircle, X, ChevronLeft, ChevronRight, ChevronDown, Clock } from 'lucide-react';
 import { getApiUrl, getClientSession } from '@/lib/api';
@@ -8,6 +9,7 @@ export default function Book() {
   const [selectedDate, setSelectedDate] = useState('');
   const [bookingId, setBookingId] = useState<number | null>(null);
   const [project, setProject] = useState({ serviceType: '', description: '' });
+  const [savedEstimate, setSavedEstimate] = useState<EstimateSnapshot | string | null>(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -84,10 +86,11 @@ export default function Book() {
       const client = getClientSession();
       if (!client) return;
       const response = await fetch(`${getApiUrl()}/booking?user_id=${client.id}`);
-      const result: { success: boolean; bookings?: Array<{ id: number; service_type: string; project_description: string; status: string; accepted_at?: string | null }> } = await response.json();
+      const result: { success: boolean; bookings?: Array<{ id: number; estimate?: EstimateSnapshot | string | null; service_type: string; project_description: string; status: string; accepted_at?: string | null }> } = await response.json();
       if (!response.ok || !result.success) throw new Error('Unable to load your booking.');
       const booking = result.bookings?.find((item) => item.status.toLowerCase() !== 'rejected');
       if (!booking) return;
+      setSavedEstimate(booking.estimate ?? null);
       if (booking.accepted_at) {
         setBookingId(null);
         setProject({ serviceType: '', description: '' });
@@ -141,6 +144,8 @@ export default function Book() {
         </div>
       </div>
       <p className="text-xs text-slate-500">View and reschedule your bookings while awaiting admin confirmation.</p>
+
+      {savedEstimate && <section aria-label="Latest booking estimate"><BookingEstimate estimate={savedEstimate} /></section>}
 
       {/* Baseline Overview Card - Visible only while not yet fully confirmed by admin */}
       {scheduleStatus !== 'confirmed' && (

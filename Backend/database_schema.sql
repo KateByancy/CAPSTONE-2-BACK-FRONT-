@@ -51,6 +51,7 @@ CREATE TABLE `bookings` (
   `accepted_at` datetime DEFAULT NULL,
   `project_address` varchar(255) DEFAULT NULL,
   `project_landmark` varchar(255) DEFAULT NULL,
+  `estimate` JSON DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE

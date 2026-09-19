@@ -64,49 +64,63 @@ const getFleetLocations = async (_req, res) => {
 };
 
 // Create Booking
-const createBooking = (req, res) => {
-
+const createBooking = async (req, res) => {
     const user_id = Number(req.body.user_id);
-    const service_type = (req.body.service_type || "").trim();
-    const project_description = (req.body.project_description || "").trim();
-    const project_address = (req.body.project_address || "").trim();
-    const project_landmark = (req.body.project_landmark || "").trim();
-    const preferred_start_date = (req.body.preferred_start_date || "").trim();
-    const preferred_start_time = (req.body.preferred_start_time || "").trim();
-
-    if (!user_id || !service_type || !project_description || !project_address || !project_landmark || !/^\d{4}-\d{2}-\d{2}$/.test(preferred_start_date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(preferred_start_time)) {
-        return res.status(400).json({
-            success: false,
-            message: "Booking details, project address, landmark, and a valid preferred start date and time are required."
-        });
+    const read = (key) => typeof req.body[key] === 'string' ? req.body[key].trim() : '';
+    const selectedService = read('service_type');
+    const service_type = selectedService === 'Other' ? read('other_service') : selectedService;
+    const project_description = read('project_description');
+    const project_address = read('project_address');
+    const project_landmark = read('project_landmark');
+    const preferred_start_date = read('preferred_start_date');
+    const preferred_start_time = read('preferred_start_time');
+    if (!Number.isInteger(user_id) || user_id <= 0 || !service_type || service_type.length > 100 || !project_description || !project_address || !project_landmark || !/^\d{4}-\d{2}-\d{2}$/.test(preferred_start_date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(preferred_start_time)) {
+        return res.status(400).json({ success: false, message: 'Complete all booking details. For Other, specify your desired design/service (up to 100 characters).' });
     }
-
-    db.query(
-      `SELECT id FROM schedules
-       WHERE visit_date = ? AND TIME_FORMAT(time_start, '%H:%i') = ?
-         AND LOWER(status) NOT IN ('cancelled', 'rejected')
-       LIMIT 1`,
-      [preferred_start_date, preferred_start_time],
-      (availabilityError, conflicts) => {
-        if (availabilityError) return res.status(500).json({ success:false, message:availabilityError.message });
-        if (conflicts.length) return res.status(409).json({ success:false, code:'SCHEDULE_CONFLICT', message:'That project date and time is already booked. Please choose another slot.' });
-
-    db.beginTransaction((transactionError) => {
-        if (transactionError) return res.status(500).json({ success: false, message: transactionError.message });
-        db.query("INSERT INTO bookings(user_id, service_type, project_description, project_address, project_landmark) VALUES(?,?,?,?,?)", [user_id, service_type, project_description, project_address, project_landmark], (bookingError, result) => {
-            if (bookingError) return db.rollback(() => res.status(500).json({ success: false, message: bookingError.message }));
-            db.query("INSERT INTO schedules (booking_id, visit_date, date, time_start, status) VALUES (?, ?, ?, ?, 'Pending')", [result.insertId, preferred_start_date, preferred_start_date, preferred_start_time], (scheduleError) => {
-                if (scheduleError) return db.rollback(() => res.status(500).json({ success: false, message: scheduleError.message }));
-                db.commit((commitError) => {
-                    if (commitError) return db.rollback(() => res.status(500).json({ success: false, message: commitError.message }));
-                    cache.clear("schedule:unavailable-slots");
-                    res.status(201).json({ success: true, message: "Booking and preferred start schedule submitted successfully.", bookingId: result.insertId, booking: { id: result.insertId, user_id, service_type, project_description, project_address, project_landmark, preferred_start_date, preferred_start_time, status: "Pending" } });
-                });
-            });
-        });
-    });
-      }
-    );
+    // Isolate the transaction and database lock from other requests on the shared connection.
+    const mysql = require('mysql2/promise');
+    let connection;
+    let locked = false;
+    try {
+        const { host, port, user, password, database } = db.config;
+        connection = await mysql.createConnection({ host, port, user, password, database });
+        const [locks] = await connection.query("SELECT GET_LOCK('mcidbms:create-booking', 10) AS acquired");
+        locked = Number(locks[0].acquired) === 1;
+        if (!locked) return res.status(503).json({ success: false, message: 'Booking is busy. Please try again.' });
+        await connection.beginTransaction();
+        const [conflicts] = await connection.execute(
+            "SELECT b.user_id FROM schedules s JOIN bookings b ON b.id = s.booking_id WHERE s.visit_date = ? AND TIME_FORMAT(s.time_start, '%H:%i') = ? AND LOWER(s.status) NOT IN ('cancelled', 'rejected') AND LOWER(b.status) NOT IN ('cancelled', 'rejected')",
+            [preferred_start_date, preferred_start_time]);
+        if (conflicts.length) {
+            await connection.rollback();
+            const duplicate = conflicts.some(row => Number(row.user_id) === user_id);
+            return res.status(409).json({ success: false, code: duplicate ? 'DUPLICATE_BOOKING' : 'SCHEDULE_CONFLICT', message: duplicate ? 'You already have a booking for this date and time. Please choose another slot.' : 'That project date and time is already booked. Please choose another slot.' });
+        }
+        let estimate = null;
+        if (req.body.estimate != null) {
+            const [pricing] = await connection.query('SELECT option_type, name, value FROM pricing_options WHERE is_active = TRUE');
+            estimate = require('../utils/bookingEstimate').calculateEstimate(req.body.estimate, pricing);
+        }
+        // Older installations also require preferred_date, preferred_time and location.
+        const [columns] = await connection.query('SHOW COLUMNS FROM bookings');
+        const record = { user_id, service_type, project_description, project_address, project_landmark, estimate: estimate ? JSON.stringify(estimate) : null };
+        for (const [name, value] of Object.entries({ preferred_date: preferred_start_date, preferred_time: preferred_start_time, location: project_address })) {
+            if (columns.some(column => column.Field === name)) record[name] = value;
+        }
+        const [result] = await connection.query('INSERT INTO bookings SET ?', record);
+        await connection.execute("INSERT INTO schedules (booking_id, visit_date, date, time_start, status) VALUES (?, ?, ?, ?, 'Pending')", [result.insertId, preferred_start_date, preferred_start_date, preferred_start_time]);
+        await connection.commit();
+        cache.clear('schedule:unavailable-slots');
+        return res.status(201).json({ success: true, message: 'Booking and preferred start schedule submitted successfully.', bookingId: result.insertId, booking: { ...record, estimate, id: result.insertId, preferred_start_date, preferred_start_time, status: 'Pending' } });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        return res.status(error.status || 500).json({ success: false, message: error.message });
+    } finally {
+        if (connection) {
+            try { if (locked) await connection.query("SELECT RELEASE_LOCK('mcidbms:create-booking')"); }
+            finally { await connection.end(); }
+        }
+    }
 };
 
 // Get all bookings

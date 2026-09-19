@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const express = require('express');
-const { configuration } = require('../services/paymentConfig');
+const { configuration, checkRegisteredWebhook } = require('../services/paymentConfig');
 const { verifySignature, createHandler } = require('../services/paymongoWebhook');
 const { paidPayment } = require('../services/paymongoCheckout');
 
@@ -26,6 +26,8 @@ test('production refuses test keys, missing webhook secrets and insecure return 
     liveConfig(); process.env.PAYMENTS_MODE = 'test';
     assert.equal(configuration().configured, false);
     liveConfig(); delete process.env.PAYMONGO_WEBHOOK_SECRET;
+    assert.equal(configuration().configured, false);
+    liveConfig(); process.env.PAYMONGO_WEBHOOK_SECRET = '   ';
     assert.equal(configuration().configured, false);
     liveConfig(); process.env.FRONTEND_URL = 'http://localhost:3000';
     assert.equal(configuration().configured, false);
@@ -99,8 +101,32 @@ test('webhook verifies provider funds, retries failures and applies duplicate no
         assert.equal(await send(), 200);
         assert.equal(writes, 1);
         assert.equal(payment.status, 'Paid');
+        payment.status = 'Awaiting payment';
+        const currentEnvelope = { event_type: 'send.webhook', data: { ...event.data.attributes, resource: 'checkout_session' } };
+        assert.equal(await send(currentEnvelope), 200);
+        assert.equal(await send(currentEnvelope), 200);
+        assert.equal(writes, 2);
+        currentEnvelope.data.livemode = false;
+        assert.equal(await send(currentEnvelope), 400);
+        assert.equal(await send(null), 400);
     } finally {
         server.closeAllConnections();
         await new Promise(resolve => server.close(resolve));
     }
+});
+
+test('live webhook readiness verifies registration without exposing its secret', () => {
+    liveConfig();
+    const url = 'https://api.example.test/api/payment/webhook';
+    const secret = 'private-fixture-signing-secret';
+    const hook = { attributes: { url, livemode: true, status: 'enabled', events: ['checkout_session.payment.paid'], secret_key: secret } };
+    const check = (hooks = [hook], endpoint = url, signingSecret = secret) => checkRegisteredWebhook(hooks, configuration(), endpoint, signingSecret);
+    assert.equal(check(), 1);
+    for (const patch of [{ livemode: false }, { status: 'disabled' }, { events: ['payment.paid'] }, { url: 'https://wrong.example.test/api/payment/webhook' }, { secret_key: 'wrong' }]) {
+        assert.throws(() => check([{ attributes: { ...hook.attributes, ...patch } }]), error => !error.message.includes(secret));
+    }
+    for (const endpoint of ['', 'http://api.example.test/api/payment/webhook', 'https://localhost/api/payment/webhook', 'https://api.example.test/wrong', url + '?secret=unsafe']) assert.throws(() => check([hook], endpoint));
+    assert.throws(() => check([]));
+    assert.throws(() => check(null));
+    assert.throws(() => check([hook], url, ''));
 });

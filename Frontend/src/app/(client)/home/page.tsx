@@ -21,6 +21,7 @@ const SERVICE_TYPE_MULTIPLIERS: Record<string, number> = {
 
 export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const [area, setArea] = useState<number>(0);
+  const [measurementUnit, setMeasurementUnit] = useState('sq ft');
   const [estimateServiceType, setEstimateServiceType] = useState<string>('');
   const [style, setStyle] = useState<string>('');
   const [complexity, setComplexity] = useState<string>('');
@@ -45,25 +46,11 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const [currentYear, setCurrentYear] = useState<number>(() => new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState<number>(() => new Date().getDate());
 
-  useEffect(() => {
-    const loadSchedule = async () => {
-      const client=getClientSession(); if(!client)return;
-      const response=await fetch(`${getApiUrl()}/schedule?user_id=${client.id}`);
-      const rows=await response.json();
-      if(!response.ok) return;
-      const schedule=Array.isArray(rows)&&rows.length?rows[0]:null;
-      setClientSchedule(schedule);
-      if(schedule?.visit_date && !isRescheduling){const [year,month,day]=String(schedule.visit_date).slice(0,10).split('-').map(Number);setCurrentMonth(month-1);setCurrentYear(year);setSelectedDate(day);}
-    };
-    void loadSchedule();
-    const timer=window.setInterval(()=>void loadSchedule(),10000);
-    return()=>window.clearInterval(timer);
-  }, [isRescheduling]);
-
   // --- BOOKING MODAL STATE ENGINE ---
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [bookingStep, setBookingStep] = useState<'form' | 'success'>('form');
   const [serviceType, setServiceType] = useState<string>('');
+  const [otherService, setOtherService] = useState('');
   const [isServiceTypeOpen, setIsServiceTypeOpen] = useState<boolean>(false);
   const [projectAddress, setProjectAddress] = useState<string>('');
   const [projectLandmark, setProjectLandmark] = useState<string>('');
@@ -73,12 +60,30 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const [unavailableSlots, setUnavailableSlots] = useState<Array<{visit_date:string;time_start:string}>>([]);
   const [bookingError, setBookingError] = useState('');
   const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
+  const [clientBookedSlots, setClientBookedSlots] = useState<Array<{ visit_date: string; time_start?: string }>>([]);
+  useEffect(() => {
+    const loadSchedule = async () => {
+      const client=getClientSession(); if(!client)return;
+      const response=await fetch(`${getApiUrl()}/schedule?user_id=${client.id}`);
+      const rows=await response.json();
+      if(!response.ok) return;
+      const schedule=Array.isArray(rows)&&rows.length?rows[0]:null;
+      setClientSchedule(schedule);
+      setClientBookedSlots(Array.isArray(rows) ? rows.filter(row => !['cancelled', 'rejected'].includes(String(row.booking_status).toLowerCase()) && !['cancelled', 'rejected'].includes(String(row.status).toLowerCase())) : []);
+      if(schedule?.visit_date && !isRescheduling){const [year,month,day]=String(schedule.visit_date).slice(0,10).split('-').map(Number);setCurrentMonth(month-1);setCurrentYear(year);setSelectedDate(day);}
+    };
+    void loadSchedule();
+    const timer=window.setInterval(()=>void loadSchedule(),10000);
+    return()=>window.clearInterval(timer);
+  }, [isRescheduling]);
+
   useEffect(() => {
     const loadUnavailableSlots=async()=>{const response=await fetch(`${getApiUrl()}/schedule/unavailable`);const data=await response.json();if(response.ok)setUnavailableSlots(data.slots??[]);};
     void loadUnavailableSlots();
     const timer=window.setInterval(()=>void loadUnavailableSlots(),10000);
     return()=>window.clearInterval(timer);
   },[]);
+  const hasDuplicateBooking = Boolean(preferredStartDate && preferredStartTime && clientBookedSlots.some(slot => String(slot.visit_date).slice(0, 10) === preferredStartDate && slot.time_start?.slice(0, 5) === preferredStartTime));
   const hasScheduleConflict=Boolean(preferredStartDate&&preferredStartTime&&unavailableSlots.some(slot=>slot.visit_date===preferredStartDate&&slot.time_start.slice(0,5)===preferredStartTime));
 
   useEffect(() => {
@@ -95,8 +100,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
         const complexities: PricingOption[] = result.pricing?.complexities || [];
         const factors: PricingOption[] = result.pricing?.estimateFactors || [];
         const services: BookingService[] = result.services || [];
-        setBookingServices(services);
-        setServiceType(current => services.some(service => service.name === current) ? current : '');
+        setBookingServices([...services.filter(service => service.name !== 'Other'), { id: -1, name: 'Other' }]);
+        setServiceType(current => current === 'Other' || services.some(service => service.name === current) ? current : '');
         setStyleOptions(styles);
         setComplexityOptions(complexities);
         setEstimateFactors(factors);
@@ -135,17 +140,17 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
     const complexityMultiplier = Number(complexityOptions.find((option) => option.name === complexity)?.value || 0);
     const serviceMultiplier = SERVICE_TYPE_MULTIPLIERS[estimateServiceType] || 0;
 
-    const calculatedBase = area * baseRate * complexityMultiplier * serviceMultiplier;
+    const calculatedBase = area * (measurementUnit === 'sq ft' ? 0.09290304 : 1) * baseRate * complexityMultiplier * serviceMultiplier;
     const minFactor = Number(estimateFactors.find((option) => option.name === 'Minimum factor')?.value || 0);
     const maxFactor = Number(estimateFactors.find((option) => option.name === 'Maximum factor')?.value || 0);
     const minEstimate = Math.round(calculatedBase * minFactor);
     const maxEstimate = Math.round(calculatedBase * maxFactor);
 
-    if (isNaN(area) || area <= 0) {
+    if (!Number.isFinite(area) || area <= 0) {
       return { min: 0, max: 0 };
     }
     return { min: minEstimate, max: maxEstimate };
-  }, [area, estimateServiceType, style, complexity, styleOptions, complexityOptions, estimateFactors]);
+  }, [area, measurementUnit, estimateServiceType, style, complexity, styleOptions, complexityOptions, estimateFactors]);
 
   const handleOpenBooking = () => {
     setBookingStep('form');
@@ -164,6 +169,10 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       setBookingError('Please select a service type.');
       return;
     }
+    if (serviceType === 'Other' && !otherService.trim()) {
+      setBookingError('Specify your desired design/service.');
+      return;
+    }
     if (!projectAddress.trim()) {
       setBookingError('Please enter the complete project address so the admin can locate the job site.');
       return;
@@ -176,6 +185,10 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       setBookingError('Please select your preferred project start date and time.');
       return;
     }
+    if (hasDuplicateBooking) {
+      setBookingError('You already have a booking for this date and time. Please choose another slot.');
+      return;
+    }
     if (hasScheduleConflict) {
       setBookingError('That date and time is already booked. Please choose another slot.');
       return;
@@ -186,7 +199,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       const response = await fetch(`${getApiUrl()}/booking`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: client.id, service_type: serviceType, project_description: projectDescription, project_address: projectAddress.trim(), project_landmark: projectLandmark.trim(), preferred_start_date: preferredStartDate, preferred_start_time: preferredStartTime }),
+        body: JSON.stringify({ user_id: client.id, service_type: serviceType, other_service: otherService.trim(), estimate: estimate.min > 0 ? { area, unit: measurementUnit, service: estimateServiceType, style, complexity } : undefined, project_description: projectDescription, project_address: projectAddress.trim(), project_landmark: projectLandmark.trim(), preferred_start_date: preferredStartDate, preferred_start_time: preferredStartTime }),
       });
       const result: { success: boolean; message?: string; bookingId?: number } = await response.json();
       if (!response.ok || !result.success || !result.bookingId) throw new Error(result.message || 'Unable to create booking.');
@@ -461,10 +474,17 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 pt-2">
               <div className="relative group/input">
-                <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Total Floor Area (Sqm)</label>
+                <label className="block text-xs text-slate-300 mb-2">Measurement unit
+                  <select aria-label="Measurement unit" value={measurementUnit} onChange={e => setMeasurementUnit(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 mt-1">
+                    <option value="sq ft">Square Feet (sq ft)</option>
+                    <option value="m²">Square Meters (m²)</option>
+                  </select>
+                </label>
+                <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Total Floor Area ({measurementUnit})</label>
                 <div className="relative flex items-center">
                   <input 
                     type="number" 
+                    min="0" step="any" aria-label="Total floor area"
                     value={area || ''} 
                     onChange={(e) => setArea(parseFloat(e.target.value))}
                     placeholder="0"
@@ -645,6 +665,10 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                       </div>
                     </div>
 
+                    {serviceType === 'Other' && <label className="block text-xs text-slate-300">Specify your desired design/service
+                      <input required maxLength={100} value={otherService} onChange={e => setOtherService(e.target.value)} className="mt-2 w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3" />
+                    </label>}
+                    {estimate.min > 0 && <p className="text-sm text-blue-300">Estimate included: PHP {estimate.min.toLocaleString()} - {estimate.max.toLocaleString()} ({area} {measurementUnit}, {estimateServiceType}, {style}, {complexity}). Preliminary estimate.</p>}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
                         Project Address
@@ -700,7 +724,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         required
                         className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
                       />
-                      {hasScheduleConflict && <p className="text-[10px] text-red-300">This date and time is unavailable. Choose another slot.</p>}
+                      {(hasDuplicateBooking || hasScheduleConflict) && <p className="text-[10px] text-red-300">{hasDuplicateBooking ? 'You already have a booking for this date and time. Please choose another slot.' : 'This date and time is unavailable. Choose another slot.'}</p>}
                     </div>
 
                     <div className="space-y-1.5">
@@ -716,7 +740,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
 
                     <button 
                       type="submit"
-                      disabled={isBookingSubmitting || hasScheduleConflict || servicesLoading || bookingServices.length === 0}
+                      disabled={isBookingSubmitting || hasDuplicateBooking || hasScheduleConflict || servicesLoading || bookingServices.length === 0}
                       className="w-full py-3.5 bg-[#141b2f] hover:bg-[#1d2642] text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md border border-slate-700 cursor-pointer"
                     >
                       {isBookingSubmitting ? 'Submitting...' : 'Submit Booking Form'}
@@ -741,7 +765,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                 <div className="space-y-2">
                   <h4 className="text-lg font-serif font-bold text-white">Booking Request Received</h4>
                   <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    We have successfully logged your request for <span className="text-white font-bold">{serviceType}</span>. Our team will contact you shortly.
+                    We have successfully logged your request for <span className="text-white font-bold">{serviceType === 'Other' ? otherService : serviceType}</span>. Our team will contact you shortly.
                   </p>
                 </div>
               </div>

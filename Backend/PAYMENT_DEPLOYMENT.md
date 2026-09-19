@@ -4,11 +4,13 @@
 
 Admin creates an agreed booking payment request; client pays through PayMongo hosted GCash checkout. The backend verifies the saved checkout ID, amount, PHP currency, GCash source and live/test mode before recording Paid. Redirects never mark a payment paid. Signed webhooks update the database even when neither payment page is open; page refresh remains a fallback. Duplicate notifications do not apply a paid update twice.
 
-The code is prepared for live configuration. It is not an activated merchant account or an already deployed payment service.
+The code is prepared for live configuration. It is not an activated merchant account or an already deployed payment service. This project currently uses the v1 Checkout Session API; no API-version migration is required by this guide. The webhook accepts both the existing v1 event envelope and the `send.webhook` envelope documented by PayMongo, then independently retrieves and verifies the checkout before recording Paid.
+
+Start by identifying your frontend host/domain, backend host/domain, production database host, and merchant activation status. Keep your local `.env` in test mode. Add live secrets only to the deployed backend's secret settings; do not send them in chat. Existing authentication settings remain unchanged.
 
 ## 1. Activate the merchant account
 
-Use the business owner's PayMongo account. Complete the identity/business requirements requested in the dashboard. Request GCash activation under Settings > Payment Methods and wait for approval. Confirm the settlement destination in the merchant dashboard. Client collections go through this merchant account; creating an admin user in this app does not create a separate PayMongo account.
+Use the business owner's PayMongo account. Complete the identity/business requirements requested in the dashboard. Request GCash activation under Settings > Payment Methods and wait for approval. PayMongo's current checklist says GCash requires a registered business type; an Individual account must complete the business-type upgrade first. Confirm wallet/payout setup and the destination in the merchant dashboard. Client collections go through this merchant account; creating an admin user in this app does not create a separate PayMongo account.
 
 Official guide: https://docs.paymongo.com/docs/get-started-go-live-checklist
 
@@ -56,6 +58,7 @@ NODE_ENV=production
 PAYMENTS_MODE=live
 PAYMONGO_SECRET_KEY=sk_live_REPLACE_WITH_YOUR_PRIVATE_KEY
 PAYMONGO_WEBHOOK_SECRET=REPLACE_WITH_THIS_LIVE_ENDPOINT_SECRET
+PAYMONGO_WEBHOOK_URL=https://api.example.com/api/payment/webhook
 FRONTEND_URL=https://app.example.com
 DB_HOST=YOUR_DATABASE_HOST
 DB_PORT=3306
@@ -69,10 +72,13 @@ Preserve the other required app settings from .env.example, including admin conf
 
 ```powershell
 npm run payments:check
+npm run payments:check -- --live --webhook
 npm start
 ```
 
-The check validates configuration only. `npm run payments:check -- --provider` additionally makes a read-only capability request to PayMongo. Neither command creates payments. Production startup rejects test keys, a missing webhook secret, and a non-HTTPS frontend origin. Placeholders do not establish valid credentials.
+The basic check validates configuration only. `--live` additionally refuses test mode; `--webhook` makes a read-only request to PayMongo and verifies the endpoint URL, live/test mode, enabled status, `checkout_session.payment.paid` subscription and matching signing secret. It never prints that secret. `PAYMONGO_WEBHOOK_URL` is used by this check; it does not register a webhook or change your server routes. Neither command creates payments. A successful check does not prove GCash activation or public delivery. Production startup rejects test keys, a missing webhook secret, and a non-HTTPS frontend origin. Placeholders do not establish valid credentials.
+
+Open `https://api.example.com/api/health` and confirm the response reports `healthy` and database `connected`. An unsigned POST to `/api/payment/webhook` should receive 401 when payment configuration is valid; that proves the route rejects unsigned requests, not that PayMongo can deliver a valid one. Opening the webhook URL in a browser uses GET and is not a valid webhook test.
 
 If a hosting provider needs the service online before webhook registration, register the URL through the provider API first or complete the setup in staging. Do not temporarily bypass production checks to collect payments.
 
@@ -94,7 +100,7 @@ npm run build
 npm start
 ```
 
-For managed hosting, use those equivalent build/start settings and set the project root to Frontend. Configure the backend as its own service rooted at Backend. The root `npm start` launches only the frontend.
+For managed hosting, use those equivalent build/start settings and set the project root to Frontend. Configure the backend as its own service rooted at Backend. The root `npm start` launches only the frontend. Choose a backend that stays available for webhook delivery and a persistent MariaDB-compatible database. Do not deploy this Next.js app as a static-only export: its default API proxy needs a server. Set frontend environment variables before building and rebuild after changing the backend URL.
 
 ## 7. Verify readiness before customer use
 
@@ -117,6 +123,12 @@ Then, when the merchant approves an actual charge, make one controlled real tran
 7. Confirm the transaction and subsequent settlement in PayMongo. Refunds, if needed, are handled through the merchant's provider workflow; this app does not implement refunds.
 
 This step uses real money. Automated tests do not establish merchant activation, actual GCash delivery, webhook reachability or settlement.
+
+PayMongo's dashboard test-event tool always sends `livemode=false`. This live handler deliberately rejects that event in live mode. Test simulated events against a separately configured test endpoint; validate the live endpoint with a controlled live transaction and its real delivery. Do not weaken the mode or signature checks to make the test-event button pass.
+
+Official event-mode reference: https://docs.paymongo.com/docs/developer-tools-webhooks-key-concepts
+
+Record the following before enabling customer payments: merchant/GCash approval, deployed frontend/backend URLs, passing health check, passing `--live --webhook` check, live transaction ID, webhook HTTP 200, and matching Paid status on both dashboards. Keep API keys and webhook signing secrets out of this record.
 
 ## Troubleshooting
 
