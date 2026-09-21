@@ -1,7 +1,7 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Image from 'next/image';
-import { Home, LayoutGrid, Calendar, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, LayoutGrid, Calendar, MessageSquare, ChevronLeft, ChevronRight, Eye, X } from 'lucide-react';
 
 interface LandingProps {
   onNavigateToLogin: () => void;
@@ -14,8 +14,11 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
     { src: '/1.jpg', alt: 'MARC interior showcase project 1' },
     { src: '/3.jpg', alt: 'MARC interior showcase project 2' },
     { src: '/4.jpg', alt: 'MARC interior showcase project 3' },
+    { src: '/5.jpg', alt: 'Aesthetica Hub Reception with a custom counter and woven seating' },
+    { src: '/6.jpg', alt: 'China Bank Savings APDS Loan Center reception counter' },
   ];
   const [currentSlide, setCurrentSlide] = useState(0);
+  const previewRef = useRef<HTMLDialogElement>(null);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % galleryImages.length);
@@ -27,6 +30,33 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-[#005c9e] via-[#004b84] to-[#0a192f] text-white font-sans flex justify-center">
+      <dialog
+        ref={previewRef}
+        aria-label="Curated Works full image preview"
+        className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-5xl max-h-[90dvh] rounded-2xl border border-white/20 bg-slate-950 p-4 text-white shadow-2xl backdrop:bg-slate-950/85"
+      >
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <p className="text-sm font-semibold">Curated Works — {currentSlide + 1} / {galleryImages.length}</p>
+          <form method="dialog">
+            <button
+              type="submit"
+              aria-label="Close image preview"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </form>
+        </div>
+        <div className="relative h-[65dvh] w-full">
+          <Image
+            src={galleryImages[currentSlide].src}
+            alt={galleryImages[currentSlide].alt}
+            fill
+            sizes="(min-width: 1024px) 992px, calc(100vw - 64px)"
+            className="object-contain"
+          />
+        </div>
+      </dialog>
       
       {/* MASTER RESPONSIVE CONTAINER */}
       <div className="w-full max-w-md md:max-w-4xl bg-gradient-to-b from-[#0070c0] to-[#051329] min-h-screen flex flex-col justify-between shadow-2xl relative overflow-x-hidden">
@@ -34,9 +64,10 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
         <div>
           {/* 1. TOP HERO AREA WITH BACKGROUND IMAGE CONTAINER */}
           <div 
-            className="w-full h-56 bg-cover bg-center relative flex flex-col items-center justify-end p-4"
+            className="relative flex h-[280px] w-full flex-col items-center justify-end bg-[#0d2541] bg-top bg-no-repeat p-5 md:h-[360px] md:pb-6"
             style={{ 
-              backgroundImage: 'linear-gradient(135deg, #0b4f86 0%, #0070c0 52%, #051329 100%)'
+              backgroundImage: 'linear-gradient(to top, rgba(5, 19, 41, 0.85), transparent 45%), url("/marc-interior-design.png")',
+              backgroundSize: '100% 100%, auto calc(100% - 80px)',
             }}
           >
             <div className="mb-4 space-y-1 text-center">
@@ -82,7 +113,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
               <h3 className="text-lg font-serif font-bold text-white tracking-wide">Visual</h3>
             </div>
 
-            <div className="relative w-full h-44 bg-slate-800 rounded-2xl overflow-hidden shadow-xl border border-white/10 group">
+            <div className="relative w-full h-60 bg-slate-800 rounded-2xl overflow-hidden shadow-xl border border-white/10 group">
               <Image
                 key={galleryImages[currentSlide].src}
                 src={galleryImages[currentSlide].src}
@@ -93,6 +124,16 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
                 className="object-cover transition-opacity duration-300"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
+              <button
+                type="button"
+                onClick={() => previewRef.current?.showModal()}
+                aria-label="View entire Curated Works image"
+                aria-haspopup="dialog"
+                title="View full image"
+                className="absolute right-3 top-3 z-20 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-slate-950/65 text-white shadow-md backdrop-blur-sm transition hover:bg-slate-950/90 focus-visible:outline-2 focus-visible:outline-white"
+              >
+                <Eye className="h-3.5 w-3.5" />
+              </button>
 
               <div className="absolute bottom-3 left-3 z-20 rounded-md bg-slate-950/55 px-2 py-1 text-[9px] font-bold tracking-widest text-white backdrop-blur-sm">
                 {currentSlide + 1} / {galleryImages.length}
@@ -185,7 +226,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
               </svg>
             </a>
             
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center justify-center" aria-label="Facebook">
+            <a href="https://www.facebook.com/cram.lessor" target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center justify-center" aria-label="Facebook">
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
               </svg>

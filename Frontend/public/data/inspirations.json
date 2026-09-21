@@ -19,5 +19,19 @@
     "category": "Product Display",
     "image": "/4.jpg",
     "description": "A bright, modern display wall featuring floor-standing, tower, and wall-mounted Carrier air-conditioning units with neatly integrated controls and accent lighting."
+  },
+  {
+    "id": 4,
+    "title": "Aesthetica Hub Reception",
+    "category": "Reception",
+    "image": "/5.jpg",
+    "description": "A welcoming commercial reception with floral wallpaper, a custom dark counter, clear protective screens, and woven accent chairs."
+  },
+  {
+    "id": 5,
+    "title": "China Bank Savings APDS Loan Center",
+    "category": "Reception",
+    "image": "/6.jpg",
+    "description": "A bank reception and service counter with clear protective partitions, integrated workstations, and an illuminated red China Bank Savings feature wall."
   }
 ]

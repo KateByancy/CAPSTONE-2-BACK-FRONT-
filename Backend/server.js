@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 
 const express = require("express");
 const cors = require("cors");
@@ -97,7 +97,21 @@ const PORT = Number(process.env.PORT || 5000);
 
 const startServer = async () => {
     if (process.env.NODE_ENV === 'production' || process.env.PAYMENTS_MODE === 'live') require('./services/paymentConfig').assertConfigured();
-    await connectDatabase();
+    try {
+        await connectDatabase();
+    } catch (error) {
+        const hints = {
+            ETIMEDOUT: "MySQL did not respond before the connection timeout. Check that MySQL is running and DB_HOST/DB_PORT are correct; also check firewall or VPN connectivity.",
+            ECONNREFUSED: "MySQL refused the connection. Start MySQL and check DB_HOST/DB_PORT in Backend/.env.",
+            ENOTFOUND: "The MySQL hostname could not be resolved. Check DB_HOST in Backend/.env.",
+            ER_ACCESS_DENIED_ERROR: "MySQL rejected the credentials. Check DB_USER/DB_PASSWORD in Backend/.env.",
+            ER_BAD_DB_ERROR: "The configured MySQL database does not exist. Check DB_NAME and initialize the intended database."
+        };
+        const failure = new Error(`Database connection failed (${error.code || "unknown"}). ${hints[error.code] || "Check MySQL availability and the database settings in Backend/.env."}`, { cause: error });
+        failure.code = error.code;
+        db.destroy();
+        throw failure;
+    }
 
     return new Promise((resolve, reject) => {
         const server = app.listen(PORT);

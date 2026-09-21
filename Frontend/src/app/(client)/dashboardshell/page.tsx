@@ -100,11 +100,11 @@ export default function DashboardShell({
       <aside 
         onMouseEnter={() => setIsCollapsed(false)}
         onMouseLeave={() => setIsCollapsed(true)}
-        className={`hidden md:flex bg-[#0070c0] text-white flex-col justify-between p-4 shadow-xl shrink-0 z-40 transition-all duration-300 ease-in-out ${
+        className={`hidden md:flex sticky top-0 h-dvh self-start overflow-hidden bg-[#0070c0] text-white flex-col justify-between p-4 shadow-xl shrink-0 z-40 transition-all duration-300 ease-in-out ${
           isCollapsed ? 'w-20' : 'w-64'
         }`}
       >
-        <div className="space-y-8">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden space-y-8 pb-4">
           <div className={`flex items-center space-x-3 py-4 border-b border-blue-600/30 transition-all duration-200 ${isCollapsed ? 'justify-center px-0' : 'px-2'}`}>
             <div className="w-9 h-9 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center font-serif font-black border border-white/20 shrink-0">
               M
@@ -144,7 +144,7 @@ export default function DashboardShell({
           </nav>
         </div>
 
-        <div className={`py-3 border-t border-blue-600/30 transition-all duration-200 flex flex-col items-center ${isCollapsed ? 'px-0' : 'px-2 items-start'}`}>
+        <div className={`shrink-0 py-3 border-t border-blue-600/30 transition-all duration-200 flex flex-col items-center ${isCollapsed ? 'px-0' : 'px-2 items-start'}`}>
           {!isCollapsed && (
             <button 
               onClick={() => setActiveTab('profile')}
@@ -157,6 +157,7 @@ export default function DashboardShell({
 
           <button
             onClick={handleLogoutClick}
+            aria-label="Log Out"
             title={isCollapsed ? 'Log Out' : undefined}
             className={`w-full flex items-center rounded-xl text-xs font-bold tracking-wide transition-all duration-200 cursor-pointer border-none text-blue-100/80 hover:bg-red-500/20 hover:text-white bg-transparent mb-2 ${
               isCollapsed ? 'justify-center p-3.5' : 'space-x-3 px-3 py-2.5'
