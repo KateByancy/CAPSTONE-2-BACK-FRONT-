@@ -16,6 +16,9 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
     { src: '/4.jpg', alt: 'MARC interior showcase project 3' },
     { src: '/5.jpg', alt: 'Aesthetica Hub Reception with a custom counter and woven seating' },
     { src: '/6.jpg', alt: 'China Bank Savings APDS Loan Center reception counter' },
+    { src: '/7.jpg', alt: 'Office workspace with timber wall panels, visitor seating, and a glass partition' },
+    { src: '/8.jpg', alt: 'Mousehole lounge and bar with orange seating, chandeliers, and colorful lighting' },
+    { src: '/9.jpg', alt: 'Monochrome cafe with green-accented chairs and geometric pendant lights' },
   ];
   const [currentSlide, setCurrentSlide] = useState(0);
   const previewRef = useRef<HTMLDialogElement>(null);

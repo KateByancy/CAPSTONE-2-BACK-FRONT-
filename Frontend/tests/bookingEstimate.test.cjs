@@ -1,4 +1,5 @@
-﻿const { test } = require('node:test');
+﻿/* eslint-disable @typescript-eslint/no-require-imports -- Node CommonJS tests load mocked modules with require(). */
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');

@@ -33,5 +33,26 @@
     "category": "Reception",
     "image": "/6.jpg",
     "description": "A bank reception and service counter with clear protective partitions, integrated workstations, and an illuminated red China Bank Savings feature wall."
+  },
+  {
+    "id": 6,
+    "title": "Warm Timber Office Workspace",
+    "category": "Office",
+    "image": "/7.jpg",
+    "description": "A bright commercial office with warm timber wall panels, a dual-monitor workstation, upholstered visitor chairs, and a glass partition. Indoor greenery softens the clean lines and creates a welcoming setting for client consultations."
+  },
+  {
+    "id": 7,
+    "title": "Mousehole Lounge and Bar",
+    "category": "Bar and Lounge",
+    "image": "/8.jpg",
+    "description": "A vibrant lounge and bar with orange banquette seating, dramatic chandeliers, hanging greenery, and colorful accent lighting. An exposed ceiling and decorative wall art give the space a lively, eclectic atmosphere."
+  },
+  {
+    "id": 8,
+    "title": "Modern Monochrome Cafe",
+    "category": "Cafe and Dining",
+    "image": "/9.jpg",
+    "description": "A compact cafe with black-and-white finishes, green-accented chairs, and neatly arranged dining tables. Geometric pendant lights, white brick-textured walls, botanical artwork, and small plants create a fresh, inviting dining space."
   }
 ]
