@@ -37,9 +37,12 @@ project Settings > Build and Deployment, set **Root Directory** to `Frontend`
 Directory at its framework default. `Frontend/vercel.json` configures
 `npm ci --include=dev` for installation and `npm run build` for the build.
 
-The repository-root package only forwards commands to Frontend; installing at
-the repository root does not install Frontend's dependencies. This can cause
-`next: command not found` (exit code 127). Commit and push the frontend config,
+The repository-root package forwards commands to Frontend. Its `postinstall`
+script now installs Frontend's locked dependencies as well, so a root-level
+`npm install` prepares the frontend build. Previously, installing at the root
+left Next.js missing and could cause `next: command not found` (exit code 127).
+Vercel must still use `Frontend` as its Root Directory for framework detection
+and output handling. Commit and push the configuration changes,
 correct the Root Directory, and deploy the latest commit without the existing
 build cache. Do not use `npx next` or a global Next.js install to bypass this.
 

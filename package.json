@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "postinstall": "npm ci --prefix Frontend --include=dev",
     "dev": "npm --prefix Frontend run dev",
     "dev:frontend": "npm --prefix Frontend run dev",
     "dev:backend": "npm --prefix Backend run dev",
