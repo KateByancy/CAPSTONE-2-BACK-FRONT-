@@ -24,7 +24,8 @@
     "db:migrate:client-email": "node migrateClientEmailCode.js",
     "test:client-email": "node tests/clientEmailCode.test.js",
     "test:admin-sms": "node tests/adminSmsReset.test.js",
-    "test:password-recovery": "node tests/passwordRecoveryRoutes.test.js"
+    "test:password-recovery": "node tests/passwordRecoveryRoutes.test.js",
+    "build": "tsc"
   },
   "keywords": [
     "express",
