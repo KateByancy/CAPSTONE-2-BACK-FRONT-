@@ -25,7 +25,7 @@
     "test:client-email": "node tests/clientEmailCode.test.js",
     "test:admin-sms": "node tests/adminSmsReset.test.js",
     "test:password-recovery": "node tests/passwordRecoveryRoutes.test.js",
-    "build": "tsc"
+    "build": "npm run check"
   },
   "keywords": [
     "express",
