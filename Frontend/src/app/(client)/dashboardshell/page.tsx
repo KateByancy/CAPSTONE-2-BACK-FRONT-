@@ -82,7 +82,7 @@ export default function DashboardShell({
   };
 
   return (
-    <div className="w-full min-h-screen bg-slate-100 flex flex-col md:flex-row font-sans text-slate-800">
+    <div className={`w-full ${activeTab === 'chat' ? 'h-dvh overflow-hidden' : 'min-h-screen'} bg-slate-100 flex flex-col md:flex-row font-sans text-slate-800`}>
       {rejectionAlert && (
         <div role="alert" className="fixed left-1/2 top-4 z-[100] flex w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-xl">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
@@ -176,7 +176,7 @@ export default function DashboardShell({
       </aside>
 
       {/* 2. MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto bg-slate-50 relative p-4 md:p-8 pb-24 md:pb-8 w-full max-w-7xl mx-auto">
+      <main className={`flex-1 min-w-0 ${activeTab === 'chat' ? 'h-full min-h-0 overflow-hidden' : 'overflow-y-auto'} bg-slate-50 relative p-4 md:p-8 pb-24 md:pb-8 w-full max-w-7xl mx-auto`}>
         {React.Children.map(children, child => {
           if (React.isValidElement(child)) {
             return React.cloneElement(child, { userName, setActiveTab } as { userName: string; setActiveTab: (tab: string) => void });

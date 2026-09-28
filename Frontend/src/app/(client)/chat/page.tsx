@@ -14,7 +14,7 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [adminOnline, setAdminOnline] = useState<boolean | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesFeedRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -69,7 +69,8 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    const feed = messagesFeedRef.current;
+    feed?.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -93,9 +94,9 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-[670px] bg-slate-50 animate-fadeIn">
+    <div className="flex flex-col h-dvh max-h-full min-h-0 overflow-hidden bg-slate-50 animate-fadeIn">
       {/* Mini Title Section */}
-      <div className="px-4 py-3 bg-white border-b border-slate-200 flex items-center justify-between text-xs font-bold tracking-wider text-slate-500">
+      <div className="shrink-0 px-4 py-3 bg-white border-b border-slate-200 flex items-center justify-between text-xs font-bold tracking-wider text-slate-500">
         <div className="flex items-center space-x-2"><MessageSquare className="w-4 h-4 text-blue-500" /><span>DESIGN CONCIERGE</span></div>
         {adminOnline !== null && (
           <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider">
@@ -104,10 +105,10 @@ export default function Chat() {
           </div>
         )}
       </div>
-      {error && <p className="mx-4 mt-3 rounded-lg bg-red-50 p-2 text-xs text-red-700">{error}</p>}
+      {error && <p className="shrink-0 mx-4 mt-3 rounded-lg bg-red-50 p-2 text-xs text-red-700">{error}</p>}
 
       {/* Message Feed Stream */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div ref={messagesFeedRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -139,11 +140,10 @@ export default function Chat() {
           </div>
         ))}
         <p role="status" className="text-xs text-slate-500">{isSending ? "Waiting for a reply..." : ""}</p>
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Interactive Chat Input Area */}
-      <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-200 flex items-center space-x-2">
+      <form onSubmit={handleSend} className="shrink-0 p-3 bg-white border-t border-slate-200 flex items-center space-x-2">
         <input
           type="text"
           maxLength={2000}
@@ -151,7 +151,7 @@ export default function Chat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1 bg-slate-100 border-none rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
+          className="min-w-0 flex-1 bg-slate-100 border-none rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
         />
         <button 
           type="submit"
