@@ -83,7 +83,7 @@ const createBooking = async (req, res) => {
     let locked = false;
     try {
         const { host, port, user, password, database } = db.config;
-        connection = await mysql.createConnection({ host, port, user, password, database });
+        connection = await mysql.createConnection({ host, port, user, password, database, ssl: require('../config/dbSsl')() });
         const [locks] = await connection.query("SELECT GET_LOCK('mcidbms:create-booking', 10) AS acquired");
         locked = Number(locks[0].acquired) === 1;
         if (!locked) return res.status(503).json({ success: false, message: 'Booking is busy. Please try again.' });

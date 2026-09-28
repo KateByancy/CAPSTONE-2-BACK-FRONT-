@@ -8,6 +8,7 @@ const connection = mysql.createConnection({
   port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "",
+  ssl: require("./config/dbSsl")(),
 });
 
 connection.query(`CREATE DATABASE IF NOT EXISTS ${mysql.escapeId(databaseName)}`, (error) => {
