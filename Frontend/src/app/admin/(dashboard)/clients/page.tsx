@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Send, ChevronLeft, MessageSquare, Search } from 'lucide-react';
+import useChatScroll from '@/components/useChatScroll';
+import { Send, ChevronDown, ChevronLeft, MessageSquare, Search } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
 import Link from 'next/link';
 
@@ -74,7 +75,7 @@ export default function ClientsManagement() {
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
   const [newMessageText, setNewMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const { feedRef, onScroll, showLatestButton, scrollToLatest } = useChatScroll(messages, activeChatClient?.id || '');
   const conversationRequestRef = useRef(0);
 
   const loadConversation = useCallback(async (clientId: string) => {
@@ -104,9 +105,6 @@ export default function ClientsManagement() {
     return () => window.clearInterval(timer);
   }, [activeChatClient, loadConversation]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior:'smooth', block:'end' });
-  }, [messages, activeChatClient]);
 
   // --- HANDLERS ---
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -240,7 +238,8 @@ export default function ClientsManagement() {
               </div>
 
               {/* CHAT MESSAGES BODY */}
-              <div className="flex-1 p-4 pb-6 overflow-y-auto space-y-3 bg-slate-50/60 min-h-0">
+              <div className="relative flex-1 min-h-0">
+              <div ref={feedRef} onScroll={onScroll} className="h-full p-4 pb-6 overflow-y-auto overscroll-contain space-y-3 bg-slate-50/60">
                 {(messages[activeChatClient.id] || []).length === 0 && (
                   <div className="flex h-full min-h-48 flex-col items-center justify-center text-center text-slate-400">
                     <MessageSquare className="mb-2 h-8 w-8 opacity-40" />
@@ -276,7 +275,14 @@ export default function ClientsManagement() {
                     </div>
                   );
                 })}
-                <div ref={messagesEndRef} className="h-px" />
+
+              </div>
+
+              {showLatestButton && (
+          <button type="button" onClick={scrollToLatest} aria-label="Go to latest messages" title="Go to latest messages" className="absolute bottom-3 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-[#0070c0] shadow-lg hover:bg-blue-50 transition cursor-pointer">
+            <ChevronDown className="h-5 w-5" aria-hidden="true" />
+          </button>
+        )}
               </div>
 
               {/* CHAT INPUT FOOTER */}

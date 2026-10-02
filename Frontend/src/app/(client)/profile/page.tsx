@@ -82,10 +82,11 @@ export default function AccountProfile({ userName = 'John Doe', onLogout }: Acco
           <button
             type="button"
             onClick={onLogout}
-            className="md:hidden shrink-0 min-h-11 flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition cursor-pointer"
+            aria-label="Log out"
+          title="Log out"
+          className="md:hidden shrink-0 h-11 w-11 flex items-center justify-center rounded-xl border border-white/30 bg-white/10 text-white hover:bg-white/20 transition cursor-pointer"
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />
-            <span>Log Out</span>
           </button>
         )}
       </div>

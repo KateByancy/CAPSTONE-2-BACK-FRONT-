@@ -38,6 +38,7 @@ export default function ProfileAvatar({ role, name }: { role: 'client' | 'admin'
       if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save picture.');
       uploadRevision.current += 1;
       setPhoto(URL.createObjectURL(file)); setMessage('Profile picture saved.');
+      if (role === 'client') window.dispatchEvent(new Event('client-avatar-updated'));
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to save picture.'); }
     finally { setBusy(false); }
   }

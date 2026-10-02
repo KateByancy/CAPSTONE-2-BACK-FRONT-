@@ -1,7 +1,8 @@
 // src/components/Chat.tsx
 "use client";
-import React, { useEffect, useRef, useState } from 'react';
-import { MessageSquare, Send, Bot, UserRound } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { MessageSquare, Send, Bot, UserRound, ChevronDown } from 'lucide-react';
+import useChatScroll from '@/components/useChatScroll';
 import { getApiUrl, getClientSession } from '@/lib/api';
 
 interface PortfolioImage { id: number; title: string; image: string; }
@@ -14,7 +15,7 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [adminOnline, setAdminOnline] = useState<boolean | null>(null);
-  const messagesFeedRef = useRef<HTMLDivElement | null>(null);
+  const { feedRef, onScroll, showLatestButton, scrollToLatest } = useChatScroll(messages);
 
   useEffect(() => {
     let active = true;
@@ -68,10 +69,6 @@ export default function Chat() {
     return () => window.clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const feed = messagesFeedRef.current;
-    feed?.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
-  }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +105,8 @@ export default function Chat() {
       {error && <p className="shrink-0 mx-4 mt-3 rounded-lg bg-red-50 p-2 text-xs text-red-700">{error}</p>}
 
       {/* Message Feed Stream */}
-      <div ref={messagesFeedRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3">
+      <div className="relative flex-1 min-h-0">
+      <div ref={feedRef} onScroll={onScroll} className="h-full overflow-y-auto overscroll-contain p-4 space-y-3">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -140,6 +138,13 @@ export default function Chat() {
           </div>
         ))}
         <p role="status" className="text-xs text-slate-500">{isSending ? "Waiting for a reply..." : ""}</p>
+      </div>
+
+      {showLatestButton && (
+          <button type="button" onClick={scrollToLatest} aria-label="Go to latest messages" title="Go to latest messages" className="absolute bottom-3 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-[#0070c0] shadow-lg hover:bg-blue-50 transition cursor-pointer">
+            <ChevronDown className="h-5 w-5" aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       {/* Interactive Chat Input Area */}

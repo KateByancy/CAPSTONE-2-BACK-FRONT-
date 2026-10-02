@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Calculator, ArrowRight, Wallet, CalendarRange, Check, Calendar, ArrowLeft, Clock, ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Calculator, ArrowRight, Wallet, CalendarRange, Check, Calendar, ArrowLeft, Clock, ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
+import ClientProfileIcon from '@/components/ClientProfileIcon';
 import { formatClientName, getApiUrl, getClientSession } from '@/lib/api';
 
 interface HomeProps {
@@ -266,8 +267,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   if (currentView === 'schedules') {
     return (
       <div className="space-y-6 animate-fadeIn relative">
-        <div className="bg-[#0070c0] text-white rounded-2xl p-4 md:p-6 shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0">
-          <div className="flex items-center space-x-2 md:space-x-4">
+        <div className="bg-[#0070c0] text-white rounded-2xl p-4 md:p-6 shadow-md flex flex-row justify-between items-center gap-3">
+          <div className="flex min-w-0 items-center space-x-2 md:space-x-4">
             <button 
               onClick={() => setCurrentView('dashboard')}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition cursor-pointer border-none text-white flex items-center justify-center"
@@ -275,18 +276,18 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h2 className="text-xl font-serif font-black tracking-wide">Schedules</h2>
-              <p className="text-xs text-blue-100 font-light mt-0.5">View your upcoming project appointments and confirmed dates.</p>
+              <h2 className="text-base md:text-xl font-serif font-black tracking-wide">Schedules</h2>
+              <p className="hidden md:block text-xs text-blue-100 font-light mt-0.5">View your upcoming project appointments and confirmed dates.</p>
             </div>
           </div>
 
           <button 
             onClick={() => setShowCalendarView(!showCalendarView)}
-            className="flex shrink-0 items-center space-x-1.5 md:space-x-2 bg-white/10 hover:bg-white/25 border border-white/20 px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-bold tracking-normal md:tracking-wider transition cursor-pointer border-none text-white"
+            className="flex shrink-0 items-center space-x-1.5 md:space-x-2 bg-white/10 hover:bg-white/25 border border-white/20 px-2 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-bold tracking-normal md:tracking-wider transition cursor-pointer border-none text-white"
           >
             <Calendar className="w-4 h-4 text-white" />
             <span>CALENDAR VIEW</span>
-            <ChevronLeft className={`w-4 h-4 transition-transform duration-300 ${showCalendarView ? 'rotate-180' : ''}`} />
+            <ChevronLeft className={`hidden md:block w-4 h-4 transition-transform duration-300 ${showCalendarView ? 'rotate-180' : ''}`} />
           </button>
         </div>
 
@@ -437,27 +438,22 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   // --- STANDARD DASHBOARD VIEW ---
   return (
     <div className="space-y-6 animate-fadeIn relative">
-      <div className="bg-[#0070c0] text-white rounded-2xl p-6 shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-[#0070c0] text-white rounded-2xl p-4 md:p-6 shadow-md flex flex-row justify-between items-center gap-4">
         <div>
           <h2 className="text-xl font-serif font-black tracking-wide">{clientDisplayName}</h2>
           <p className="text-xs text-blue-100 font-light mt-0.5">Your dream home is in progress.</p>
         </div>
         
-        <div 
-          onClick={() => {
-            if (setActiveTab) {
-              setActiveTab('profile');
-            }
-          }}
-          className="flex items-center space-x-3 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/25 px-4 py-2.5 rounded-xl text-xs font-bold tracking-wider transition shadow-sm group cursor-pointer"
+        <button
+          type="button"
+          onClick={() => setActiveTab?.('profile')}
+          aria-label="Account profile"
+          title="Account profile"
+          className="flex shrink-0 min-h-11 min-w-11 items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/25 p-2 md:px-4 md:py-2.5 rounded-xl text-xs font-bold tracking-wider transition shadow-sm cursor-pointer"
         >
-          <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-bold text-white text-xs shadow-inner group-hover:scale-105 transition">
-              <User className="w-3.5 h-3.5 text-white" />
-            </div>
-            <span>ACCOUNT PROFILE</span>
-          </div>
-        </div>
+          <ClientProfileIcon />
+          <span className="hidden md:inline">ACCOUNT PROFILE</span>
+        </button>
       </div>
       {homeError && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{homeError}</p>}
 
