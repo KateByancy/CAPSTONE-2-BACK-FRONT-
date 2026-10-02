@@ -134,12 +134,12 @@ export default function Book() {
   };
 
   return (
-    <div className="p-4 space-y-4 animate-fadeIn relative w-full">
+    <div className="p-0 md:p-4 space-y-3 md:space-y-4 animate-fadeIn relative w-full">
       
       {/* Top Action Header Panel */}
       <div className="flex items-center">
-        <div className="flex items-center space-x-2 text-xs font-bold tracking-wider text-slate-400">
-          <Calendar className="w-4 h-4 text-blue-500" />
+        <div className="flex items-center space-x-2 text-[11px] md:text-xs leading-snug font-bold tracking-normal md:tracking-wider text-slate-400">
+          <Calendar className="w-4 h-4 shrink-0 text-blue-500" />
           <h1>My Pending Bookings</h1>
         </div>
       </div>

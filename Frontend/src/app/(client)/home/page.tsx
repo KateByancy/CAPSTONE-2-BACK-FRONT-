@@ -266,8 +266,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   if (currentView === 'schedules') {
     return (
       <div className="space-y-6 animate-fadeIn relative">
-        <div className="bg-[#0070c0] text-white rounded-2xl p-6 shadow-md flex justify-between items-center">
-          <div className="flex items-center space-x-4">
+        <div className="bg-[#0070c0] text-white rounded-2xl p-4 md:p-6 shadow-md flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0">
+          <div className="flex items-center space-x-2 md:space-x-4">
             <button 
               onClick={() => setCurrentView('dashboard')}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition cursor-pointer border-none text-white flex items-center justify-center"
@@ -282,7 +282,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
 
           <button 
             onClick={() => setShowCalendarView(!showCalendarView)}
-            className="flex items-center space-x-2 bg-white/10 hover:bg-white/25 border border-white/20 px-4 py-2 rounded-xl text-xs font-bold tracking-wider transition cursor-pointer border-none text-white"
+            className="flex shrink-0 items-center space-x-1.5 md:space-x-2 bg-white/10 hover:bg-white/25 border border-white/20 px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-bold tracking-normal md:tracking-wider transition cursor-pointer border-none text-white"
           >
             <Calendar className="w-4 h-4 text-white" />
             <span>CALENDAR VIEW</span>
@@ -346,7 +346,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
           </div>
 
           {showCalendarView && (
-            <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6 animate-fadeIn">
+            <div className="lg:col-span-7 bg-white rounded-3xl p-4 sm:p-8 shadow-sm border border-slate-200 space-y-4 sm:space-y-6 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-serif font-black text-slate-900 tracking-wide uppercase">
                   {monthNames[currentMonth]} {currentYear}
@@ -590,8 +590,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       </div>
 
       {isBookingOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1a1f2c] text-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl border border-slate-800 relative animate-fadeIn">
+        <div className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 md:p-4">
+          <div className="bg-[#1a1f2c] text-white rounded-3xl p-4 sm:p-8 max-h-[calc(100dvh-1.5rem)] md:max-h-none overflow-y-auto md:overflow-y-visible overscroll-contain max-w-2xl w-full shadow-2xl border border-slate-800 relative animate-fadeIn">
             {bookingStep === 'form' && (
               <button 
                 onClick={() => setIsBookingOpen(false)}
@@ -603,8 +603,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
 
             {bookingStep === 'form' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div className="space-y-6">
-                  <h3 className="text-xs font-black tracking-widest text-slate-400 uppercase font-sans">
+                <div className="space-y-4 md:space-y-6 min-w-0">
+                  <h3 className="pr-12 md:pr-0 text-xs font-black tracking-widest text-slate-400 uppercase font-sans">
                     Book Now Form
                   </h3>
 
@@ -638,7 +638,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                           <div
                             role="listbox"
                             aria-label="Service type"
-                            className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-slate-700 bg-[#121620] shadow-xl"
+                            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-48 md:max-h-none overflow-y-auto md:overflow-hidden rounded-xl border border-slate-700 bg-[#121620] shadow-xl"
                           >
                             {bookingServices.map((service) => (
                               <button

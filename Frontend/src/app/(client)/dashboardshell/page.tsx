@@ -176,7 +176,7 @@ export default function DashboardShell({
       </aside>
 
       {/* 2. MAIN CONTENT AREA */}
-      <main className={`flex-1 min-w-0 ${activeTab === 'chat' ? 'h-full min-h-0 overflow-hidden' : 'overflow-y-auto'} bg-slate-50 relative p-4 md:p-8 pb-24 md:pb-8 w-full max-w-7xl mx-auto`}>
+      <main className={`flex-1 min-w-0 ${activeTab === 'chat' ? 'h-full min-h-0 overflow-hidden' : 'overflow-y-auto'} bg-slate-50 relative p-4 md:p-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8 w-full max-w-7xl mx-auto`}>
         {React.Children.map(children, child => {
           if (React.isValidElement(child)) {
             return React.cloneElement(child, { userName, setActiveTab } as { userName: string; setActiveTab: (tab: string) => void });
@@ -186,7 +186,7 @@ export default function DashboardShell({
       </main>
 
       {/* 3. MOBILE ONLY: BOTTOM NAVIGATION BAR */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0070c0] border-t border-blue-600/30 px-2 py-2 flex justify-around items-center z-50 shadow-lg">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 max-h-dvh overflow-auto overscroll-contain bg-[#0070c0] border-t border-blue-600/30 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] grid grid-cols-[repeat(6,minmax(2.75rem,1fr))] items-center z-50 shadow-lg">
         {tabs.map((tab) => {
           const IconComponent = tab.icon;
           const isSelected = activeTab === tab.id;
@@ -194,15 +194,20 @@ export default function DashboardShell({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center transition-all px-2 py-1 rounded-xl cursor-pointer border-none bg-transparent ${
+              aria-label={tab.desktopLabel}
+              className={`min-w-0 min-h-11 flex flex-col items-center justify-center transition-all px-1 py-1 rounded-xl cursor-pointer border-none bg-transparent ${
                 isSelected ? 'text-white scale-105 font-black' : 'text-blue-100/70'
               }`}
             >
               <IconComponent className={`w-4 h-4 ${isSelected ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-              <span className="text-[8px] tracking-wider mt-1 uppercase font-bold">{tab.label}</span>
+              <span className="text-[7px] sm:text-[8px] leading-tight tracking-normal sm:tracking-wider mt-1 uppercase font-bold text-center break-words">{tab.label}</span>
             </button>
           );
         })}
+        <button type="button" onClick={handleLogoutClick} aria-label="Log Out" className="min-w-0 min-h-11 flex flex-col items-center justify-center px-1 py-1 rounded-xl border border-white/30 bg-white/10 text-white hover:bg-white/20 cursor-pointer">
+          <LogOut className="w-5 h-5 shrink-0 stroke-[2]" />
+          <span className="text-[10px] leading-tight mt-1 whitespace-normal text-center uppercase font-bold">Log Out</span>
+        </button>
       </div>
 
     </div>

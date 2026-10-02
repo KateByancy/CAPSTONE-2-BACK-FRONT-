@@ -19,7 +19,6 @@ const {
   changePassword,
 } = require("../controllers/authController");
 
-const adminSmsReset = require('../controllers/adminSmsResetController');
 const clientEmailCode = require('../controllers/clientEmailCodeController');
 router.post('/forgot-password/code',
     body('email').isString().bail().trim().isEmail().isLength({ max: 254 }).withMessage('Enter your registered email address.'),
@@ -41,19 +40,6 @@ router.post('/admin/reset-password/email', [
     body('password').custom(value => typeof value === 'string' && Buffer.byteLength(value, 'utf8') <= 72).withMessage('Password is too long.'),
     validateRequest,
 ], adminEmailReset.resetPassword);
-router.post('/admin/forgot-password',
-    body('phone').isString().bail().trim().isLength({ max: 30 }).bail()
-        .custom(value => Boolean(require('../services/adminSmsVerify').normalizePhone(value)))
-        .withMessage('Enter a valid mobile number, such as 09XXXXXXXXX or +639XXXXXXXXX.'),
-    validateRequest, adminSmsReset.requestCode);
-router.post('/admin/reset-password', [
-    body('challenge').isString().matches(/^[a-f0-9]{64}$/),
-    body('code').isString().matches(/^\d{4,10}$/).withMessage('Enter the SMS verification code.'),
-    body('password').isString().isLength({ min: 8, max: 72 }).withMessage('Password must contain 8 to 72 characters.'),
-    body('password').custom(value => Buffer.byteLength(value, 'utf8') <= 72).withMessage('Password is too long.'),
-    validateRequest,
-], adminSmsReset.resetPassword);
-
 const emailAndPasswordRules = [
     body("email").trim().isEmail().withMessage("A valid email address is required."),
     body("password").isString().notEmpty().withMessage("Password is required.")

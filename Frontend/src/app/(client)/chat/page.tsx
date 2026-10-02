@@ -96,7 +96,7 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-dvh max-h-full min-h-0 overflow-hidden bg-slate-50 animate-fadeIn">
       {/* Mini Title Section */}
-      <div className="shrink-0 px-4 py-3 bg-white border-b border-slate-200 flex items-center justify-between text-xs font-bold tracking-wider text-slate-500">
+      <div className="shrink-0 px-3 md:px-4 py-3 bg-white border-b border-slate-200 flex flex-wrap gap-2 items-center justify-between text-[10px] md:text-xs font-bold tracking-normal md:tracking-wider text-slate-500">
         <div className="flex items-center space-x-2"><MessageSquare className="w-4 h-4 text-blue-500" /><span>DESIGN CONCIERGE</span></div>
         {adminOnline !== null && (
           <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider">
@@ -151,13 +151,13 @@ export default function Chat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
-          className="min-w-0 flex-1 bg-slate-100 border-none rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
+          className="min-w-0 min-h-11 md:min-h-0 flex-1 bg-slate-100 border-none rounded-xl px-3 md:px-4 py-2 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
         />
         <button 
           type="submit"
           disabled={isSending || !input.trim()}
           aria-label="Send message"
-          className="p-2 bg-[#0070c0] hover:bg-blue-600 text-white rounded-xl transition shadow-sm"
+          className="shrink-0 min-h-11 min-w-11 md:min-h-0 md:min-w-0 p-2 flex items-center justify-center bg-[#0070c0] hover:bg-blue-600 text-white rounded-xl transition shadow-sm"
         >
           <Send className="w-4 h-4" />
         </button>

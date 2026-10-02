@@ -14,12 +14,18 @@ test('server mounts both recovery flows at the frontend API paths', async () => 
     const server = app.listen(0, '127.0.0.1');
     await new Promise(resolve => server.once('listening', resolve));
     try {
-        for (const path of ['admin/forgot-password', 'admin/reset-password', 'forgot-password', 'reset-password']) {
+        for (const path of ['admin/forgot-password/email', 'admin/reset-password/email', 'forgot-password/code', 'reset-password/code', 'forgot-password', 'reset-password']) {
             const response = await fetch(`http://127.0.0.1:${server.address().port}/api/auth/${path}`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
             });
             assert.equal(response.status, 422, path);
             assert.equal((await response.json()).success, false);
+        }
+        for (const path of ['admin/forgot-password', 'admin/reset-password']) {
+            const response = await fetch(`http://127.0.0.1:${server.address().port}/api/auth/${path}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+            });
+            assert.equal(response.status, 404, `Removed SMS endpoint: ${path}`);
         }
     } finally {
         server.closeAllConnections();
