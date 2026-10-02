@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Plus, X } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, X, LogOut } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import { getApiUrl, requestProfile } from '@/lib/api';
 
@@ -88,8 +89,8 @@ export default function ProfileSettings() {
     <div className="min-h-screen bg-slate-50/50 w-full p-4 sm:p-6 md:p-8 space-y-6">
       
       {/* 1. TOP HEADER BANNER */}
-      <div className="bg-[#0070c0] text-white rounded-3xl p-6 sm:p-8 shadow-md">
-        <div className="space-y-1">
+      <div className="bg-[#0070c0] text-white rounded-3xl p-4 sm:p-8 shadow-md flex items-center justify-between gap-3">
+        <div className="min-w-0 space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight">
             Profile Settings
           </h1>
@@ -97,6 +98,25 @@ export default function ProfileSettings() {
             Personal Identity
           </p>
         </div>
+        <Link
+          href="/admin"
+          onClick={() => {
+            const token = localStorage.getItem('adminToken');
+            if (token) {
+              void fetch(`${getApiUrl()}/auth/presence/offline`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                keepalive: true,
+              }).catch(() => undefined);
+            }
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminAccount');
+          }}
+          className="md:hidden shrink-0 min-h-11 flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition cursor-pointer"
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          <span>Log Out</span>
+        </Link>
       </div>
 
       {/* 2. MAIN SETTINGS CARD CONTAINER */}

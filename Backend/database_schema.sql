@@ -194,7 +194,7 @@ CREATE TABLE `schedules` (
   `booking_id` int DEFAULT NULL,
   `date` date NOT NULL,
   `time_start` time NOT NULL,
-  `time_end` time NOT NULL,
+  `time_end` time DEFAULT NULL,
   `title` varchar(150) NOT NULL,
   `location` text DEFAULT NULL,
   `status` varchar(30) NOT NULL DEFAULT 'Pending',

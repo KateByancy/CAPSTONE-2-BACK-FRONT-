@@ -9,6 +9,7 @@
     "dev:backend": "nodemon server.js",
     "db:init": "node createDatabase.js && node createTables.js",
     "db:migrate": "node createTables.js",
+    "db:migrate:schedule-end-time": "node migrateScheduleEndTime.js",
     "db:migrate:gcash": "node migrateGcash.js",
     "test:gcash": "node tests/gcash.test.js",
     "test:payments-production": "node tests/paymentsProduction.test.js",

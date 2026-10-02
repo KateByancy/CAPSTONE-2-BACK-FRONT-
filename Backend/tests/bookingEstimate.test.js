@@ -34,7 +34,10 @@ test('booking API: Other persistence, concurrency, status handling and estimate 
     await query("CREATE TABLE bookings (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, service_type VARCHAR(100), project_description TEXT, project_address VARCHAR(255), project_landmark VARCHAR(255), preferred_date DATE NOT NULL, preferred_time TIME NOT NULL, location TEXT NOT NULL, status VARCHAR(50) DEFAULT 'Pending', accepted_at DATETIME, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
     await query(require('../migrations/bookingEstimate'));
     await query(require('../migrations/bookingEstimate'));
-    await query("CREATE TABLE schedules (id INT AUTO_INCREMENT PRIMARY KEY, booking_id INT, visit_date DATE, date DATE, time_start TIME, status VARCHAR(30) DEFAULT 'Pending')");
+    await query("CREATE TABLE schedules (id INT AUTO_INCREMENT PRIMARY KEY, booking_id INT, visit_date DATE, date DATE, time_start TIME, time_end TIME NOT NULL, status VARCHAR(30) DEFAULT 'Pending')");
+    for (let run = 0; run < 2; run++) {
+      for (const sql of require('../migrations/scheduleEndTime')) await query(sql);
+    }
     await query('CREATE TABLE pricing_options (option_type VARCHAR(30), name VARCHAR(100), value DECIMAL(10,2), is_active BOOLEAN DEFAULT TRUE)');
     await query("INSERT INTO users VALUES (1,'Test Client','fixture@example.invalid','',''),(2,'Second Client','fixture2@example.invalid','','')");
     for (const row of pricing) await query('INSERT INTO pricing_options SET ?', row);
@@ -52,6 +55,7 @@ test('booking API: Other persistence, concurrency, status handling and estimate 
     assert.equal(created.service_type, 'Custom reading nook'); assert.equal(created.estimate.min, 20903);
     assert.equal((await query('SELECT COUNT(*) AS total FROM bookings'))[0].total, 1);
     assert.equal((await query('SELECT COUNT(*) AS total FROM schedules'))[0].total, 1);
+    assert.equal((await query('SELECT time_end FROM schedules'))[0].time_end, null);
     for (const path of ['/booking?user_id=1', '/booking']) {
       const result = await call(path); assert.equal(result.status, 200);
       const stored = result.data.bookings[0]; const estimate = typeof stored.estimate === 'string' ? JSON.parse(stored.estimate) : stored.estimate;

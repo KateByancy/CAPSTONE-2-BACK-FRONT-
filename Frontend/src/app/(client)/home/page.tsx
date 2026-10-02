@@ -590,28 +590,28 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       </div>
 
       {isBookingOpen && (
-        <div className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 md:p-4">
-          <div className="bg-[#1a1f2c] text-white rounded-3xl p-4 sm:p-8 max-h-[calc(100dvh-1.5rem)] md:max-h-none overflow-y-auto md:overflow-y-visible overscroll-contain max-w-2xl w-full shadow-2xl border border-slate-800 relative animate-fadeIn">
+        <div className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-[#1a1f2c] text-white rounded-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col max-w-2xl w-full shadow-2xl border border-slate-800 relative animate-fadeIn">
             {bookingStep === 'form' && (
               <button 
+                aria-label="Close booking form"
                 onClick={() => setIsBookingOpen(false)}
-                className="absolute top-5 right-5 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer border-none flex items-center justify-center"
+                className="absolute top-2 right-3 z-40 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer border-none flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
 
             {bookingStep === 'form' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div className="space-y-4 md:space-y-6 min-w-0">
-                  <h3 className="pr-12 md:pr-0 text-xs font-black tracking-widest text-slate-400 uppercase font-sans">
+              <div className="flex min-h-0 flex-col">
+                  <h3 className="shrink-0 border-b border-slate-800 px-4 py-4 pr-14 sm:px-6 text-xs font-black tracking-widest text-slate-400 uppercase font-sans">
                     Book Now Form
                   </h3>
 
-                  <form onSubmit={handleBookingSubmit} className="space-y-4">
-                    {bookingError && <p className="rounded-xl bg-red-500/10 p-3 text-xs text-red-300">{bookingError}</p>}
-                    {!servicesLoading && bookingServices.length === 0 && <p role="status" className="text-xs text-red-300">{homeError || 'No booking services are currently available.'}</p>}
-                    <div className="space-y-1.5">
+                  <form id="booking-form" onSubmit={handleBookingSubmit} className="min-h-0 overflow-y-auto overscroll-contain grid grid-cols-2 gap-x-3 gap-y-2.5 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-4">
+                    {bookingError && <p className="col-span-2 rounded-xl bg-red-500/10 p-2 text-xs text-red-300">{bookingError}</p>}
+                    {!servicesLoading && bookingServices.length === 0 && <p role="status" className="col-span-2 text-xs text-red-300">{homeError || 'No booking services are currently available.'}</p>}
+                    <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
                         Service Type
                       </label>
@@ -622,7 +622,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                           aria-expanded={isServiceTypeOpen}
                           disabled={servicesLoading || bookingServices.length === 0}
                           onClick={() => setIsServiceTypeOpen((isOpen) => !isOpen)}
-                          className="flex w-full items-center justify-between gap-3 bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-left text-xs font-medium focus:outline-none focus:border-blue-500 shadow-inner cursor-pointer"
+                          className="flex w-full items-center justify-between gap-3 bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-left text-xs font-medium focus:outline-none focus:border-blue-500 shadow-inner cursor-pointer"
                         >
                           <span className={serviceType ? 'text-slate-200' : 'text-slate-500'}>
                             {servicesLoading ? 'Loading services...' : serviceType || 'Select service type'}
@@ -638,7 +638,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                           <div
                             role="listbox"
                             aria-label="Service type"
-                            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-48 md:max-h-none overflow-y-auto md:overflow-hidden rounded-xl border border-slate-700 bg-[#121620] shadow-xl"
+                            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-40 overflow-y-auto rounded-xl border border-slate-700 bg-[#121620] shadow-xl"
                           >
                             {bookingServices.map((service) => (
                               <button
@@ -651,7 +651,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                                   setIsServiceTypeOpen(false);
                                   setBookingError('');
                                 }}
-                                className={`block w-full px-4 py-3 text-left text-xs transition cursor-pointer ${
+                                className={`block w-full px-3 py-2.5 text-left text-xs transition cursor-pointer ${
                                   serviceType === service.name
                                     ? 'bg-blue-600 text-white'
                                     : 'text-slate-200 hover:bg-slate-800'
@@ -665,11 +665,11 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                       </div>
                     </div>
 
-                    {serviceType === 'Other' && <label className="block text-xs text-slate-300">Specify your desired design/service
-                      <input required maxLength={100} value={otherService} onChange={e => setOtherService(e.target.value)} className="mt-2 w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3" />
+                    {serviceType === 'Other' && <label className="col-span-2 block text-xs text-slate-300">Specify your desired design/service
+                      <input required maxLength={100} value={otherService} onChange={e => setOtherService(e.target.value)} className="mt-2 w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5" />
                     </label>}
-                    {estimate.min > 0 && <p className="text-sm text-blue-300">Estimate included: PHP {estimate.min.toLocaleString()} - {estimate.max.toLocaleString()} ({area} {measurementUnit}, {estimateServiceType}, {style}, {complexity}). Preliminary estimate.</p>}
-                    <div className="space-y-1.5">
+                    {estimate.min > 0 && <p className="col-span-2 text-[11px] leading-snug text-blue-300">Estimate included: PHP {estimate.min.toLocaleString()} - {estimate.max.toLocaleString()} ({area} {measurementUnit}, {estimateServiceType}, {style}, {complexity}). Preliminary estimate.</p>}
+                    <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
                         Project Address
                       </label>
@@ -680,12 +680,12 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         placeholder="Street, barangay, city, province"
                         autoComplete="street-address"
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
+                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
                       />
                       <p className="text-[9px] text-slate-500">This exact location will be shown to the admin and used on the Fleet Map.</p>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
                         Nearest Landmark
                       </label>
@@ -695,24 +695,24 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         onChange={(e) => setProjectLandmark(e.target.value)}
                         placeholder="e.g. Across the public market"
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
+                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
                       />
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="col-span-2 min-w-0 space-y-1">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
                         Project Description
                       </label>
                       <textarea 
-                        rows={4}
+                        rows={2}
                         value={projectDescription}
                         onChange={(e) => setProjectDescription(e.target.value)}
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl p-4 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner resize-none"
+                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner resize-none"
                       />
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="min-w-0 space-y-1">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
                         Preferred Project Start Date
                       </label>
@@ -722,37 +722,34 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         min={new Date().toISOString().slice(0, 10)}
                         onChange={(e) => setPreferredStartDate(e.target.value)}
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
+                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
                       />
                       {(hasDuplicateBooking || hasScheduleConflict) && <p className="text-[10px] text-red-300">{hasDuplicateBooking ? 'You already have a booking for this date and time. Please choose another slot.' : 'This date and time is unavailable. Choose another slot.'}</p>}
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="min-w-0 space-y-1">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">Preferred Start Time</label>
                       <input
                         type="time"
                         value={preferredStartTime}
                         onChange={(e) => setPreferredStartTime(e.target.value)}
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
+                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
                       />
                     </div>
 
+                  </form>
+
+                  <div className="shrink-0 border-t border-slate-800 bg-[#1a1f2c] px-4 py-3 sm:px-6">
                     <button 
                       type="submit"
+                      form="booking-form"
                       disabled={isBookingSubmitting || hasDuplicateBooking || hasScheduleConflict || servicesLoading || bookingServices.length === 0}
                       className="w-full py-3.5 bg-[#141b2f] hover:bg-[#1d2642] text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md border border-slate-700 cursor-pointer"
                     >
                       {isBookingSubmitting ? 'Submitting...' : 'Submit Booking Form'}
                     </button>
-                  </form>
-                </div>
-
-                <div className="hidden md:flex flex-col items-center justify-center p-8 bg-[#121620] rounded-2xl border border-slate-800 text-center space-y-3">
-                  <span className="text-xs font-serif text-slate-400 italic">
-                    Ready to transform your space? Fill out the brief details and our design team will review your request immediately.
-                  </span>
-                </div>
+                  </div>
               </div>
             ) : (
               <div className="py-12 px-6 text-center space-y-6">

@@ -114,6 +114,13 @@ export default function ClientMasterController() {
     );
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('clientAccount');
+    localStorage.removeItem('clientToken');
+    setActiveTab('home');
+    setCurrentScreen('landing');
+  };
+
   // Helper to render dashboard subpages inside the Shell
   const renderActiveTabContent = () => {
     switch (activeTab) {
@@ -130,6 +137,7 @@ export default function ClientMasterController() {
       case 'profile':
         return (
           <ProfileView 
+            onLogout={handleLogout}
             userName={userName} 
           />
         );
@@ -146,12 +154,7 @@ export default function ClientMasterController() {
       activeTab={activeTab} 
       setActiveTab={setActiveTab} 
       userName={userName}
-      onLogout={() => {
-        localStorage.removeItem('clientAccount');
-        localStorage.removeItem('clientToken');
-        setActiveTab('home');
-        setCurrentScreen('landing');
-      }}
+      onLogout={handleLogout}
     >
       {renderActiveTabContent()}
     </DashboardShell>

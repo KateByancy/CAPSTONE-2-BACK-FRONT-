@@ -186,7 +186,7 @@ export default function DashboardShell({
       </main>
 
       {/* 3. MOBILE ONLY: BOTTOM NAVIGATION BAR */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 max-h-dvh overflow-auto overscroll-contain bg-[#0070c0] border-t border-blue-600/30 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] grid grid-cols-[repeat(6,minmax(2.75rem,1fr))] items-center z-50 shadow-lg">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 max-h-dvh overflow-auto overscroll-contain bg-[#0070c0] border-t border-blue-600/30 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] grid grid-cols-5 items-center z-50 shadow-lg">
         {tabs.map((tab) => {
           const IconComponent = tab.icon;
           const isSelected = activeTab === tab.id;
@@ -204,10 +204,6 @@ export default function DashboardShell({
             </button>
           );
         })}
-        <button type="button" onClick={handleLogoutClick} aria-label="Log Out" className="min-w-0 min-h-11 flex flex-col items-center justify-center px-1 py-1 rounded-xl border border-white/30 bg-white/10 text-white hover:bg-white/20 cursor-pointer">
-          <LogOut className="w-5 h-5 shrink-0 stroke-[2]" />
-          <span className="text-[10px] leading-tight mt-1 whitespace-normal text-center uppercase font-bold">Log Out</span>
-        </button>
       </div>
 
     </div>

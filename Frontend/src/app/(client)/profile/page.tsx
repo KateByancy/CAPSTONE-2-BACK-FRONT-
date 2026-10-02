@@ -1,14 +1,15 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, LogOut } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import { requestProfile, getClientSession } from '@/lib/api';
 
 interface AccountProfileProps {
   userName?: string;
+  onLogout?: () => void;
 }
 
-export default function AccountProfile({ userName = 'John Doe' }: AccountProfileProps) {
+export default function AccountProfile({ userName = 'John Doe', onLogout }: AccountProfileProps) {
   const [fullName, setFullName] = useState(userName);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [primaryAddress, setPrimaryAddress] = useState('');
@@ -68,8 +69,8 @@ export default function AccountProfile({ userName = 'John Doe' }: AccountProfile
     <div className="w-full p-4 sm:p-6 md:p-8 space-y-6 animate-fadeIn pb-24 md:pb-12">
       
       {/* Top Header */}
-      <div className="bg-[#0070c0] text-white rounded-3xl p-6 sm:p-8 shadow-md">
-        <div className="space-y-1">
+      <div className="bg-[#0070c0] text-white rounded-3xl p-4 sm:p-8 shadow-md flex items-center justify-between gap-3">
+        <div className="min-w-0 space-y-1">
         <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight">
           Profile Settings
         </h1>
@@ -77,6 +78,16 @@ export default function AccountProfile({ userName = 'John Doe' }: AccountProfile
           Personal Identity
         </p>
         </div>
+        {onLogout && (
+          <button
+            type="button"
+            onClick={onLogout}
+            className="md:hidden shrink-0 min-h-11 flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition cursor-pointer"
+          >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            <span>Log Out</span>
+          </button>
+        )}
       </div>
 
       <div className="w-full max-w-2xl mx-auto space-y-6">

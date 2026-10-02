@@ -145,6 +145,8 @@ status VARCHAR(30) DEFAULT 'Pending'
 
 `ALTER TABLE schedules ADD COLUMN IF NOT EXISTS time_start TIME NULL`,
 
+...require('./migrations/scheduleEndTime'),
+
 `ALTER TABLE schedules ADD COLUMN IF NOT EXISTS reschedule_count INT NOT NULL DEFAULT 0`,
 
 `UPDATE schedules SET visit_date = date WHERE visit_date IS NULL AND date IS NOT NULL`,
