@@ -141,7 +141,7 @@ export default function Chat() {
       </div>
 
       {showLatestButton && (
-          <button type="button" onClick={scrollToLatest} aria-label="Go to latest messages" title="Go to latest messages" className="absolute bottom-3 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-[#0070c0] shadow-lg hover:bg-blue-50 transition cursor-pointer">
+          <button type="button" onClick={scrollToLatest} aria-label="Go to latest messages" title="Go to latest messages" className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-[#0070c0] shadow-lg hover:bg-blue-50 transition cursor-pointer">
             <ChevronDown className="h-5 w-5" aria-hidden="true" />
           </button>
         )}

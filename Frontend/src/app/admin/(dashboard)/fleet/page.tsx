@@ -82,7 +82,7 @@ export default function FleetMapManagement() {
           REAL-TIME GEO-LOCATION MONITORING OF ACTIVE CLIENT PROJECTS
         </p>
         </div>
-        <Link href="/admin/dashboard" className="min-h-11 shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
+        <Link href="/admin/dashboard" className="min-h-11 shrink-0 hidden md:inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
       </div>
 
       {/* MAIN HARDWARE VISUALIZATION PORT */}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import ChatClientAvatar from '@/components/ChatClientAvatar';
 import useChatScroll from '@/components/useChatScroll';
 import { Send, ChevronDown, ChevronLeft, MessageSquare, Search } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
@@ -39,6 +40,12 @@ export default function ClientsManagement() {
   // --- CLIENT LIST STATE ---
   const [clients, setClients] = useState<ClientProfile[]>([]);
   const [clientsError, setClientsError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchTerms = searchQuery.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
+  const filteredClients = clients.filter(client => {
+    const searchable = (client.name + ' ' + client.email).toLocaleLowerCase().replace(/,/g, '');
+    return searchTerms.every(term => searchable.includes(term.replace(/,/g, '')));
+  });
 
   useEffect(() => {
     const loadClients = async () => {
@@ -138,7 +145,7 @@ export default function ClientsManagement() {
             Active Partners & Communications
           </p>
         </div>
-        <Link href="/admin/dashboard" className="min-h-11 shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
+        <Link href="/admin/dashboard" className="min-h-11 shrink-0 hidden md:inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
       </div>
 
       {/* 2. RESPONSIVE WEB APP CONTAINER GRID */}
@@ -153,7 +160,10 @@ export default function ClientsManagement() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input 
                 type="text" 
-                placeholder="Search active clients..." 
+                placeholder="Search active clients..."
+                aria-label="Search clients by name or email"
+                value={searchQuery}
+                onChange={event => setSearchQuery(event.target.value)}
                 className="w-full text-xs pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#0070c0] transition text-slate-800"
               />
             </div>
@@ -166,7 +176,10 @@ export default function ClientsManagement() {
             {!clientsError && clients.length === 0 && (
               <p className="p-3 text-xs text-slate-500">No registered clients yet.</p>
             )}
-            {clients.map((client) => {
+            {!clientsError && clients.length > 0 && filteredClients.length === 0 && (
+              <p role="status" className="p-3 text-xs text-slate-500">No clients match your search.</p>
+            )}
+            {filteredClients.map((client) => {
               const isSelected = activeChatClient?.id === client.id;
               return (
                 <div 
@@ -220,19 +233,10 @@ export default function ClientsManagement() {
                     <ChevronLeft className="w-6 h-6" />
                   </button>
 
-                  <div className="w-9 h-9 rounded-full bg-white/20 font-bold text-white text-sm flex items-center justify-center shrink-0">
-                    {activeChatClient.initial}
-                  </div>
+                  <ChatClientAvatar key={activeChatClient.id} clientId={activeChatClient.id} initial={activeChatClient.initial} name={activeChatClient.name} />
                   <div>
                     <h4 className="text-sm font-bold leading-tight">{activeChatClient.name}</h4>
                     <p className="text-[10px] text-blue-100 font-mono">{activeChatClient.projectName}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-[10px] font-black text-[#0070c0]">A</div>
-                  <div className="hidden text-left sm:block">
-                    <p className="text-[10px] font-black leading-none">Admin</p>
-                    <p className="mt-1 text-[9px] text-blue-100">Online</p>
                   </div>
                 </div>
               </div>
@@ -279,7 +283,7 @@ export default function ClientsManagement() {
               </div>
 
               {showLatestButton && (
-          <button type="button" onClick={scrollToLatest} aria-label="Go to latest messages" title="Go to latest messages" className="absolute bottom-3 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-[#0070c0] shadow-lg hover:bg-blue-50 transition cursor-pointer">
+          <button type="button" onClick={scrollToLatest} aria-label="Go to latest messages" title="Go to latest messages" className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-[#0070c0] shadow-lg hover:bg-blue-50 transition cursor-pointer">
             <ChevronDown className="h-5 w-5" aria-hidden="true" />
           </button>
         )}

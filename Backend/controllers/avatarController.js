@@ -34,6 +34,19 @@ exports.getAvatar = async (req, res) => {
     }
 };
 
+exports.getChatClientAvatar = async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ message: "Invalid client ID." });
+    try {
+        const rows = await query("SELECT id FROM users WHERE id=? AND (role='client' OR role IS NULL)", [id]);
+        if (!rows.length) return res.status(404).json({ message: "Client unavailable." });
+        const { data, type } = await loadAvatar(id);
+        return res.set({ "Content-Type": type, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }).send(data);
+    } catch (error) {
+        return res.status(error.code === "ENOENT" ? 404 : 500).json({ message: "Profile picture unavailable." });
+    }
+};
+
 // Older chat messages record only the admin role, not an individual admin ID.
 // Show a photo only when that role identifies a single account unambiguously.
 exports.getChatAdminAvatar = (req, res) => {

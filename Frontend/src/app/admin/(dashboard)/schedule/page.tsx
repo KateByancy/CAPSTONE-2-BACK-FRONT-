@@ -119,7 +119,7 @@ export default function ScheduleManagement() {
           </p>
         </div>
 
-        <Link href="/admin/dashboard" className="min-h-11 order-last ml-auto shrink-0 inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
+        <Link href="/admin/dashboard" className="min-h-11 order-last ml-auto shrink-0 hidden md:inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
 
         {/* Month Navigation Controls */}
         <div className="flex items-center space-x-1 bg-white/10 p-1 rounded-xl border border-white/20">
