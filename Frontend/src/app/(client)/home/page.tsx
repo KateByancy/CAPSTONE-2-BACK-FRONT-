@@ -166,11 +166,11 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       setBookingError('Please sign in again before creating a booking.');
       return;
     }
-    if (servicesLoading || !bookingServices.some(service => service.name === serviceType)) {
+    if (estimate.min <= 0 && (servicesLoading || !bookingServices.some(service => service.name === serviceType))) {
       setBookingError('Please select a service type.');
       return;
     }
-    if (serviceType === 'Other' && !otherService.trim()) {
+    if (estimate.min <= 0 && serviceType === 'Other' && !otherService.trim()) {
       setBookingError('Specify your desired design/service.');
       return;
     }
@@ -200,7 +200,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       const response = await fetch(`${getApiUrl()}/booking`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: client.id, service_type: serviceType, other_service: otherService.trim(), estimate: estimate.min > 0 ? { area, unit: measurementUnit, service: estimateServiceType, style, complexity } : undefined, project_description: projectDescription, project_address: projectAddress.trim(), project_landmark: projectLandmark.trim(), preferred_start_date: preferredStartDate, preferred_start_time: preferredStartTime }),
+        body: JSON.stringify({ user_id: client.id, service_type: estimate.min > 0 ? estimateServiceType : serviceType, other_service: otherService.trim(), estimate: estimate.min > 0 ? { area, unit: measurementUnit, service: estimateServiceType, style, complexity } : undefined, project_description: projectDescription, project_address: projectAddress.trim(), project_landmark: projectLandmark.trim(), preferred_start_date: preferredStartDate, preferred_start_time: preferredStartTime }),
       });
       const result: { success: boolean; message?: string; bookingId?: number } = await response.json();
       if (!response.ok || !result.success || !result.bookingId) throw new Error(result.message || 'Unable to create booking.');
@@ -606,8 +606,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
 
                   <form id="booking-form" onSubmit={handleBookingSubmit} className="min-h-0 overflow-y-auto overscroll-contain grid grid-cols-2 gap-x-3 gap-y-2.5 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-4">
                     {bookingError && <p className="col-span-2 rounded-xl bg-red-500/10 p-2 text-xs text-red-300">{bookingError}</p>}
-                    {!servicesLoading && bookingServices.length === 0 && <p role="status" className="col-span-2 text-xs text-red-300">{homeError || 'No booking services are currently available.'}</p>}
-                    <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
+                    {estimate.min <= 0 && !servicesLoading && bookingServices.length === 0 && <p role="status" className="col-span-2 text-xs text-red-300">{homeError || 'No booking services are currently available.'}</p>}
+                    {estimate.min <= 0 && <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
                         Service Type
                       </label>
@@ -661,7 +661,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                       </div>
                     </div>
 
-                    {serviceType === 'Other' && <label className="col-span-2 block text-xs text-slate-300">Specify your desired design/service
+                    }
+                    {estimate.min <= 0 && serviceType === 'Other' && <label className="col-span-2 block text-xs text-slate-300">Specify your desired design/service
                       <input required maxLength={100} value={otherService} onChange={e => setOtherService(e.target.value)} className="mt-2 w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5" />
                     </label>}
                     {estimate.min > 0 && <p className="col-span-2 text-[11px] leading-snug text-blue-300">Estimate included: PHP {estimate.min.toLocaleString()} - {estimate.max.toLocaleString()} ({area} {measurementUnit}, {estimateServiceType}, {style}, {complexity}). Preliminary estimate.</p>}

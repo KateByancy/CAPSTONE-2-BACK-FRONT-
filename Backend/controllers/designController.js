@@ -2,11 +2,11 @@ const db = require("../config/db");
 
 // Create a design request
 const createDesign = (req, res) => {
-    const { user_id, title, description } = req.body;
+    const { user_id, title, description, image } = req.body;
 
     db.query(
-        "INSERT INTO designs (user_id, title, description) VALUES (?, ?, ?)",
-        [user_id, title, description],
+        "INSERT INTO designs (user_id, title, description, image) VALUES (?, ?, ?, ?)",
+        [user_id, title, description, image || null],
         (err, result) => {
             if (err) return res.status(500).json(err);
 
@@ -45,11 +45,11 @@ const getDesignById = (req, res) => {
 
 // Update a design request
 const updateDesign = (req, res) => {
-    const { title, description } = req.body;
+    const { title, description, image } = req.body;
 
     db.query(
-        "UPDATE designs SET title=?, description=? WHERE id=?",
-        [title, description, req.params.id],
+        "UPDATE designs SET title=?, description=?, image=COALESCE(?, image) WHERE id=?",
+        [title, description, image ?? null, req.params.id],
         (err) => {
             if (err) return res.status(500).json(err);
 

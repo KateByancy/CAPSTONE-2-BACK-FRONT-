@@ -35,8 +35,8 @@ const {
 
 router.get("/", getPortfolio);
 router.get("/:id", getPortfolio);
-router.post("/", addPortfolio);
-router.put("/:id", updatePortfolio);
-router.delete("/:id", deletePortfolio);
+router.post("/", verifyToken, authorizeRoles("admin"), addPortfolio);
+router.put("/:id", verifyToken, authorizeRoles("admin"), updatePortfolio);
+router.delete("/:id", verifyToken, authorizeRoles("admin"), deletePortfolio);
 
 module.exports = router;

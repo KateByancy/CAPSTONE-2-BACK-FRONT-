@@ -33,9 +33,16 @@ test('Client calculator renders correct sq ft and m2 ranges and unit selector', 
   html = renderPage('app/(client)/home/page.tsx', { ...estimatorStates, 1: 'm\u00b2' });
   assert.match(html, /225,000/); assert.match(html, /275,000/);
 });
-test('Client Other form renders required custom field and attached estimate', () => {
+test('Client estimated booking uses the estimated project without manual service selection', () => {
   const html = renderPage('app/(client)/home/page.tsx', { ...estimatorStates, 21: true, 23: 'Other', 24: 'Custom reading nook' });
-  assert.match(html, /Specify your desired design\/service/); assert.match(html, /maxLength="100"/); assert.match(html, /value="Custom reading nook"/); assert.match(html, /Estimate included/);
+  const form = html.slice(html.indexOf('<form'));
+  assert.match(form, /Estimate included/); assert.match(form, /Living room/);
+  assert.doesNotMatch(form, /Specify your desired design\/service|Select service type/);
+});
+
+test('Client without an estimate can select Other and specify a service', () => {
+  const html = renderPage('app/(client)/home/page.tsx', { ...estimatorStates, 0: 0, 21: true, 23: 'Other', 24: 'Custom reading nook' });
+  assert.match(html, /Specify your desired design\/service/); assert.match(html, /maxLength="100"/); assert.match(html, /value="Custom reading nook"/); assert.doesNotMatch(html, /Estimate included/);
 });
 test('Saved estimate renders on Client booking page', () => {
   const html = renderPage('app/(client)/book/page.tsx', { 3: { serviceType: 'Custom reading nook', description: 'Test' }, 4: JSON.stringify(snapshot), 7: 'pending' });

@@ -20,7 +20,7 @@ export default function DashboardShell({
 }: ShellProps) {
   const [internalTab, setInternalTab] = useState('home');
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const [rejectionAlert, setRejectionAlert] = useState<{ id: number; message: string } | null>(null);
+  const [bookingAlert, setBookingAlert] = useState<{ id: number; title: string; message: string } | null>(null);
 
   // Use external states if provided, otherwise fallback to internal state management
   const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalTab;
@@ -48,9 +48,9 @@ export default function DashboardShell({
       const result: { success?: boolean; notifications?: Array<{ id: number; title: string; message: string; is_read: boolean | number }> } = await response.json();
       if (controller.signal.aborted || result?.success === false || !Array.isArray(result?.notifications)) return;
       const rejected = result.notifications.find((notification) =>
-        notification.title === 'Booking Rejected' && !Boolean(notification.is_read)
+        ['Booking Rejected', 'Booking Accepted'].includes(notification.title) && !Boolean(notification.is_read)
       );
-      setRejectionAlert(rejected ? { id: rejected.id, message: rejected.message } : null);
+      setBookingAlert(rejected ? { id: rejected.id, title: rejected.title, message: rejected.message } : null);
       } catch {
         // Keep the last known alert; the next poll retries transient failures.
       } finally {
@@ -67,9 +67,9 @@ export default function DashboardShell({
   }, []);
 
   const dismissRejectionAlert = async () => {
-    if (!rejectionAlert) return;
-    const notificationId = rejectionAlert.id;
-    setRejectionAlert(null);
+    if (!bookingAlert) return;
+    const notificationId = bookingAlert.id;
+    setBookingAlert(null);
     await fetch(`${getApiUrl()}/notifications/${notificationId}/read`, { method: 'PUT' }).catch(() => undefined);
   };
 
@@ -83,14 +83,14 @@ export default function DashboardShell({
 
   return (
     <div className={`w-full ${activeTab === 'chat' ? 'h-dvh overflow-hidden' : 'min-h-screen'} bg-slate-100 flex flex-col md:flex-row font-sans text-slate-800`}>
-      {rejectionAlert && (
-        <div role="alert" className="fixed left-1/2 top-4 z-[100] flex w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-xl">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+      {bookingAlert && (
+        <div role="alert" className={`fixed left-1/2 top-4 z-[100] flex w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 items-start gap-3 rounded-2xl border p-4 shadow-xl ${bookingAlert.title === 'Booking Accepted' ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-current" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-black uppercase tracking-wider">Booking Rejected</p>
-            <p className="mt-1 text-xs leading-relaxed">{rejectionAlert.message}</p>
+            <p className="text-xs font-black uppercase tracking-wider">{bookingAlert.title}</p>
+            <p className="mt-1 text-xs leading-relaxed">{bookingAlert.message}</p>
           </div>
-          <button type="button" onClick={() => void dismissRejectionAlert()} aria-label="Dismiss booking rejection alert" className="rounded-lg p-1 text-red-500 hover:bg-red-100 cursor-pointer">
+          <button type="button" onClick={() => void dismissRejectionAlert()} aria-label="Dismiss booking status notification" className="rounded-lg p-1 text-current hover:bg-black/5 cursor-pointer">
             <X className="h-4 w-4" />
           </button>
         </div>

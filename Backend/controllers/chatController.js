@@ -10,6 +10,16 @@ const adminIsOnline = async () => (await query(
     "SELECT id FROM users WHERE role='admin' AND last_seen >= DATE_SUB(NOW(), INTERVAL 45 SECOND) LIMIT 1"
 )).length > 0;
 
+async function notifyChatRecipients(userId, sender, message) {
+    const clients = await query("SELECT fullname, email FROM users WHERE id = ?", [userId]);
+    if (!clients.length) return;
+    const recipients = sender === 'admin' ? clients : await query("SELECT email FROM users WHERE role = 'admin'");
+    const senderName = sender === 'admin' ? 'MARC Admin' : clients[0].fullname || 'A client';
+    const results = await Promise.allSettled([...new Set(recipients.map(row => row.email).filter(Boolean))]
+        .map(email => require('../services/adminRecoveryMail').sendChatNotification(email, senderName, message)));
+    if (results.some(result => result.status === 'rejected')) throw new Error('CHAT_EMAIL_FAILED');
+}
+
 const sendMessage = async (req, res) => {
     const userId = Number(req.body.user_id);
     const sender = req.user.role === "admin" ? "admin" : "client";
@@ -26,6 +36,9 @@ const sendMessage = async (req, res) => {
     if (sender === "client") pending.add(userId);
     try {
         await query("INSERT INTO messages (user_id, sender, message) VALUES (?, ?, ?)", [userId, sender, message]);
+        void notifyChatRecipients(userId, sender, message).catch(() => {
+            console.error("Chat email notification failed; the message remains available in chat.");
+        });
         const profileReply = sender === 'client' ? getMarcProfileReply(message) : null;
         if (profileReply) {
             await query("INSERT INTO messages (user_id, sender, message) VALUES (?, 'bot', ?)", [userId, profileReply]);

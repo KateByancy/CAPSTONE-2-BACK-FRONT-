@@ -24,31 +24,43 @@ export default function Work() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const loadPortfolio = async () => {
-      setIsLoading(true);
-      setLoadError('');
+    let loading = false;
+    const loadPortfolio = async (initial = false) => {
+      if (loading || controller.signal.aborted) return;
+      loading = true;
       try {
-        const response = await fetch(`${getApiUrl()}/portfolio`, { signal: controller.signal });
+        const response = await fetch(`${getApiUrl()}/portfolio`, { signal: controller.signal, cache: 'no-store' });
         const result = await response.json().catch(() => null);
         if (!response.ok) throw new Error(result?.message || 'Unable to load the inspiration portfolio.');
         if (!Array.isArray(result)) throw new Error('The portfolio server returned an invalid response.');
+        if (controller.signal.aborted) return;
         setPortfolioItems(result.map((item) => ({
           id: item.id, title: item.title || 'Untitled project',
           category: item.category || 'Uncategorized',
-          image: item.image || '', description: item.description || '',
-        })));
-        setSelectedCategory('All');
-        setFailedImages(new Set());
+          image: item.image?.startsWith('/api/') ? `${getApiUrl().replace(/\/api$/, '')}${item.image}` : item.image || '', description: item.description || '',
+        })).sort((a, b) => Number(b.id) - Number(a.id)));
+        setLoadError('');
+        if (initial) setFailedImages(new Set());
       } catch (error) {
         if (controller.signal.aborted) return;
-        setLoadError(error instanceof Error ? error.message : 'Unable to load the inspiration portfolio.');
+        if (initial) setLoadError(error instanceof Error ? error.message : 'Unable to load the inspiration portfolio.');
       } finally {
+        loading = false;
         if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
-    void loadPortfolio();
-    return () => controller.abort();
+    void loadPortfolio(true);
+    const refresh = () => { if (document.visibilityState === 'visible') void loadPortfolio(); };
+    const timer = window.setInterval(refresh, 10000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, [loadAttempt]);
 
   const categories = useMemo(

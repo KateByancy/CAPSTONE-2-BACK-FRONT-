@@ -48,4 +48,15 @@ async function sendClientCode(email, code) {
     if (!result.accepted?.length) throw new Error('Email was not accepted by the provider.');
 }
 
-module.exports = { configuration, send, sendClientCode, verify: () => transport().verify() };
+async function sendChatNotification(email, senderName, message) {
+    const config = configuration();
+    if (!config.configured) throw new Error(config.error);
+    const result = await transport().sendMail({
+        from: { name: 'MARC Messages', address: config.user }, to: email,
+        subject: 'New message in your MARC conversation',
+        text: senderName + ' sent you a message:\n\n' + message + '\n\nSign in to MARC to reply: ' + config.origin,
+    });
+    if (!result.accepted?.length) throw new Error('Email was not accepted by the provider.');
+}
+
+module.exports = { sendChatNotification, configuration, send, sendClientCode, verify: () => transport().verify() };

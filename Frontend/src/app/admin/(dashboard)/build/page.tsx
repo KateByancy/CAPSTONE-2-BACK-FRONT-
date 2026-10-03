@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, Plus, Check, X, Trash2 } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
+import Image from 'next/image';
+import AdminImageUpload, { imageSource } from '@/components/AdminImageUpload';
 
 interface BuildProject {
   id: string;
@@ -43,6 +45,10 @@ export default function BuildManagement() {
   const [conceptTitle, setConceptTitle] = useState("");
   const [conceptUrl, setConceptUrl] = useState("");
   const [conceptDesc, setConceptDesc] = useState("");
+
+  const [conceptUploading, setConceptUploading] = useState(false);
+  const [conceptSaving, setConceptSaving] = useState(false);
+  const [conceptError, setConceptError] = useState('');
 
   // --- HANDLERS ---
   
@@ -105,21 +111,18 @@ export default function BuildManagement() {
   // Add Design Concept
   const handleAddConcept = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeConceptModalBuild || !conceptTitle) return;
-
-    const newConcept = { title: conceptTitle, url: conceptUrl, description: conceptDesc };
-    await fetch(`${getApiUrl()}/designs`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:activeConceptModalBuild.userId,title:conceptTitle,description:conceptDesc,image:conceptUrl})});
-    setBuilds(prev => prev.map(b => {
-      if (b.id === activeConceptModalBuild.id) {
-        return { ...b, concepts: [...b.concepts, newConcept] };
-      }
-      return b;
-    }));
-
-    setConceptTitle("");
-    setConceptUrl("");
-    setConceptDesc("");
-    setActiveConceptModalBuild(null);
+    if (!activeConceptModalBuild || conceptSaving || conceptUploading) return;
+    if (!conceptTitle.trim() || !conceptUrl) { setConceptError('Enter a title and upload an image.'); return; }
+    setConceptSaving(true); setConceptError('');
+    try {
+      const newConcept = { title: conceptTitle.trim(), url: conceptUrl, description: conceptDesc };
+      const response = await fetch(`${getApiUrl()}/designs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: activeConceptModalBuild.userId, title: newConcept.title, description: conceptDesc, image: conceptUrl }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save design concept.');
+      setBuilds(prev => prev.map(build => build.id === activeConceptModalBuild.id ? { ...build, concepts: [...build.concepts, newConcept] } : build));
+      setConceptTitle(''); setConceptUrl(''); setConceptDesc(''); setActiveConceptModalBuild(null);
+    } catch (err) { setConceptError(err instanceof Error ? err.message : 'Unable to save design concept.'); }
+    finally { setConceptSaving(false); }
   };
 
   if (!mounted) return null;
@@ -223,7 +226,7 @@ export default function BuildManagement() {
               <div className="flex justify-between items-center pt-1">
                 <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Design Concepts</span>
                 <button 
-                  onClick={() => setActiveConceptModalBuild(build)}
+                  onClick={() => { setConceptTitle(''); setConceptUrl(''); setConceptDesc(''); setConceptError(''); setActiveConceptModalBuild(build); }}
                   className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition border border-slate-200/80 cursor-pointer"
                   title="Add Design Concept"
                 >
@@ -339,10 +342,10 @@ export default function BuildManagement() {
       {/* 4. DESIGN CONCEPTS UPLOAD MODAL */}
       {activeConceptModalBuild && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#f0f6fc] border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+          <div className="bg-[#f0f6fc] border border-slate-200 rounded-3xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center">
               <h3 className="text-base font-bold font-serif uppercase tracking-wide text-slate-700">Design Concepts</h3>
-              <button onClick={() => setActiveConceptModalBuild(null)} className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer">
+              <button disabled={conceptSaving || conceptUploading} onClick={() => setActiveConceptModalBuild(null)} className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -356,13 +359,8 @@ export default function BuildManagement() {
                 placeholder="Concept Title (e.g. Living Room)" 
                 className="w-full text-xs p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#0070c0] text-slate-800"
               />
-              <input 
-                type="text" 
-                value={conceptUrl}
-                onChange={(e) => setConceptUrl(e.target.value)}
-                placeholder="Image URL" 
-                className="w-full text-xs p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-[#0070c0] text-slate-800"
-              />
+              <AdminImageUpload value={conceptUrl} onChange={setConceptUrl} onBusyChange={setConceptUploading} disabled={conceptSaving} />
+              {conceptError && <p role="alert" className="text-sm text-red-600">{conceptError}</p>}
               <textarea 
                 rows={3}
                 value={conceptDesc}
@@ -374,13 +372,14 @@ export default function BuildManagement() {
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <button 
                   type="submit"
+                  disabled={conceptSaving || conceptUploading}
                   className="py-2.5 bg-[#101828] hover:bg-black text-white text-xs font-bold uppercase tracking-wider rounded-xl transition border-none cursor-pointer shadow-sm"
                 >
-                  Upload Concept
+                  {conceptSaving ? 'Saving...' : 'Upload Concept'}
                 </button>
                 <button 
                   type="button"
-                  onClick={() => setActiveConceptModalBuild(null)}
+                  disabled={conceptSaving || conceptUploading} onClick={() => setActiveConceptModalBuild(null)}
                   className="py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer"
                 >
                   Cancel
@@ -408,7 +407,7 @@ export default function BuildManagement() {
                   <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
                     <p className="font-bold text-slate-800">{c.title}</p>
                     {c.description && <p className="text-slate-500 text-[11px]">{c.description}</p>}
-                    <p className="text-[#0070c0] font-mono text-[10px] truncate">{c.url}</p>
+                    {c.url && <Image src={imageSource(c.url)} alt={c.title} width={640} height={360} unoptimized className="w-full rounded-lg object-contain" />}
                   </div>
                 ))
               ) : (

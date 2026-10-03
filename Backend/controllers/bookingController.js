@@ -67,7 +67,7 @@ const getFleetLocations = async (_req, res) => {
 const createBooking = async (req, res) => {
     const user_id = Number(req.body.user_id);
     const read = (key) => typeof req.body[key] === 'string' ? req.body[key].trim() : '';
-    const selectedService = read('service_type');
+    const selectedService = req.body.estimate != null ? (typeof req.body.estimate.service === 'string' ? req.body.estimate.service.trim() : '') : read('service_type');
     const service_type = selectedService === 'Other' ? read('other_service') : selectedService;
     const project_description = read('project_description');
     const project_address = read('project_address');
@@ -205,13 +205,14 @@ const updateBooking = (req, res) => {
               message: "Booking updated."
             });
 
-            if (status && status.toLowerCase() === "rejected") {
+            if (status && ["confirmed", "approved", "rejected"].includes(status.toLowerCase())) {
+              const accepted = status.toLowerCase() !== "rejected";
               db.query(
                 `INSERT INTO notifications (user_id, title, message)
-                 SELECT user_id, 'Booking Rejected',
-                        CONCAT('Your ', service_type, ' booking request (#', id, ') was rejected by the admin.')
+                 SELECT user_id, ?,
+                        CONCAT('Your ', service_type, ' booking request (#', id, ') was ', ?, ' by the admin.')
                  FROM bookings WHERE id = ?`,
-                [req.params.id],
+                [accepted ? "Booking Accepted" : "Booking Rejected", accepted ? "accepted" : "rejected", req.params.id],
                 (notificationError) => {
                   if (notificationError) console.error("Unable to create rejection notification:", notificationError.message);
                   sendUpdatedResponse();

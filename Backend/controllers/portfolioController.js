@@ -8,7 +8,8 @@ const getPortfolio = (req, res) => {
     if (cached) return cache.sendCachedJson(res, cached);
 
     db.query(
-        "SELECT * FROM portfolio",
+        req.params.id ? "SELECT * FROM portfolio WHERE id = ?" : "SELECT * FROM portfolio ORDER BY id DESC",
+        req.params.id ? [req.params.id] : [],
         (err, result) => {
 
             if (err)
@@ -25,6 +26,8 @@ const getPortfolio = (req, res) => {
 const addPortfolio = (req, res) => {
 
     const { title, description, image, category } = req.body;
+
+    if (!validPortfolio(req.body)) return res.status(400).json({ success: false, message: "Provide a title, description, image and valid category." });
 
     db.query(
         "INSERT INTO portfolio(title, description, image, category) VALUES(?,?,?,?)",
@@ -53,13 +56,17 @@ const updatePortfolio = (req, res) => {
     const { id } = req.params;
     const { title, description, image, category } = req.body;
 
+    if (!validPortfolio(req.body)) return res.status(400).json({ success: false, message: "Provide a title, description, image and valid category." });
+
     db.query(
         "UPDATE portfolio SET title=?, description=?, image=?, category=COALESCE(?, category) WHERE id=?",
         [title, description, image, category ?? null, id],
-        (err) => {
+        (err, result) => {
 
             if (err)
                 return res.status(500).json(err);
+
+            if (!result.affectedRows) return res.status(404).json({ success: false, message: "Portfolio item not found." });
 
             cache.clearByPrefix("portfolio:");
             cache.clearByPrefix("landing:");
@@ -82,10 +89,12 @@ const deletePortfolio = (req, res) => {
     db.query(
         "DELETE FROM portfolio WHERE id=?",
         [id],
-        (err) => {
+        (err, result) => {
 
             if (err)
                 return res.status(500).json(err);
+
+            if (!result.affectedRows) return res.status(404).json({ success: false, message: "Portfolio item not found." });
 
             cache.clearByPrefix("portfolio:");
             cache.clearByPrefix("landing:");
@@ -99,6 +108,13 @@ const deletePortfolio = (req, res) => {
     );
 
 };
+
+function validPortfolio({ title, description, image, category }) {
+    return typeof title === 'string' && title.trim().length > 0 && title.length <= 150
+        && typeof description === 'string' && description.trim().length > 0
+        && typeof image === 'string' && image.length > 0 && image.length <= 255
+        && (category == null || (typeof category === 'string' && category.length <= 100));
+}
 
 module.exports = {
     getPortfolio,

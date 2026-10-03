@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   BookOpen, 
-  Hammer, 
+  Hammer,
+  Images,
   Settings, 
   LogOut
 } from 'lucide-react';
@@ -46,6 +47,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     { label: 'Overview', path: '/admin/dashboard', icon: LayoutDashboard },
     { label: 'Bookings', path: '/admin/book', icon: BookOpen },
     { label: 'Builds', path: '/admin/build', icon: Hammer },
+    { label: 'Portfolio', path: '/admin/portfolio', icon: Images },
     { label: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 
@@ -131,7 +133,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
       </main>
 
       {/* MOBILE BOTTOM NAV BAR */}
-      <nav aria-label="Admin navigation" className="md:hidden fixed bottom-0 left-0 right-0 min-h-16 bg-[#0070c0] border-t border-white/15 grid grid-cols-4 items-center gap-1 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40 shadow-lg">
+      <nav aria-label="Admin navigation" className="md:hidden fixed bottom-0 left-0 right-0 min-h-16 bg-[#0070c0] border-t border-white/15 grid grid-cols-5 items-center gap-1 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40 shadow-lg">
         {navItems.slice(0, 5).map((item) => {
           const active = checkActive(item.path);
           const Icon = item.icon;
