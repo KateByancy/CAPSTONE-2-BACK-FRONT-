@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Home, Grid, Calendar, Compass, MessageSquare, LogOut, AlertCircle, X } from 'lucide-react';
 import { getApiUrl, getClientSession } from '@/lib/api';
 
@@ -21,6 +21,7 @@ export default function DashboardShell({
   const [internalTab, setInternalTab] = useState('home');
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [bookingAlert, setBookingAlert] = useState<{ id: number; title: string; message: string } | null>(null);
+  const dismissedAlertIds = useRef(new Set<number>());
 
   // Use external states if provided, otherwise fallback to internal state management
   const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalTab;
@@ -48,7 +49,7 @@ export default function DashboardShell({
       const result: { success?: boolean; notifications?: Array<{ id: number; title: string; message: string; is_read: boolean | number }> } = await response.json();
       if (controller.signal.aborted || result?.success === false || !Array.isArray(result?.notifications)) return;
       const rejected = result.notifications.find((notification) =>
-        ['Booking Rejected', 'Booking Accepted'].includes(notification.title) && !Boolean(notification.is_read)
+        ['Booking Rejected', 'Booking Accepted'].includes(notification.title) && !Boolean(notification.is_read) && !dismissedAlertIds.current.has(notification.id)
       );
       setBookingAlert(rejected ? { id: rejected.id, title: rejected.title, message: rejected.message } : null);
       } catch {
@@ -66,12 +67,18 @@ export default function DashboardShell({
     };
   }, []);
 
-  const dismissRejectionAlert = async () => {
-    if (!bookingAlert) return;
-    const notificationId = bookingAlert.id;
-    setBookingAlert(null);
+  const dismissRejectionAlert = useCallback(async (notificationId: number) => {
+    dismissedAlertIds.current.add(notificationId);
+    setBookingAlert(current => current?.id === notificationId ? null : current);
     await fetch(`${getApiUrl()}/notifications/${notificationId}/read`, { method: 'PUT' }).catch(() => undefined);
-  };
+  }, []);
+
+  const bookingAlertId = bookingAlert?.id;
+  useEffect(() => {
+    if (bookingAlertId === undefined) return;
+    const timer = window.setTimeout(() => void dismissRejectionAlert(bookingAlertId), 5000);
+    return () => window.clearTimeout(timer);
+  }, [bookingAlertId, dismissRejectionAlert]);
 
   const handleLogoutClick = () => {
     if (onLogout) {
@@ -90,7 +97,7 @@ export default function DashboardShell({
             <p className="text-xs font-black uppercase tracking-wider">{bookingAlert.title}</p>
             <p className="mt-1 text-xs leading-relaxed">{bookingAlert.message}</p>
           </div>
-          <button type="button" onClick={() => void dismissRejectionAlert()} aria-label="Dismiss booking status notification" className="rounded-lg p-1 text-current hover:bg-black/5 cursor-pointer">
+          <button type="button" onClick={() => void dismissRejectionAlert(bookingAlert.id)} aria-label="Dismiss booking status notification" className="rounded-lg p-1 text-current hover:bg-black/5 cursor-pointer">
             <X className="h-4 w-4" />
           </button>
         </div>
