@@ -231,9 +231,9 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ];
 
 const runQuery = (sql) => new Promise((resolve, reject) => {
-    db.query(sql, (error) => {
+    db.query(sql, (error, rows) => {
         if (error) return reject(error);
-        resolve();
+        resolve(rows);
     });
 });
 
@@ -245,6 +245,7 @@ const initializeTables = async () => {
             await runQuery(sql);
             console.log(`Table step ${index + 1} ready.`);
         }
+        await require('./migrations/designConcepts')(runQuery);
         console.log("Database schema is ready.");
     } catch (error) {
         console.error("Database schema initialization failed:", error.message);

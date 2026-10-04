@@ -85,7 +85,8 @@ CREATE TABLE `portfolio` (
 CREATE TABLE `designs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `portfolio_id` int DEFAULT NULL,
-  `design_name` varchar(150) NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `title` varchar(150) NOT NULL,
   `design_type` varchar(100) DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
   `description` text DEFAULT NULL,

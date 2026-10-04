@@ -170,8 +170,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
           {/* 4. SERVICE MATRIX GRID */}
           <div className="px-6 py-4 grid grid-cols-2 gap-4">
             <div 
-              onClick={onNavigateToLogin}
-              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md group hover:bg-white transition cursor-pointer"
+              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md"
             >
               <div className="p-2 bg-blue-50 text-[#0070c0] rounded-xl border border-blue-100">
                 <Home className="w-5 h-5 stroke-[2]" />
@@ -180,8 +179,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
             </div>
 
             <div 
-              onClick={onNavigateToLogin}
-              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md group hover:bg-white transition cursor-pointer"
+              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md"
             >
               <div className="p-2 bg-blue-50 text-[#0070c0] rounded-xl border border-blue-100">
                 <LayoutGrid className="w-5 h-5 stroke-[2]" />
