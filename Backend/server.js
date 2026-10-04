@@ -113,6 +113,15 @@ const startServer = async () => {
         throw failure;
     }
 
+    try {
+        await require('./migrations/designConcepts')((sql) => new Promise((resolve, reject) => {
+            db.query(sql, (error, rows) => error ? reject(error) : resolve(rows));
+        }));
+    } catch (error) {
+        db.destroy();
+        throw new Error(`Design concept storage migration failed (${error.code || 'unknown'}). ${error.message}`, { cause: error });
+    }
+
     return new Promise((resolve, reject) => {
         const server = app.listen(PORT);
 
