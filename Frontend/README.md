@@ -37,6 +37,28 @@ project Settings > Build and Deployment, set **Root Directory** to `Frontend`
 Directory at its framework default. `Frontend/vercel.json` configures
 `npm ci --include=dev` for installation and `npm run build` for the build.
 
+If deployment reports **No Next.js version detected**, Vercel is looking at
+the wrong package directory: the repository-root `package.json` is a command
+wrapper, while `Frontend/package.json` declares Next.js `16.2.10`. Set Root
+Directory to `Frontend`, save, and redeploy. Root Directory is a Vercel project
+setting; it cannot be set in `vercel.json`. Only `Frontend/vercel.json` is
+maintained for the frontend deployment.
+
+Use these settings relative to `Frontend`:
+
+| Setting | Value |
+| --- | --- |
+| Root Directory | `Frontend` |
+| Framework Preset | Next.js |
+| Install Command | `npm ci --include=dev` |
+| Build Command | `npm run build` |
+| Output Directory | Framework default (`.next`) |
+
+Remove any saved command overrides containing `--prefix Frontend` or an output
+override of `Frontend/.next`; those paths assume the repository root. The
+frontend configuration already provides the appropriate install and build
+commands.
+
 The repository-root package forwards commands to Frontend. Its `postinstall`
 script now installs Frontend's locked dependencies as well, so a root-level
 `npm install` prepares the frontend build. Previously, installing at the root
