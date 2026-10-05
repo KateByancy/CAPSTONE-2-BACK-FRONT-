@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
 const bcrypt = require('bcrypt');
-require('dotenv').config({ quiet: true });
+require('dotenv').config({ path: require('node:path').join(__dirname, '../.env'), quiet: true });
 process.env.NODE_ENV = 'test';
 process.env.ADMIN_EMAIL = 'admin-email@example.test';
 process.env.ADMIN_PASSWORD = 'Old-password-123';

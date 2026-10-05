@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
-require('dotenv').config({ quiet: true });
+require('dotenv').config({ path: require('node:path').join(__dirname, '../.env'), quiet: true });
 process.env.JWT_SECRET = 'avatar-test-only';
 const db = require('../config/db');
 const { issueAccessToken } = require('../utils/authTokens');
@@ -26,6 +26,8 @@ test('admin and client pictures persist across handler reloads and only valid up
         });
     }
     try {
+        await query('CREATE TEMPORARY TABLE users (id INT PRIMARY KEY, role VARCHAR(20), password VARCHAR(255))');
+        await query("INSERT INTO users VALUES (910001, 'admin', 'ADMIN_ENV_AUTH'), (910002, 'client', 'test-only')");
         await query(require('../migrations/avatars').replace('CREATE TABLE IF NOT EXISTS', 'CREATE TEMPORARY TABLE'));
         await start();
         const admin = { id: 910001, role: 'admin' }, client = { id: 910002, role: 'client' };

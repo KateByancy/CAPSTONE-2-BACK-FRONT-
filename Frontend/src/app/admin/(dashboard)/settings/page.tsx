@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { LogOut } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import ChangePassword from '@/components/ChangePassword';
 import { getApiUrl, requestProfile } from '@/lib/api';
 
 export default function ProfileSettings() {
@@ -166,6 +167,7 @@ export default function ProfileSettings() {
             </button>
             </fieldset>
           </form>
+          <ChangePassword role="admin" />
 
         </div>
 

@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
-require('dotenv').config({ quiet: true });
+require('dotenv').config({ path: require('node:path').join(__dirname, '../.env'), quiet: true });
 process.env.JWT_SECRET = 'payment-test-only';
 process.env.PAYMONGO_SECRET_KEY = 'sk_test_fixture';
 process.env.NODE_ENV = 'test';

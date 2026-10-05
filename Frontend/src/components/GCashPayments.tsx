@@ -29,6 +29,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   const [filter, setFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [proofUrl, setProofUrl] = useState('');
@@ -63,6 +64,19 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     return () => { active = false; window.clearInterval(timer); window.removeEventListener('focus', refresh); };
   }, [load, request]);
   useEffect(() => () => { if (proofUrl) URL.revokeObjectURL(proofUrl); }, [proofUrl]);
+  async function refreshPayments() {
+    if (inFlight.current) return;
+    inFlight.current = true; setRefreshing(true); setError(''); setNotice('');
+    try {
+      const [billing, settings] = await Promise.all([request(''), request('/settings')]);
+      setPayments(billing.payments); setBookings(billing.bookings); setLegacy(billing.legacy);
+      setConfigured(settings.provider === 'PayMongo' && settings.configured === true);
+      setTestMode(settings.testMode === true);
+      if (billing.syncWarning) setError(billing.syncWarning);
+      else setNotice('Payments refreshed.');
+    } catch (error) { setError(error instanceof Error ? error.message : 'Unable to refresh payments.'); }
+    finally { inFlight.current = false; setRefreshing(false); }
+  }
   async function mutate(path: string, body: object | FormData, message: string, method = 'POST') {
     if (inFlight.current) return false;
     inFlight.current = true; setBusy(true); setError(''); setNotice('');
@@ -104,7 +118,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   return <div className="space-y-6 text-slate-900">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-3">{onBack && <button onClick={onBack} aria-label="Back" className={`rounded-xl p-2 hover:bg-slate-100 ${admin ? 'hidden md:inline-flex' : ''}`}><ArrowLeft size={20} /></button>}<Smartphone className="text-blue-600" /><div><h1 className="text-2xl font-bold">GCash Payments</h1><p className="text-sm text-slate-500">{admin ? 'Request payments and verify received funds.' : 'Pay your booking requests and track verification.'}</p></div></div>
-      <button disabled={busy} onClick={() => { setError(''); void load().catch(err => setError(err.message)); }} className="flex items-center gap-2 rounded-xl border px-4 py-2 text-sm"><RefreshCw size={16} />Refresh</button>
+      <button disabled={busy || refreshing || loading} onClick={() => void refreshPayments()} className="flex items-center gap-2 rounded-xl border px-4 py-2 text-sm"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />{refreshing ? 'Refreshing...' : 'Refresh'}</button>
     </div>
     <p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">Booking accepted → Admin requests an amount → Client pays with GCash through PayMongo → PayMongo confirms payment</p>
     {testMode && <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">PayMongo test mode — checkout simulates payments; no real money is collected.</p>}

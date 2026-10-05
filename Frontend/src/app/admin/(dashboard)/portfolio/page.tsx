@@ -79,7 +79,7 @@ export default function PortfolioUpdates() {
   return <div className="mx-auto w-full max-w-6xl space-y-6 pb-8">
     <div className="flex flex-col gap-4 rounded-2xl bg-[#0070c0] p-5 text-white sm:flex-row sm:items-center sm:justify-between">
       <div><h1 className="text-2xl font-bold font-serif">Portfolio Updates</h1><p className="mt-1 text-sm text-blue-100">Manage your published projects.</p></div>
-      <button onClick={() => start()} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-bold text-blue-800"><Plus size={18} />Create Portfolio</button>
+      <button aria-label="Create Portfolio" title="Create Portfolio" onClick={() => start()} className="flex h-11 w-11 shrink-0 self-end items-center justify-center gap-2 rounded-xl bg-white sm:w-auto sm:self-auto sm:px-4 text-sm font-bold text-blue-800"><Plus size={18} /><span className="hidden sm:inline">Create Portfolio</span></button>
     </div>
     {error && !open && !deleting && <div role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}<button className="ml-3 underline" onClick={() => { setError(''); void load().catch(err => setError(err.message)); }}>Retry</button></div>}
     {notice && <p role="status" className="rounded-xl bg-green-50 p-3 text-sm text-green-800">{notice}</p>}

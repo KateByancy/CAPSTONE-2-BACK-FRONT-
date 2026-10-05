@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MapPin, Compass, Info, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -30,14 +30,23 @@ const getStatus = (progress: number): 'Pending' | 'Ongoing' | 'Completed' => {
 export default function FleetMapManagement() {
   // --- DYNAMIC STATE SYSTEM CONNECTED TO BUILDS & PROJECT ROADMAP ---
   const [liveProjects, setLiveProjects] = useState<ProjectMarker[]>([]);
+  const [loadError, setLoadError] = useState('');
   const [selectedProject, setSelectedProject] = useState<ProjectMarker | null>(null);
   const [hoveredProject, setHoveredProject] = useState<ProjectMarker | null>(null);
 
   useEffect(() => {
-    const loadFleetProjects = () => Promise.all([
-      fetch(`${getApiUrl()}/booking`).then(r => r.json()),
-      fetch(`${getApiUrl()}/tracking`).then(r => r.json())
-    ]).then(([bookingData, trackingData]) => {
+    const controller = new AbortController();
+    let loading = false;
+    const loadFleetProjects = async () => {
+      if (loading || controller.signal.aborted || document.visibilityState !== 'visible') return;
+      loading = true;
+      try {
+      const [bookingData, trackingData] = await Promise.all([
+      fetch(`${getApiUrl()}/booking`, { signal: controller.signal }).then(r => { if (!r.ok) throw new Error('Unable to load fleet projects.'); return r.json(); }),
+      fetch(`${getApiUrl()}/tracking`, { signal: controller.signal }).then(r => { if (!r.ok) throw new Error('Unable to load project progress.'); return r.json(); })
+    ]);
+      if (controller.signal.aborted) return;
+      setLoadError('');
       const acceptedProjects = (bookingData.bookings ?? [])
         .filter((booking: { accepted_at?: string | null; client_address?: string | null }) =>
           Boolean(booking.accepted_at && booking.client_address?.trim())
@@ -60,15 +69,21 @@ export default function FleetMapManagement() {
         })
         .filter((project: ProjectMarker) => project.status !== 'Completed');
 
-      setLiveProjects(acceptedProjects);
+      setLiveProjects(current => JSON.stringify(current) === JSON.stringify(acceptedProjects) ? current : acceptedProjects);
       setSelectedProject((current) => acceptedProjects.find((project: ProjectMarker) => project.id === current?.id) ?? acceptedProjects[0] ?? null);
-    });
+      } catch (error) { if (!controller.signal.aborted) setLoadError(error instanceof Error ? error.message : 'Unable to load fleet projects.'); }
+      finally { loading = false; }
+    };
     void loadFleetProjects();
     const refreshTimer = window.setInterval(() => void loadFleetProjects(), 10000);
-    return () => window.clearInterval(refreshTimer);
+    return () => { controller.abort(); window.clearInterval(refreshTimer); };
   }, []);
 
   const activeProject = selectedProject || liveProjects[0] || null;
+  const selectProject = useCallback((projectId: string) => {
+    const project = liveProjects.find(item => item.id === projectId);
+    if (project) setSelectedProject(project);
+  }, [liveProjects]);
 
   return (
     <div className="space-y-6 pb-10">
@@ -85,6 +100,7 @@ export default function FleetMapManagement() {
         <Link href="/admin/dashboard" className="min-h-11 shrink-0 hidden md:inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
       </div>
 
+      {loadError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{loadError}</p>}
       {/* MAIN HARDWARE VISUALIZATION PORT */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
@@ -106,10 +122,7 @@ export default function FleetMapManagement() {
               <FleetProjectMap
                 projects={liveProjects}
                 selectedProjectId={activeProject?.id}
-                onSelectProject={(projectId) => {
-                  const project = liveProjects.find((item) => item.id === projectId);
-                  if (project) setSelectedProject(project);
-                }}
+                onSelectProject={selectProject}
               />
             ) : (
               <div className="flex h-full min-h-[430px] flex-col items-center justify-center gap-3 text-center text-slate-500">

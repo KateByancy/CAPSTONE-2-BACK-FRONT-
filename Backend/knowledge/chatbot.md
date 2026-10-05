@@ -5,6 +5,43 @@ When the admin is offline, explicit portfolio or sample-project requests automat
 
 These facts describe the current app. Edit this file when the business owner confirms a policy change, then restart the backend.
 
+## Business owner's exact answers
+
+1. Services offered:
+Signage and renovation.
+
+2. Types of projects accepted:
+Kiosk, mural, and decals.
+
+3. Information needed to book a consultation:
+Floor plan.
+
+4. Booking and approval process:
+Site visit.
+
+5. Factors determining the project estimate:
+Material costs and the situation of the project.
+
+6. Square meter/square feet estimation:
+Based on the design.
+
+7. Payment method:
+Wireless transfer.
+
+8. Project status updates:
+The owner will provide updates.
+
+9. Common client concern:
+Quality.
+
+10. AI information boundary:
+Avoid providing information that has not been provided by the owner.
+
+## AI response rule for owner-confirmed knowledge
+- Answer using only the business owner's answers above and the existing approved system knowledge in this file. If information is not available, do not guess or create an answer; state that the information has not been provided.
+- The owner's exact answers take precedence for these business questions over older descriptions, general advice, or response examples. Do not add services, project types, consultation requirements, approval steps, estimate factors, rates, payment details, update schedules, or quality guarantees that the owner has not provided.
+- For the business payment method, use the exact answer "Wireless transfer." The existing Payments section below describes app functionality, not additional owner-confirmed business payment methods. Do not reinterpret "Wireless transfer" or invent transfer instructions or recipient details.
+
 ## Marc's profile and contact details
 - Full name: Marc Rossel P. Lecciones.
 - Provided address/location: Placer, Masbate, Philippines. This is not a confirmed street address or walk-in office location, and does not establish service coverage.

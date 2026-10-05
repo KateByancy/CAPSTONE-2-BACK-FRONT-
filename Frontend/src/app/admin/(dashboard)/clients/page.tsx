@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ChatClientAvatar from '@/components/ChatClientAvatar';
 import useChatScroll from '@/components/useChatScroll';
-import { Send, ChevronDown, ChevronLeft, MessageSquare, Search } from 'lucide-react';
+import { Send, ChevronDown, ChevronLeft, MessageSquare, Search, Trash2 } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
 import Link from 'next/link';
 
@@ -40,6 +40,8 @@ export default function ClientsManagement() {
   // --- CLIENT LIST STATE ---
   const [clients, setClients] = useState<ClientProfile[]>([]);
   const [clientsError, setClientsError] = useState('');
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
+  const deletedClientIds = useRef(new Set<string>());
   const [searchQuery, setSearchQuery] = useState('');
   const searchTerms = searchQuery.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
   const filteredClients = clients.filter(client => {
@@ -57,7 +59,7 @@ export default function ClientsManagement() {
           throw new Error(result.message || 'Unable to load clients.');
         }
 
-        setClients((result.users ?? []).map((client) => ({
+        setClients((result.users ?? []).filter(client => !deletedClientIds.current.has(String(client.id))).map((client) => ({
           id: String(client.id),
           name: formatClientName(client.fullname),
           email: client.email,
@@ -112,6 +114,21 @@ export default function ClientsManagement() {
     return () => window.clearInterval(timer);
   }, [activeChatClient, loadConversation]);
 
+
+  async function deleteClient(client: ClientProfile) {
+    if (deletingClientId || !window.confirm(`Delete ${client.name}'s account? Clients with booking history cannot be deleted.`)) return;
+    setDeletingClientId(client.id); setClientsError('');
+    try {
+      const response = await fetch(`${getApiUrl()}/auth/clients/${client.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('adminToken') || ''}` } });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || 'Unable to delete client.');
+      deletedClientIds.current.add(client.id);
+      setClients(current => current.filter(item => item.id !== client.id));
+      if (activeChatClient?.id === client.id) { conversationRequestRef.current++; setActiveChatClient(null); }
+      setMessages(current => { const next = { ...current }; delete next[client.id]; return next; });
+    } catch (error) { setClientsError(error instanceof Error ? error.message : 'Unable to delete client.'); }
+    finally { setDeletingClientId(null); }
+  }
 
   // --- HANDLERS ---
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -191,7 +208,7 @@ export default function ClientsManagement() {
                   }`}
                 >
                   {/* Avatar & Client Info */}
-                  <div className="flex items-center space-x-3">
+                  <div className="flex min-w-0 items-center space-x-3">
                     <div className="relative w-11 h-11 rounded-full bg-[#82c0e7] text-[#102243] font-bold text-base flex items-center justify-center shrink-0 shadow-inner">
                       {client.initial}
                       <span title={client.isOnline ? 'Online' : 'Offline'} className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${client.isOnline ? 'bg-emerald-500' : 'bg-slate-400 shadow-inner'}`} />
@@ -202,6 +219,7 @@ export default function ClientsManagement() {
                     </div>
                   </div>
 
+                  <div className="flex shrink-0 items-center gap-1">
                   {/* View Chat Link */}
                   <button
                     onClick={() => setActiveChatClient(client)}
@@ -209,6 +227,8 @@ export default function ClientsManagement() {
                   >
                     View Chat
                   </button>
+                  <button type="button" disabled={deletingClientId !== null} onClick={() => void deleteClient(client)} aria-label={`Delete ${client.name}`} title="Delete client" className="flex h-9 w-9 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-40"><Trash2 className="h-4 w-4" /></button>
+                  </div>
                 </div>
               );
             })}

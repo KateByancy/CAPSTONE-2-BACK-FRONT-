@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
-require('dotenv').config({ quiet: true });
+require('dotenv').config({ path: require('node:path').join(__dirname, '../.env'), quiet: true });
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'client-email-test-only';
 process.env.ADMIN_RECOVERY_GMAIL_USER = 'sender@gmail.com';

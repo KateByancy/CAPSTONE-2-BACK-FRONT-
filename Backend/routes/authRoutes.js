@@ -86,10 +86,12 @@ router.post("/reset-password", [
 router.post("/change-password", verifyToken, [
     body("currentPassword").isString().notEmpty().withMessage("Current password is required."),
     body("newPassword").isLength({ min: 8, max: 128 }).withMessage("New password must contain 8 to 128 characters."),
+    body("newPassword").custom(value => typeof value === "string" && Buffer.byteLength(value, "utf8") <= 72).withMessage("Password must be at most 72 bytes."),
     body("newPassword").custom((value, { req }) => value !== req.body.currentPassword).withMessage("New password must be different from the current password."),
     validateRequest
 ], changePassword);
 router.get("/clients", verifyToken, authorizeRoles("admin"), getClients);
+router.delete("/clients/:id", verifyToken, authorizeRoles("admin"), require("../controllers/clientController").deleteClient);
 router.post("/presence", verifyToken, authorizeRoles("client", "admin"), updatePresence);
 router.post("/presence/offline", verifyToken, authorizeRoles("client", "admin"), clearPresence);
 

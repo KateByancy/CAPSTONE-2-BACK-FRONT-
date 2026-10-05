@@ -4,14 +4,19 @@ const express = require('express');
 
 process.env.JWT_SECRET = 'profile-test-only-secret';
 const rows = new Map([
-    [1, { id: 1, fullname: 'Admin', phone: '', address: '', landmark: 'Existing', role: 'admin' }],
+    [1, { id: 1, fullname: 'Admin', phone: '', address: '', landmark: 'Existing', role: 'admin', password: 'ADMIN_ENV_AUTH' }],
     [2, { id: 2, fullname: 'Client', phone: '', address: '', landmark: '', role: 'client' }]
 ]);
 const dbPath = require.resolve('../config/db');
 require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
     query(sql, values, callback) {
         const row = rows.get(Number(values.at(-1)));
-        if (sql.startsWith('SELECT')) return callback(null, row ? [{ ...row }] : []);
+        if (sql.startsWith('SELECT password')) return callback(null, row ? [{ password: row.password }] : []);
+        if (sql.startsWith('SELECT')) {
+            if (!row) return callback(null, []);
+            const { password, ...profile } = row;
+            return callback(null, [profile]);
+        }
         assert.match(sql, /^UPDATE users SET /);
         if (!row) return callback(null, { affectedRows: 0 });
         const columns = sql.split(' SET ')[1].split(' WHERE ')[0].split(', ').map(part => part.split(' = ')[0]);

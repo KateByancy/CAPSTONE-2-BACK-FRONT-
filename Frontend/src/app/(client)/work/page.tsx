@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Layers, Eye, X } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
 
@@ -13,6 +13,7 @@ interface PortfolioItem {
 
 export default function Work() {
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [moreOpen, setMoreOpen] = useState(false);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -63,14 +64,12 @@ export default function Work() {
     };
   }, [loadAttempt]);
 
-  const categories = useMemo(
-    () => ['All', ...Array.from(new Set(portfolioItems.map((item) => item.category)))],
-    [portfolioItems],
-  );
+  const categories = ['All', 'Cafe & Dining', 'Bar & Lounge', 'Office'];
+  const moreCategories = ['Reception', 'Product Display', 'Showroom'];
 
   const filteredItems = selectedCategory === 'All' 
     ? portfolioItems 
-    : portfolioItems.filter(item => item.category === selectedCategory);
+    : portfolioItems.filter(item => item.category.replace(/\s+and\s+/gi, ' & ') === selectedCategory);
 
   return (
     <div className="p-4 space-y-4 animate-fadeIn">
@@ -80,7 +79,7 @@ export default function Work() {
       </div>
       
       {/* Category Horizontal Filter Tags */}
-      <div className="flex space-x-2 overflow-x-auto pb-1 scrollbar-none">
+      <div className="relative flex flex-wrap gap-2 pb-1">
         {categories.map((cat) => (
           <button
             key={cat}
@@ -94,6 +93,15 @@ export default function Work() {
             {cat}
           </button>
         ))}
+        <div className="relative">
+          <button type="button" aria-expanded={moreOpen} aria-controls="more-categories" onClick={() => setMoreOpen(open => !open)} className={`px-4 py-1.5 rounded-full text-xs font-semibold border ${moreCategories.includes(selectedCategory) ? 'bg-[#0070c0] text-white' : 'bg-white border-slate-200 text-slate-600'}`}>More <span aria-hidden="true">&#9662;</span></button>
+          {moreOpen && <>
+            <button type="button" aria-label="Close more categories" className="fixed inset-0 z-10 cursor-default" onClick={() => setMoreOpen(false)} />
+            <div id="more-categories" className="absolute right-0 top-full z-20 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-lg" onKeyDown={event => { if (event.key === 'Escape') setMoreOpen(false); }}>
+              {moreCategories.map(category => <button key={category} type="button" aria-pressed={selectedCategory === category} onClick={() => { setSelectedCategory(category); setMoreOpen(false); }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-blue-50 ${selectedCategory === category ? 'bg-blue-50 text-blue-700' : 'text-slate-600'}`}>{category}</button>)}
+            </div>
+          </>}
+        </div>
       </div>
 
       {/* Grid Portfolio Feed */}

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Check, LogOut } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import ChangePassword from '@/components/ChangePassword';
 import { requestProfile, getClientSession } from '@/lib/api';
 
 interface AccountProfileProps {
@@ -185,6 +186,7 @@ export default function AccountProfile({ userName = 'John Doe', onLogout }: Acco
           </button>
           </fieldset>
         </form>
+          <ChangePassword role="client" />
 
       </div>
     </div>

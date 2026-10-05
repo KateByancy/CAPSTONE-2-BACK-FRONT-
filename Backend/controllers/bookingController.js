@@ -1,8 +1,7 @@
 const db = require("../config/db");
 const cache = require("../utils/cache");
 
-const fleetLocationCache = new Map();
-const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const fleetGeocoder = require('../services/fleetGeocoder').createFleetGeocoder();
 
 const getFleetLocations = async (_req, res) => {
     try {
@@ -24,40 +23,7 @@ const getFleetLocations = async (_req, res) => {
             );
         });
 
-        const locations = [];
-        for (const booking of bookings) {
-            if (!booking.address) continue;
-            const cacheKey = `${booking.address}|${booking.landmark || ''}`.toLowerCase();
-            let coordinates = fleetLocationCache.get(cacheKey);
-
-            if (coordinates === undefined) {
-                const addressParts = booking.address.split(',').map((part) => part.trim()).filter(Boolean);
-                const candidates = Array.from(new Set([
-                    booking.address,
-                    booking.landmark ? `${booking.address}, near ${booking.landmark}` : '',
-                    ...addressParts.map((_, index) => addressParts.slice(index).join(', ')),
-                ].filter(Boolean)));
-
-                coordinates = null;
-                for (const candidate of candidates) {
-                    const query = new URLSearchParams({ format: 'jsonv2', q: `${candidate}, Philippines`, countrycodes: 'ph', limit: '1' });
-                    const response = await fetch(`https://nominatim.openstreetmap.org/search?${query}`, {
-                        headers: { 'User-Agent': 'MARC-Interior-Design-Fleet/1.0' }
-                    });
-                    const results = response.ok ? await response.json() : [];
-                    if (results[0]) {
-                        coordinates = { lat: Number(results[0].lat), lng: Number(results[0].lon) };
-                        break;
-                    }
-                    await wait(1100);
-                }
-                if (coordinates) fleetLocationCache.set(cacheKey, coordinates);
-            }
-
-            if (coordinates) locations.push({ booking_id: booking.id, ...coordinates });
-        }
-
-        return res.json({ success: true, locations });
+        return res.json({ success: true, ...fleetGeocoder.read(bookings) });
     } catch (error) {
         return res.status(502).json({ success: false, message: "Unable to locate project addresses on the map." });
     }

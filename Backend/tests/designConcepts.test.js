@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const express = require('express');
-require('dotenv').config({ quiet: true });
+require('dotenv').config({ path: require('node:path').join(__dirname, '../.env'), quiet: true });
 const db = require('../config/db');
 const query = (sql, values = []) => new Promise((resolve, reject) => {
     db.query(sql, values, (error, rows) => error ? reject(error) : resolve(rows));

@@ -24,11 +24,11 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
   const previewRef = useRef<HTMLDialogElement>(null);
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % galleryImages.length);
+    setCurrentSlide((prev) => Math.min(prev + 1, galleryImages.length - 1));
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+    setCurrentSlide((prev) => Math.max(prev - 1, 0));
   };
 
   return (
@@ -146,16 +146,18 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
                 <button 
                   type="button"
                   onClick={prevSlide}
+                  disabled={currentSlide === 0}
                   aria-label="Show previous interior image"
-                  className="p-1 bg-white hover:bg-slate-100 active:bg-blue-600 text-slate-800 active:text-white rounded-md transition shadow-md flex items-center justify-center cursor-pointer"
+                  className="p-1 bg-white hover:bg-slate-100 active:bg-blue-600 text-slate-800 active:text-white rounded-md transition shadow-md flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-default"
                 >
                   <ChevronLeft className="w-3.5 h-3.5 stroke-[3]" />
                 </button>
                 <button 
                   type="button"
                   onClick={nextSlide}
+                  disabled={currentSlide === galleryImages.length - 1}
                   aria-label="Show next interior image"
-                  className="p-1 bg-white hover:bg-slate-100 active:bg-blue-600 text-slate-800 active:text-white rounded-md transition shadow-md flex items-center justify-center cursor-pointer"
+                  className="p-1 bg-white hover:bg-slate-100 active:bg-blue-600 text-slate-800 active:text-white rounded-md transition shadow-md flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-default"
                 >
                   <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
                 </button>
@@ -187,9 +189,8 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
               <span className="text-[9px] font-black tracking-widest text-slate-700 uppercase">Commercial</span>
             </div>
 
-            <div 
-              onClick={onNavigateToLogin} 
-              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md group hover:bg-white transition cursor-pointer"
+            <div
+              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md"
             >
               <div className="p-2 bg-blue-50 text-[#0070c0] rounded-xl border border-blue-100">
                 <Calendar className="w-5 h-5 stroke-[2]" />
@@ -197,9 +198,8 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
               <span className="text-[9px] font-black tracking-widest text-slate-700 uppercase">Book</span>
             </div>
 
-            <div 
-              onClick={onNavigateToLogin} 
-              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md group hover:bg-white transition cursor-pointer"
+            <div
+              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md"
             >
               <div className="p-2 bg-blue-50 text-[#0070c0] rounded-xl border border-blue-100">
                 <MessageSquare className="w-5 h-5 stroke-[2]" />
@@ -235,7 +235,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
           </div>
 
           <p className="text-[8px] tracking-[0.15em] text-blue-200/40 uppercase font-semibold">
-            © 2026 MARC CUSTOM DESIGNS - EST 2013
+            © 2026 MARC CUSTOM DESIGNS
           </p>
         </div>
 

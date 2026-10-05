@@ -407,7 +407,11 @@ exports.changePassword = async (req, res, next) => {
 
     let matches = false;
     try {
-      matches = await bcrypt.compare(req.body.currentPassword, users[0].password);
+      if (req.user.role === 'admin' && users[0].password === 'ADMIN_ENV_AUTH') {
+        matches = Boolean(process.env.ADMIN_PASSWORD) && crypto.timingSafeEqual(crypto.createHash('sha256').update(req.body.currentPassword).digest(), crypto.createHash('sha256').update(process.env.ADMIN_PASSWORD).digest());
+      } else {
+        matches = await bcrypt.compare(req.body.currentPassword, users[0].password);
+      }
     } catch {
       matches = false;
     }
@@ -420,7 +424,7 @@ exports.changePassword = async (req, res, next) => {
     await query("UPDATE users SET password = ? WHERE id = ?", [passwordHash, req.user.id]);
     await query("UPDATE password_reset_requests SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL", [req.user.id]);
 
-    return res.json({ success: true, message: "Password changed successfully." });
+    return res.json({ success: true, message: "Password changed successfully.", token: issueAccessToken({ id: req.user.id, role: req.user.role, password: passwordHash }) });
   } catch (error) {
     return next(error);
   }

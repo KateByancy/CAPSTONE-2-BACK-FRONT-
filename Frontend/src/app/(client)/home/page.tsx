@@ -40,6 +40,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   // --- SCHEDULES TOGGLE STATE (Show/Hide Calendar Widget) ---
   const [showCalendarView, setShowCalendarView] = useState<boolean>(false);
   const [clientSchedule, setClientSchedule] = useState<{id:number;service_type:string;project_description:string;visit_date:string;status:string;booking_status:string;accepted_at?:string | null;reschedule_count:number;time_start?:string;time_end?:string} | null>(null);
+  const [projectSchedules, setProjectSchedules] = useState<Array<{id:number;service_type:string;project_description:string;visit_date:string;status:string;booking_status:string;accepted_at?:string | null;reschedule_count:number;time_start?:string;time_end?:string}>>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [isRescheduleSubmitting, setIsRescheduleSubmitting] = useState(false);
   const [scheduleMessage, setScheduleMessage] = useState('');
@@ -63,20 +65,24 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
   const [clientBookedSlots, setClientBookedSlots] = useState<Array<{ visit_date: string; time_start?: string }>>([]);
   useEffect(() => {
+    let active = true;
     const loadSchedule = async () => {
       const client=getClientSession(); if(!client)return;
       const response=await fetch(`${getApiUrl()}/schedule?user_id=${client.id}`);
       const rows=await response.json();
-      if(!response.ok) return;
-      const schedule=Array.isArray(rows)&&rows.length?rows[0]:null;
+      if (!active) return;
+      if (!response.ok) throw new Error('Unable to load project schedules.');
+      const available = Array.isArray(rows) ? rows.filter(row => !['cancelled', 'rejected'].includes(String(row.booking_status).toLowerCase()) && !['cancelled', 'rejected'].includes(String(row.status).toLowerCase())) : [];
+      setProjectSchedules(available);
+      const schedule = available.find(row => row.id === selectedProjectId) || available.find(row => row.accepted_at || ['confirmed', 'approved', 'ongoing', 'completed'].includes(String(row.booking_status).toLowerCase())) || available[0] || null;
       setClientSchedule(schedule);
       setClientBookedSlots(Array.isArray(rows) ? rows.filter(row => !['cancelled', 'rejected'].includes(String(row.booking_status).toLowerCase()) && !['cancelled', 'rejected'].includes(String(row.status).toLowerCase())) : []);
       if(schedule?.visit_date && !isRescheduling){const [year,month,day]=String(schedule.visit_date).slice(0,10).split('-').map(Number);setCurrentMonth(month-1);setCurrentYear(year);setSelectedDate(day);}
     };
-    void loadSchedule();
-    const timer=window.setInterval(()=>void loadSchedule(),10000);
-    return()=>window.clearInterval(timer);
-  }, [isRescheduling]);
+    void loadSchedule().catch(() => { if (active) setScheduleMessage('Unable to load project schedules.'); });
+    const timer=window.setInterval(()=>void loadSchedule().catch(() => { if (active) setScheduleMessage('Unable to refresh project schedules.'); }),10000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [isRescheduling, selectedProjectId]);
 
   useEffect(() => {
     const loadUnavailableSlots=async()=>{const response=await fetch(`${getApiUrl()}/schedule/unavailable`);const data=await response.json();if(response.ok)setUnavailableSlots(data.slots??[]);};
@@ -291,6 +297,13 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
           </button>
         </div>
 
+        <label className="block rounded-2xl border border-slate-200 bg-white p-4 text-xs font-bold text-slate-600">
+          Project selector
+          <select value={clientSchedule?.id ?? ''} onChange={event => { const project = projectSchedules.find(row => row.id === Number(event.target.value)); setSelectedProjectId(Number(event.target.value)); if (project) { setClientSchedule(project); const [year, month, day] = String(project.visit_date).slice(0, 10).split('-').map(Number); setCurrentYear(year); setCurrentMonth(month - 1); setSelectedDate(day); } setIsRescheduling(false); setScheduleMessage(''); setShowCalendarView(true); }} className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 p-3" disabled={!projectSchedules.length}>
+            {!projectSchedules.length && <option value="">No project schedules yet</option>}
+            {projectSchedules.map(project => <option key={project.id} value={project.id}>{project.service_type} - {project.project_description || `Project #${project.id}`} ({project.accepted_at || ['confirmed', 'approved', 'ongoing', 'completed'].includes(project.booking_status?.toLowerCase()) ? 'Confirmed' : 'Pending approval'})</option>)}
+          </select>
+        </label>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className={`${showCalendarView ? 'lg:col-span-5' : 'lg:col-span-12 max-w-xl'} space-y-4 transition-all duration-300`}>
             {clientSchedule ? <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-md space-y-6 relative">

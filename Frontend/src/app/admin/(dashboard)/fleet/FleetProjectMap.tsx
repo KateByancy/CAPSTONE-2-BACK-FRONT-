@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -41,47 +41,56 @@ const redPinIcon = L.divIcon({
 function RecenterMap({ coordinates, allCoordinates }: { coordinates?: Coordinates; allCoordinates: Coordinates[] }) {
   const map = useMap();
 
+  const lat = coordinates?.lat;
+  const lng = coordinates?.lng;
+  const hasSelection = lat !== undefined && lng !== undefined;
   useEffect(() => {
-    if (coordinates) {
-      map.flyTo([coordinates.lat, coordinates.lng], 16, { duration: 1.2 });
-    } else if (allCoordinates.length) {
-      map.fitBounds(allCoordinates.map((item) => [item.lat, item.lng]), { padding: [40, 40], maxZoom: 14 });
+    if (lat !== undefined && lng !== undefined) map.setView([lat, lng], 16, { animate: false });
+  }, [lat, lng, map]);
+  useEffect(() => {
+    if (!hasSelection && allCoordinates.length) {
+      map.fitBounds(allCoordinates.map(item => [item.lat, item.lng]), { padding: [40, 40], maxZoom: 14 });
     }
-  }, [coordinates, allCoordinates, map]);
+  }, [hasSelection, allCoordinates, map]);
 
   return null;
 }
 
-export default function FleetProjectMap({ projects, selectedProjectId, onSelectProject }: FleetProjectMapProps) {
+function FleetProjectMap({ projects, selectedProjectId, onSelectProject }: FleetProjectMapProps) {
   const [coordinatesById, setCoordinatesById] = useState<Record<string, Coordinates>>({});
+  const [pendingLocations, setPendingLocations] = useState(0);
   const projectSignature = projects
     .map((project) => `${project.id}:${project.fullAddress || project.locationName}:${project.landmark || ''}`)
     .join('|');
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
+    let retryTimer: number | undefined;
 
     const loadCoordinates = async () => {
       try {
-        const response = await fetch(`${getApiUrl()}/booking/fleet-locations`);
-        const result: { success?: boolean; locations?: Array<{ booking_id: number; lat: number; lng: number }> } = await response.json();
-        if (!response.ok || cancelled) return;
+        const response = await fetch(`${getApiUrl()}/booking/fleet-locations`, { signal: controller.signal, cache: 'no-store' });
+        const result: { success?: boolean; pending?: number; locations?: Array<{ booking_id: number; lat: number; lng: number }> } = await response.json();
+        if (!response.ok) throw new Error('Unable to load project locations.');
+        if (controller.signal.aborted) return;
         const nextCoordinates = Object.fromEntries(
           (result.locations ?? []).map((location) => [String(location.booking_id), { lat: location.lat, lng: location.lng }])
         );
+        setPendingLocations(result.pending ?? 0);
+        retryTimer = window.setTimeout(() => void loadCoordinates(), result.pending ? 2000 : 30000);
         setCoordinatesById((current) =>
           JSON.stringify(current) === JSON.stringify(nextCoordinates) ? current : nextCoordinates
         );
       } catch {
-        // Keep the map usable if the location service is temporarily unavailable.
+        if (!controller.signal.aborted) retryTimer = window.setTimeout(() => void loadCoordinates(), 10000);
       }
     };
 
     void loadCoordinates();
-    const retryTimer = window.setInterval(() => void loadCoordinates(), 10000);
+
     return () => {
-      cancelled = true;
-      window.clearInterval(retryTimer);
+      controller.abort();
+      window.clearTimeout(retryTimer);
     };
   }, [projectSignature]);
 
@@ -93,6 +102,7 @@ export default function FleetProjectMap({ projects, selectedProjectId, onSelectP
   );
 
   return (
+    <div className="relative h-full min-h-[430px] w-full">
     <MapContainer center={PHILIPPINES_CENTER} zoom={6} scrollWheelZoom className="h-full min-h-[430px] w-full">
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -122,5 +132,9 @@ export default function FleetProjectMap({ projects, selectedProjectId, onSelectP
         );
       })}
     </MapContainer>
+    {pendingLocations > 0 && <p role="status" className="absolute bottom-7 left-3 z-[1000] rounded-lg bg-white/95 px-3 py-2 text-xs text-slate-600 shadow">Locating {pendingLocations} project {pendingLocations === 1 ? 'address' : 'addresses'}...</p>}
+    </div>
   );
 }
+
+export default memo(FleetProjectMap);

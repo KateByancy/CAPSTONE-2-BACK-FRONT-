@@ -107,9 +107,6 @@ export default function AdminPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-[11px] text-slate-500">
-          This page is the admin login entry point for <span className="font-semibold text-slate-200">/admin</span>.
-        </p>
       </div>
     </main>
   );

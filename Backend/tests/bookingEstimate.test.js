@@ -1,7 +1,7 @@
 ﻿const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
-require('dotenv').config({ quiet: true });
+require('dotenv').config({ path: require('node:path').join(__dirname, '../.env'), quiet: true });
 const db = require('../config/db');
 const query = (sql, values = []) => new Promise((resolve, reject) => db.query(sql, values, (error, rows) => error ? reject(error) : resolve(rows)));
 const { calculateEstimate } = require('../utils/bookingEstimate');
@@ -46,20 +46,20 @@ test('booking API: Other persistence, concurrency, status handling and estimate 
     const base = `http://127.0.0.1:${server.address().port}`;
     const call = async (path, body) => { const response = await fetch(base + path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined); return { status: response.status, data: await response.json() }; };
     const body = { user_id: 1, service_type: 'Other', other_service: '  Custom reading nook  ', project_description: 'Test project', project_address: 'Test address', project_landmark: 'Test landmark', preferred_start_date: '2030-01-01', preferred_start_time: '09:00', estimate: { ...estimateInput, min: 1, max: 2 } };
-    assert.equal((await call('/booking', { ...body, other_service: ' ' })).status, 400);
+    assert.equal((await call('/booking', { ...body, estimate: undefined, other_service: ' ' })).status, 400);
     assert.equal((await call('/booking', { ...body, estimate: { ...estimateInput, unit: 'yards' } })).status, 400);
     const parallel = await Promise.all([call('/booking', body), call('/booking', body)]);
     assert.deepEqual(parallel.map(r => r.status).sort(), [201, 409]);
     assert.equal(parallel.find(r => r.status === 409).data.code, 'DUPLICATE_BOOKING');
     const created = parallel.find(r => r.status === 201).data.booking;
-    assert.equal(created.service_type, 'Custom reading nook'); assert.equal(created.estimate.min, 20903);
+    assert.equal(created.service_type, estimateInput.service); assert.equal(created.estimate.min, 20903);
     assert.equal((await query('SELECT COUNT(*) AS total FROM bookings'))[0].total, 1);
     assert.equal((await query('SELECT COUNT(*) AS total FROM schedules'))[0].total, 1);
     assert.equal((await query('SELECT time_end FROM schedules'))[0].time_end, null);
     for (const path of ['/booking?user_id=1', '/booking']) {
       const result = await call(path); assert.equal(result.status, 200);
       const stored = result.data.bookings[0]; const estimate = typeof stored.estimate === 'string' ? JSON.parse(stored.estimate) : stored.estimate;
-      assert.equal(stored.service_type, 'Custom reading nook'); assert.equal(estimate.min, 20903); assert.equal(estimate.unit, 'sq ft');
+      assert.equal(stored.service_type, estimateInput.service); assert.equal(estimate.min, 20903); assert.equal(estimate.unit, 'sq ft');
     }
     assert.equal((await call('/booking', { ...body, user_id: 2 })).data.code, 'SCHEDULE_CONFLICT');
     for (const status of ['Confirmed', 'Completed']) {
@@ -72,7 +72,10 @@ test('booking API: Other persistence, concurrency, status handling and estimate 
     assert.equal((await call('/booking', body)).status, 201);
     await query("UPDATE bookings SET status = 'Cancelled'");
     assert.equal((await call('/booking', { ...body, estimate: { ...estimateInput, area: 100, unit: 'm\u00b2' } })).data.booking.estimate.min, 225000);
-    assert.equal((await call('/booking', { ...body, preferred_start_time: '10:00', estimate: undefined })).status, 201);
+    const manualBooking = await call('/booking', { ...body, preferred_start_time: '10:00', estimate: undefined });
+    assert.equal(manualBooking.status, 201);
+    assert.equal(manualBooking.data.booking.service_type, 'Custom reading nook');
+    assert.equal(manualBooking.data.booking.estimate, null);
     assert.equal((await call('/booking', { ...body, preferred_start_date: '2030-01-02' })).status, 201);
   } finally {
     if (server) await new Promise(resolve => server.close(resolve));

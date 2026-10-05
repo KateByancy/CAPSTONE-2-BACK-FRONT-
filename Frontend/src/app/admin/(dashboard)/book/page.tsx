@@ -126,44 +126,44 @@ export default function BookingsManagement() {
         </div>
 
         {/* CLICKABLE STATUS FILTER BADGES */}
-        <div className="flex w-fit max-w-full flex-wrap items-center gap-1.5 bg-white/10 p-1.5 rounded-xl border border-white/20 backdrop-blur-sm">
+        <div className="flex w-fit max-w-full flex-nowrap items-center gap-1 sm:gap-1.5 bg-white/10 p-1 sm:p-1.5 rounded-xl border border-white/20 backdrop-blur-sm">
           
           {/* PENDING TAB */}
           <button
             onClick={() => setActiveTab('pending')}
-            className={`inline-flex max-w-full items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition border-none cursor-pointer ${
+            className={`inline-flex max-w-full items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg whitespace-nowrap text-[10px] sm:text-xs font-bold transition border-none cursor-pointer ${
               activeTab === 'pending'
                 ? 'bg-white text-[#0070c0] shadow-sm'
                 : 'bg-white/10 text-white hover:bg-white/20'
             }`}
           >
-            <Clock className="w-3.5 h-3.5" />
+            <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
             <span>Pending ({pendingCount})</span>
           </button>
 
           {/* CONFIRMED TAB */}
           <button
             onClick={() => setActiveTab('confirmed')}
-            className={`inline-flex max-w-full items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition border-none cursor-pointer ${
+            className={`inline-flex max-w-full items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg whitespace-nowrap text-[10px] sm:text-xs font-bold transition border-none cursor-pointer ${
               activeTab === 'confirmed'
                 ? 'bg-emerald-500 text-white shadow-sm'
                 : 'bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30'
             }`}
           >
-            <CheckCircle2 className="w-3.5 h-3.5" />
+            <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
             <span>Confirmed ({confirmedCount})</span>
           </button>
 
           {/* REJECTED TAB */}
           <button
             onClick={() => setActiveTab('rejected')}
-            className={`inline-flex max-w-full items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition border-none cursor-pointer ${
+            className={`inline-flex max-w-full items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg whitespace-nowrap text-[10px] sm:text-xs font-bold transition border-none cursor-pointer ${
               activeTab === 'rejected'
                 ? 'bg-rose-500 text-white shadow-sm'
                 : 'bg-rose-500/20 text-rose-100 hover:bg-rose-500/30'
             }`}
           >
-            <XCircle className="w-3.5 h-3.5" />
+            <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
             <span>Rejected ({rejectedCount})</span>
           </button>
 

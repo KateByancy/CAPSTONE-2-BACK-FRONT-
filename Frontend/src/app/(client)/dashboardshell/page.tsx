@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Home, Grid, Calendar, Compass, MessageSquare, LogOut, AlertCircle, X } from 'lucide-react';
+import { Home, Grid, Calendar, Compass, MessageSquare, LogOut, AlertCircle } from 'lucide-react';
 import { getApiUrl, getClientSession } from '@/lib/api';
 
 interface ShellProps {
@@ -97,9 +97,6 @@ export default function DashboardShell({
             <p className="text-xs font-black uppercase tracking-wider">{bookingAlert.title}</p>
             <p className="mt-1 text-xs leading-relaxed">{bookingAlert.message}</p>
           </div>
-          <button type="button" onClick={() => void dismissRejectionAlert(bookingAlert.id)} aria-label="Dismiss booking status notification" className="rounded-lg p-1 text-current hover:bg-black/5 cursor-pointer">
-            <X className="h-4 w-4" />
-          </button>
         </div>
       )}
       
