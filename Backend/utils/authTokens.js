@@ -10,9 +10,8 @@ const getJwtSecret = () => {
 
 const issueAccessToken = (user) => {
     const role = user.role || "client";
-    const options = role === "admin"
-        ? {}
-        : { expiresIn: process.env.JWT_EXPIRES_IN || "1h" };
+    // Both roles receive non-expiring access tokens.
+    const options = {};
 
     return jwt.sign(
         { id: user.id, role, ...(role === 'admin' && user.password ? { passwordVersion: createHash('sha256').update(user.password).digest('hex') } : {}) },

@@ -29,7 +29,7 @@ export default function DashboardShell({
 
   const tabs = [
     { id: 'home', label: 'HOME', icon: Home, desktopLabel: 'Dashboard Home' },
-    { id: 'work', label: 'WORK', icon: Grid, desktopLabel: 'Inspirations Portfolio' },
+    { id: 'work', label: 'PORTFOLIO', icon: Grid, desktopLabel: 'Inspirations Portfolio' },
     { id: 'book', label: 'PENDING BOOKINGS', icon: Calendar, desktopLabel: 'Pending Bookings' },
     { id: 'track', label: 'TRACK', icon: Compass, desktopLabel: 'Live Build Tracking' },
     { id: 'chat', label: 'CHAT', icon: MessageSquare, desktopLabel: 'Design Concierge' },

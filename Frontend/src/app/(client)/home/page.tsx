@@ -288,6 +288,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
           </div>
 
           <button 
+            aria-expanded={showCalendarView}
+            aria-controls="client-schedule-calendar"
             onClick={() => setShowCalendarView(!showCalendarView)}
             className="flex shrink-0 items-center space-x-1.5 md:space-x-2 bg-white/10 hover:bg-white/25 border border-white/20 px-2 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-bold tracking-normal md:tracking-wider transition cursor-pointer border-none text-white"
           >
@@ -298,8 +300,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
         </div>
 
         <label className="block rounded-2xl border border-slate-200 bg-white p-4 text-xs font-bold text-slate-600">
-          Project selector
-          <select value={clientSchedule?.id ?? ''} onChange={event => { const project = projectSchedules.find(row => row.id === Number(event.target.value)); setSelectedProjectId(Number(event.target.value)); if (project) { setClientSchedule(project); const [year, month, day] = String(project.visit_date).slice(0, 10).split('-').map(Number); setCurrentYear(year); setCurrentMonth(month - 1); setSelectedDate(day); } setIsRescheduling(false); setScheduleMessage(''); setShowCalendarView(true); }} className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 p-3" disabled={!projectSchedules.length}>
+          Select Project
+          <select value={clientSchedule?.id ?? ''} onChange={event => { const project = projectSchedules.find(row => row.id === Number(event.target.value)); setSelectedProjectId(Number(event.target.value)); if (project) { setClientSchedule(project); const [year, month, day] = String(project.visit_date).slice(0, 10).split('-').map(Number); setCurrentYear(year); setCurrentMonth(month - 1); setSelectedDate(day); } setIsRescheduling(false); setScheduleMessage(''); setShowCalendarView(false); }} className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 p-3" disabled={!projectSchedules.length}>
             {!projectSchedules.length && <option value="">No project schedules yet</option>}
             {projectSchedules.map(project => <option key={project.id} value={project.id}>{project.service_type} - {project.project_description || `Project #${project.id}`} ({project.accepted_at || ['confirmed', 'approved', 'ongoing', 'completed'].includes(project.booking_status?.toLowerCase()) ? 'Confirmed' : 'Pending approval'})</option>)}
           </select>
@@ -346,10 +348,11 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
               </div>
               {scheduleMessage && <p className="rounded-xl bg-blue-50 p-3 text-[11px] leading-relaxed text-blue-700">{scheduleMessage}</p>}
               {canReschedule && !isRescheduling && (
-                <button type="button" onClick={() => { setIsRescheduling(true); setShowCalendarView(true); setScheduleMessage(''); }} className="w-full rounded-xl border border-blue-200 bg-blue-50 py-3 text-[10px] font-black uppercase tracking-widest text-blue-700 transition hover:bg-blue-100">
+                <button type="button" onClick={() => { setIsRescheduling(true); setScheduleMessage(''); }} className="w-full rounded-xl border border-blue-200 bg-blue-50 py-3 text-[10px] font-black uppercase tracking-widest text-blue-700 transition hover:bg-blue-100">
                   Reschedule date — one time only
                 </button>
               )}
+              {isRescheduling && !showCalendarView && <p role="status" className="text-xs text-blue-700">Click Calendar View to choose your new date.</p>}
               {!bookingIsAccepted && Number(clientSchedule.reschedule_count) >= 1 && (
                 <p className="text-center text-[10px] font-bold text-slate-400">Your one-time reschedule allowance has been used.</p>
               )}
@@ -360,7 +363,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
           </div>
 
           {showCalendarView && (
-            <div className="lg:col-span-7 bg-white rounded-3xl p-4 sm:p-8 shadow-sm border border-slate-200 space-y-4 sm:space-y-6 animate-fadeIn">
+            <div id="client-schedule-calendar" className="lg:col-span-7 bg-white rounded-3xl p-4 sm:p-8 shadow-sm border border-slate-200 space-y-4 sm:space-y-6 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-serif font-black text-slate-900 tracking-wide uppercase">
                   {monthNames[currentMonth]} {currentYear}
