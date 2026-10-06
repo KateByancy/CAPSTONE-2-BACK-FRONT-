@@ -92,7 +92,7 @@ export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
             onClick={() => setVisiblePasswords(current => ({ ...current, [field.key]: !current[field.key] }))}
             className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-slate-500 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-500"
           >
-            {visiblePasswords[field.key] ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}
+            {visiblePasswords[field.key] ? <Eye aria-hidden="true" className="h-4 w-4" /> : <EyeOff aria-hidden="true" className="h-4 w-4" />}
           </button>}
         </div>
         {field.key === 'new' && <p className="mt-2 text-xs text-slate-500">Use at least 8 characters and a different password from your current one.</p>}
