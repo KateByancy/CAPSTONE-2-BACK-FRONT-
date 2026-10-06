@@ -126,7 +126,7 @@ export default function BookingsManagement() {
         </div>
 
         {/* CLICKABLE STATUS FILTER BADGES */}
-        <div className="flex w-fit max-w-full flex-nowrap items-center gap-1 sm:gap-1.5 bg-white/10 p-1 sm:p-1.5 rounded-xl border border-white/20 backdrop-blur-sm">
+        <div className="flex w-fit max-w-full flex-wrap items-center gap-1 sm:gap-1.5 bg-white/10 p-1 sm:p-1.5 rounded-xl border border-white/20 backdrop-blur-sm">
           
           {/* PENDING TAB */}
           <button

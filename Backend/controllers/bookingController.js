@@ -55,12 +55,12 @@ const createBooking = async (req, res) => {
         if (!locked) return res.status(503).json({ success: false, message: 'Booking is busy. Please try again.' });
         await connection.beginTransaction();
         const [conflicts] = await connection.execute(
-            "SELECT b.user_id FROM schedules s JOIN bookings b ON b.id = s.booking_id WHERE s.visit_date = ? AND TIME_FORMAT(s.time_start, '%H:%i') = ? AND LOWER(s.status) NOT IN ('cancelled', 'rejected') AND LOWER(b.status) NOT IN ('cancelled', 'rejected')",
-            [preferred_start_date, preferred_start_time]);
+            "SELECT b.user_id FROM schedules s JOIN bookings b ON b.id = s.booking_id WHERE s.visit_date = ? AND LOWER(s.status) NOT IN ('cancelled', 'rejected') AND LOWER(b.status) NOT IN ('cancelled', 'rejected')",
+            [preferred_start_date]);
         if (conflicts.length) {
             await connection.rollback();
             const duplicate = conflicts.some(row => Number(row.user_id) === user_id);
-            return res.status(409).json({ success: false, code: duplicate ? 'DUPLICATE_BOOKING' : 'SCHEDULE_CONFLICT', message: duplicate ? 'You already have a booking for this date and time. Please choose another slot.' : 'That project date and time is already booked. Please choose another slot.' });
+            return res.status(409).json({ success: false, code: duplicate ? 'DUPLICATE_BOOKING' : 'SCHEDULE_CONFLICT', message: duplicate ? 'You already have a booking for this day. Only one booking per day is allowed.' : 'This day is already booked. Please choose another date.' });
         }
         let estimate = null;
         if (req.body.estimate != null) {

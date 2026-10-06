@@ -79,12 +79,12 @@ export default function Work() {
       </div>
       
       {/* Category Horizontal Filter Tags */}
-      <div className="relative flex flex-wrap gap-2 pb-1">
+      <div className="relative flex flex-wrap gap-1.5 pb-1 sm:gap-2">
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`min-h-9 px-2.5 py-1.5 sm:px-4 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all ${
               selectedCategory === cat 
                 ? 'bg-[#0070c0] text-white' 
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -93,12 +93,12 @@ export default function Work() {
             {cat}
           </button>
         ))}
-        <div className="relative">
-          <button type="button" aria-expanded={moreOpen} aria-controls="more-categories" onClick={() => setMoreOpen(open => !open)} className={`px-4 py-1.5 rounded-full text-xs font-semibold border ${moreCategories.includes(selectedCategory) ? 'bg-[#0070c0] text-white' : 'bg-white border-slate-200 text-slate-600'}`}>More <span aria-hidden="true">&#9662;</span></button>
+        <div className="sm:relative">
+          <button type="button" aria-expanded={moreOpen} aria-controls="more-categories" onClick={() => setMoreOpen(open => !open)} className={`min-h-9 px-2.5 py-1.5 sm:px-4 rounded-full text-[11px] sm:text-xs font-semibold border ${moreCategories.includes(selectedCategory) ? 'bg-[#0070c0] text-white' : 'bg-white border-slate-200 text-slate-600'}`}>More <span aria-hidden="true">&#9662;</span></button>
           {moreOpen && <>
             <button type="button" aria-label="Close more categories" className="fixed inset-0 z-10 cursor-default" onClick={() => setMoreOpen(false)} />
-            <div id="more-categories" className="absolute right-0 top-full z-20 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-lg" onKeyDown={event => { if (event.key === 'Escape') setMoreOpen(false); }}>
-              {moreCategories.map(category => <button key={category} type="button" aria-pressed={selectedCategory === category} onClick={() => { setSelectedCategory(category); setMoreOpen(false); }} className={`block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-blue-50 ${selectedCategory === category ? 'bg-blue-50 text-blue-700' : 'text-slate-600'}`}>{category}</button>)}
+            <div id="more-categories" className="absolute left-0 right-0 top-full z-20 mt-2 sm:left-auto sm:w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-lg" onKeyDown={event => { if (event.key === 'Escape') setMoreOpen(false); }}>
+              {moreCategories.map(category => <button key={category} type="button" aria-pressed={selectedCategory === category} onClick={() => { setSelectedCategory(category); setMoreOpen(false); }} className={`block min-h-11 w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-blue-50 ${selectedCategory === category ? 'bg-blue-50 text-blue-700' : 'text-slate-600'}`}>{category}</button>)}
             </div>
           </>}
         </div>

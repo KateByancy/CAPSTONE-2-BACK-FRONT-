@@ -102,7 +102,7 @@ function FleetProjectMap({ projects, selectedProjectId, onSelectProject }: Fleet
   );
 
   return (
-    <div className="relative h-full min-h-[430px] w-full">
+    <div className="relative isolate z-0 h-full min-h-[430px] w-full">
     <MapContainer center={PHILIPPINES_CENTER} zoom={6} scrollWheelZoom className="h-full min-h-[430px] w-full">
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

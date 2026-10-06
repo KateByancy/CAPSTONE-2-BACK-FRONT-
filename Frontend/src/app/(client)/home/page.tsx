@@ -90,8 +90,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
     const timer=window.setInterval(()=>void loadUnavailableSlots(),10000);
     return()=>window.clearInterval(timer);
   },[]);
-  const hasDuplicateBooking = Boolean(preferredStartDate && preferredStartTime && clientBookedSlots.some(slot => String(slot.visit_date).slice(0, 10) === preferredStartDate && slot.time_start?.slice(0, 5) === preferredStartTime));
-  const hasScheduleConflict=Boolean(preferredStartDate&&preferredStartTime&&unavailableSlots.some(slot=>slot.visit_date===preferredStartDate&&slot.time_start.slice(0,5)===preferredStartTime));
+  const hasDuplicateBooking = Boolean(preferredStartDate && clientBookedSlots.some(slot => String(slot.visit_date).slice(0, 10) === preferredStartDate));
+  const hasScheduleConflict=Boolean(preferredStartDate&&unavailableSlots.some(slot=>slot.visit_date===preferredStartDate));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -193,11 +193,11 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       return;
     }
     if (hasDuplicateBooking) {
-      setBookingError('You already have a booking for this date and time. Please choose another slot.');
+      setBookingError('You already have a booking for this day. Only one booking per day is allowed.');
       return;
     }
     if (hasScheduleConflict) {
-      setBookingError('That date and time is already booked. Please choose another slot.');
+      setBookingError('This day is already booked. Please choose another date.');
       return;
     }
     setIsBookingSubmitting(true);
@@ -734,7 +734,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         required
                         className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
                       />
-                      {(hasDuplicateBooking || hasScheduleConflict) && <p className="text-[10px] text-red-300">{hasDuplicateBooking ? 'You already have a booking for this date and time. Please choose another slot.' : 'This date and time is unavailable. Choose another slot.'}</p>}
+                      {(hasDuplicateBooking || hasScheduleConflict) && <p className="text-[10px] text-red-300">{hasDuplicateBooking ? 'You already have a booking for this day. Only one booking per day is allowed.' : 'This day is unavailable. Choose another date.'}</p>}
                     </div>
 
                     <div className="min-w-0 space-y-1">
