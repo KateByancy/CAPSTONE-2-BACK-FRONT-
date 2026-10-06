@@ -112,10 +112,10 @@ export default function BookingsManagement() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50/50 w-full p-4 sm:p-6 md:p-8 space-y-6">
+    <div className="min-h-screen bg-slate-50/50 w-full p-0 sm:p-6 md:p-8 space-y-6">
       
       {/* 1. TOP HEADER & INTERACTIVE FILTER BADGES */}
-      <div className="bg-[#0070c0] text-white rounded-3xl p-6 sm:p-8 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-[#0070c0] text-white rounded-3xl p-4 sm:p-8 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight">
             Booking Requests
@@ -126,44 +126,44 @@ export default function BookingsManagement() {
         </div>
 
         {/* CLICKABLE STATUS FILTER BADGES */}
-        <div className="flex w-fit max-w-full flex-wrap items-center gap-1 sm:gap-1.5 bg-white/10 p-1 sm:p-1.5 rounded-xl border border-white/20 backdrop-blur-sm">
+        <div className="grid w-full min-w-0 grid-cols-3 items-center gap-1 sm:flex sm:w-fit sm:max-w-full sm:gap-1.5 bg-white/10 p-1 sm:p-1.5 rounded-xl border border-white/20 backdrop-blur-sm">
           
           {/* PENDING TAB */}
           <button
             onClick={() => setActiveTab('pending')}
-            className={`inline-flex max-w-full items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg whitespace-nowrap text-[10px] sm:text-xs font-bold transition border-none cursor-pointer ${
+            className={`inline-flex min-w-0 items-center justify-center gap-0.5 sm:gap-1 px-1 sm:px-2.5 py-1.5 rounded-lg whitespace-nowrap text-[9px] sm:text-xs font-bold transition border-none cursor-pointer ${
               activeTab === 'pending'
                 ? 'bg-white text-[#0070c0] shadow-sm'
                 : 'bg-white/10 text-white hover:bg-white/20'
             }`}
           >
-            <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+            <Clock className="hidden sm:block sm:w-3.5 sm:h-3.5 shrink-0" />
             <span>Pending ({pendingCount})</span>
           </button>
 
           {/* CONFIRMED TAB */}
           <button
             onClick={() => setActiveTab('confirmed')}
-            className={`inline-flex max-w-full items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg whitespace-nowrap text-[10px] sm:text-xs font-bold transition border-none cursor-pointer ${
+            className={`inline-flex min-w-0 items-center justify-center gap-0.5 sm:gap-1 px-1 sm:px-2.5 py-1.5 rounded-lg whitespace-nowrap text-[9px] sm:text-xs font-bold transition border-none cursor-pointer ${
               activeTab === 'confirmed'
                 ? 'bg-emerald-500 text-white shadow-sm'
                 : 'bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30'
             }`}
           >
-            <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+            <CheckCircle2 className="hidden sm:block sm:w-3.5 sm:h-3.5 shrink-0" />
             <span>Confirmed ({confirmedCount})</span>
           </button>
 
           {/* REJECTED TAB */}
           <button
             onClick={() => setActiveTab('rejected')}
-            className={`inline-flex max-w-full items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg whitespace-nowrap text-[10px] sm:text-xs font-bold transition border-none cursor-pointer ${
+            className={`inline-flex min-w-0 items-center justify-center gap-0.5 sm:gap-1 px-1 sm:px-2.5 py-1.5 rounded-lg whitespace-nowrap text-[9px] sm:text-xs font-bold transition border-none cursor-pointer ${
               activeTab === 'rejected'
                 ? 'bg-rose-500 text-white shadow-sm'
                 : 'bg-rose-500/20 text-rose-100 hover:bg-rose-500/30'
             }`}
           >
-            <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+            <XCircle className="hidden sm:block sm:w-3.5 sm:h-3.5 shrink-0" />
             <span>Rejected ({rejectedCount})</span>
           </button>
 

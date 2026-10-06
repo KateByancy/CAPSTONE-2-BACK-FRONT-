@@ -1,5 +1,11 @@
 # Improving and checking the MARC chatbot
 
+## Provider configuration
+- Set `GEMINI_API_KEY` in the backend environment. `GEMINI_MODEL` is optional and overrides the default `gemini-3.5-flash-lite` model used for short concierge replies.
+- Restart the backend after changing configuration or deploying service changes.
+- Transient network failures and HTTP 408, 429, 500, 502, 503, and 504 responses are retried once after a short delay. Persistent failures keep the existing honest unavailable reply and preserve the client's message.
+- HTTP 400, 401, 403, and 404 responses require checking the configuration; they are not retried. Logs include only the error category, never the key or provider response body.
+
 The app sends chatbot.md and the instructions in services/chatbotInstructions.js with each Gemini request. This is business knowledge and prompting, not model fine-tuning. Chats do not automatically update these files or train a new model.
 
 ## Update the knowledge

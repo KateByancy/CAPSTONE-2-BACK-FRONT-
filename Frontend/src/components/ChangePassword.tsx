@@ -1,17 +1,25 @@
 "use client";
 
-import { FormEvent, useId, useState } from 'react';
+import { FormEvent, useEffect, useId, useRef, useState } from 'react';
 import { getApiUrl } from '@/lib/api';
 
 export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
   const [isOpen, setIsOpen] = useState(false);
   const formId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
+  const currentPasswordRef = useRef<HTMLInputElement>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    formRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    currentPasswordRef.current?.focus({ preventScroll: true });
+  }, [isOpen]);
 
   function closeForm() {
     setIsOpen(false);
@@ -46,11 +54,11 @@ export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
     <button type="button" aria-expanded={isOpen} aria-controls={formId} disabled={saving} onClick={() => { if (isOpen) closeForm(); else setIsOpen(true); }} className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800 hover:bg-slate-50 disabled:opacity-50">
       Change Password
     </button>
-    {isOpen && <form id={formId} onSubmit={submit} className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 space-y-4">
+    {isOpen && <form ref={formRef} id={formId} onSubmit={submit} className="scroll-mt-4 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 space-y-4">
     <h2 className="text-lg font-bold text-slate-900">Change Password</h2>
     <fieldset disabled={saving} className="space-y-4">
       <label className="block text-xs font-bold text-slate-600">Current password
-        <input type="password" autoComplete="current-password" required value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900" />
+        <input ref={currentPasswordRef} type="password" autoComplete="current-password" required value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900" />
       </label>
       <label className="block text-xs font-bold text-slate-600">New password
         <input type="password" autoComplete="new-password" required minLength={8} maxLength={72} value={newPassword} onChange={event => setNewPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900" />

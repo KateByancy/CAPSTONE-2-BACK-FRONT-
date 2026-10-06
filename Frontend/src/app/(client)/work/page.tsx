@@ -72,19 +72,19 @@ export default function Work() {
     : portfolioItems.filter(item => item.category.replace(/\s+and\s+/gi, ' & ') === selectedCategory);
 
   return (
-    <div className="p-4 space-y-4 animate-fadeIn">
+    <div className="p-0 sm:p-4 space-y-4 animate-fadeIn">
       <div className="flex items-center space-x-2 text-xs font-bold tracking-wider text-slate-400">
         <Layers className="w-4 h-4 text-blue-500" />
         <span>OUR INSPIRATIONS</span>
       </div>
       
       {/* Category Horizontal Filter Tags */}
-      <div className="relative flex flex-wrap gap-1.5 pb-1 sm:gap-2">
+      <div className="relative flex flex-nowrap items-center gap-1 pb-1 sm:gap-2">
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`min-h-9 px-2.5 py-1.5 sm:px-4 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`min-w-0 shrink px-1.5 py-1.5 sm:px-4 rounded-full text-[9px] sm:text-xs font-semibold whitespace-nowrap transition-all ${
               selectedCategory === cat 
                 ? 'bg-[#0070c0] text-white' 
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -93,8 +93,8 @@ export default function Work() {
             {cat}
           </button>
         ))}
-        <div className="sm:relative">
-          <button type="button" aria-expanded={moreOpen} aria-controls="more-categories" onClick={() => setMoreOpen(open => !open)} className={`min-h-9 px-2.5 py-1.5 sm:px-4 rounded-full text-[11px] sm:text-xs font-semibold border ${moreCategories.includes(selectedCategory) ? 'bg-[#0070c0] text-white' : 'bg-white border-slate-200 text-slate-600'}`}>More <span aria-hidden="true">&#9662;</span></button>
+        <div className="shrink-0 sm:relative">
+          <button type="button" aria-expanded={moreOpen} aria-controls="more-categories" onClick={() => setMoreOpen(open => !open)} className={`px-1.5 py-1.5 sm:px-4 rounded-full text-[9px] sm:text-xs font-semibold whitespace-nowrap border ${moreCategories.includes(selectedCategory) ? 'bg-[#0070c0] text-white' : 'bg-white border-slate-200 text-slate-600'}`}>More <span aria-hidden="true">&#9662;</span></button>
           {moreOpen && <>
             <button type="button" aria-label="Close more categories" className="fixed inset-0 z-10 cursor-default" onClick={() => setMoreOpen(false)} />
             <div id="more-categories" className="absolute left-0 right-0 top-full z-20 mt-2 sm:left-auto sm:w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-lg" onKeyDown={event => { if (event.key === 'Escape') setMoreOpen(false); }}>
