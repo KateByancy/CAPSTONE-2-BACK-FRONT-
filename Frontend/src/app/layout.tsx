@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://www.marcinteriordesign.site/marc-share-preview.jpg",
+        url: "marc-interior-design.png",
         secureUrl: "https://www.marcinteriordesign.site/marc-share-preview.jpg",
         type: "image/jpeg",
         width: 1290,
