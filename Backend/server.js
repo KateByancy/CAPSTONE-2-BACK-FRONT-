@@ -32,7 +32,11 @@ if (trustedProxies.length) app.set('trust proxy', trustedProxies);
 const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000")
     .split(",")
     .map((origin) => origin.trim().replace(/\/$/, ""))
-    .filter(Boolean);
+    .filter(Boolean)
+    .concat([
+        "https://marcinteriordesign.site",
+        "https://www.marcinteriordesign.site",
+    ]);
 
 app.use(cors({
     origin(origin, callback) {
