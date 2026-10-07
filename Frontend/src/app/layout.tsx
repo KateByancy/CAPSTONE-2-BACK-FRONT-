@@ -13,18 +13,30 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.marcinteriordesign.site"),
   title: "MARC Custom Designs | Interior Design & Construction",
   description:
     "Explore MARC Custom Designs' interior projects and book design and construction services through the client workspace.",
   applicationName: "MARC Custom Designs",
   openGraph: {
+    url: "https://www.marcinteriordesign.site/",
+    siteName: "MARC Interior Design",
     title: "MARC Custom Designs | Interior Design & Construction",
     description:
       "Explore MARC Custom Designs' interior projects and book design and construction services through the client workspace.",
     type: "website",
+    images: [
+      {
+        url: "/marc-interior-design.png",
+        width: 1290,
+        height: 832,
+        alt: "Marc Interior Design — Inspired Living. Timeless Design.",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
+    images: ["/marc-interior-design.png"],
     title: "MARC Custom Designs | Interior Design & Construction",
     description:
       "Explore MARC Custom Designs' interior projects and book design and construction services through the client workspace.",
