@@ -27,7 +27,9 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/marc-interior-design.png",
+        url: "https://www.marcinteriordesign.site/marc-share-preview.jpg",
+        secureUrl: "https://www.marcinteriordesign.site/marc-share-preview.jpg",
+        type: "image/jpeg",
         width: 1290,
         height: 832,
         alt: "Marc Interior Design — Inspired Living. Timeless Design.",
@@ -36,7 +38,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    images: ["/marc-interior-design.png"],
+    images: ["https://www.marcinteriordesign.site/marc-share-preview.jpg"],
     title: "MARC Custom Designs | Interior Design & Construction",
     description:
       "Explore MARC Custom Designs' interior projects and book design and construction services through the client workspace.",
