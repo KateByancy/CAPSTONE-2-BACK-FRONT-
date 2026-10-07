@@ -17,6 +17,8 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
   
   // State to track if user is hovering over the sidebar
   const [isHovered, setIsHovered] = useState(false);
+  const isSchedulePage = pathname === '/admin/schedule';
+  const isSidebarExpanded = isHovered || isSchedulePage;
 
   const markAdminOffline = React.useCallback(() => {
     const token = localStorage.getItem('adminToken');
@@ -64,7 +66,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={`hidden md:flex flex-col justify-between shrink-0 h-screen sticky top-0 bg-[#102243] text-white border-r border-white/5 transition-all duration-300 ease-in-out z-50 overflow-x-hidden ${
-          isHovered ? 'w-64 shadow-2xl' : 'w-20'
+          isSchedulePage ? 'w-[230px]' : isHovered ? 'w-64 shadow-2xl' : 'w-20'
         }`}
       >
         {/* Added overflow-x-hidden here to kill the horizontal scroll button */}
@@ -75,7 +77,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
             <div className="w-9 h-9 bg-[#0070c0] rounded-xl flex items-center justify-center font-bold text-base shadow-md shrink-0">
               M
             </div>
-            <div className={`transition-opacity duration-200 whitespace-nowrap ${isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <div className={`transition-opacity duration-200 whitespace-nowrap ${isSidebarExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               <h1 className="text-sm font-bold tracking-wider uppercase font-serif">Marc Interior</h1>
               <p className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase">Admin Workspace</p>
             </div>
@@ -96,7 +98,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   <span className={`ml-3 transition-opacity duration-200 whitespace-nowrap ${
-                    isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none w-0'
+                    isSidebarExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none w-0'
                   }`}>
                     {item.label}
                   </span>
@@ -119,7 +121,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
           >
             <LogOut className="w-4 h-4 shrink-0" />
             <span className={`ml-3 transition-opacity duration-200 whitespace-nowrap ${
-              isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none w-0'
+              isSidebarExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none w-0'
             }`}>
               Exit Session
             </span>

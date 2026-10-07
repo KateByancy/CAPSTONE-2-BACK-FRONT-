@@ -25,6 +25,9 @@ const clientHomeRoutes = require("./routes/clientHomeRoutes");
 
 
 const app = express();
+// Only explicitly configured proxy IPs/subnets may supply the client address.
+const trustedProxies = (process.env.ANTI_BOT_TRUSTED_PROXIES || '').split(',').map(value => value.trim()).filter(Boolean);
+if (trustedProxies.length) app.set('trust proxy', trustedProxies);
 
 const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000")
     .split(",")
@@ -50,6 +53,7 @@ app.post('/api/payment/webhook', express.raw({ type: 'application/json', limit: 
         provider: require('./services/paymongoCheckout'),
         configuration: require('./services/paymentConfig').configuration,
     }));
+app.use('/api', require('./middeware/requestProtection').createRequestProtection());
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);

@@ -87,10 +87,10 @@ export default function ScheduleManagement() {
   const yearsList = Array.from({ length: 16 }, (_, i) => 2020 + i);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-5 pb-12 px-2 sm:px-4">
+    <div className="w-full max-w-5xl lg:max-w-[896px] mx-auto space-y-5 lg:space-y-[18px] pb-12 px-2 sm:px-4 lg:px-0">
       
       {/* 1. TOP BLUE HEADER BANNER */}
-      <div className="bg-[#0070c0] text-white rounded-2xl p-4 sm:p-5 shadow-md grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1">
+      <div className="bg-[#0070c0] text-white rounded-2xl p-4 sm:p-5 lg:px-[18px] lg:py-4 lg:min-h-20 shadow-md grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 md:gap-x-3 gap-y-1">
         <div className="min-w-0 col-start-1 row-start-1">
           {/* Dynamic Month & Year Selection Header */}
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
@@ -124,7 +124,7 @@ export default function ScheduleManagement() {
         <Link href="/admin/dashboard" className="min-h-11 md:col-start-3 md:row-start-1 md:row-span-2 shrink-0 hidden md:inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2.5 py-2 text-xs font-bold text-white hover:bg-white/20 transition"><ChevronLeft className="w-4 h-4"/>Overview</Link>
 
         {/* Month Navigation Controls */}
-        <div className="col-start-2 row-start-1 flex items-center gap-0.5 sm:gap-1 bg-white/10 p-0.5 sm:p-1 rounded-xl border border-white/20">
+        <div className="col-start-2 row-start-1 md:row-span-2 md:justify-self-start flex items-center gap-0.5 sm:gap-1 bg-white/10 p-0.5 sm:p-1 rounded-xl border border-white/20">
           <button 
             onClick={handlePrevMonth}
             className="p-1.5 hover:bg-white/20 rounded-lg text-white transition bg-transparent border-none cursor-pointer"
@@ -145,10 +145,10 @@ export default function ScheduleManagement() {
       </div>
 
       {/* 2. MAIN CALENDAR GRID AND SIDE TIMELINE */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2.06fr)_minmax(0,1fr)] gap-5 lg:gap-[18px]">
         
         {/* CALENDAR CONTAINER */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
+        <div className="min-w-0 bg-white rounded-3xl lg:rounded-[22px] border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
           
           {/* DAY NAMES ROW */}
           <div className="grid grid-cols-7 text-center bg-slate-50 border-b border-slate-200/80 py-2.5">
@@ -160,13 +160,13 @@ export default function ScheduleManagement() {
           </div>
 
           {/* CALENDAR CELLS GRID */}
-          <div className="grid grid-cols-7 auto-rows-fr flex-1 divide-x divide-y divide-slate-100 bg-slate-100">
+          <div className="grid grid-cols-7 auto-rows-fr lg:auto-rows-[77px] flex-1 divide-x divide-y divide-slate-100 bg-slate-100">
             
             {/* 1. Previous Month Overflow Days */}
             {Array.from({ length: firstDayIndex }).map((_, idx) => {
               const prevDayNum = prevMonthDays - firstDayIndex + idx + 1;
               return (
-                <div key={`prev-${idx}`} className="bg-slate-50/60 p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] flex flex-col justify-between">
+                <div key={`prev-${idx}`} className="bg-slate-50/60 p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] lg:min-h-0 flex flex-col justify-between">
                   <span className="text-[11px] font-medium text-slate-400 font-mono">{prevDayNum}</span>
                 </div>
               );
@@ -183,7 +183,7 @@ export default function ScheduleManagement() {
                 <div
                   key={`day-${dayNum}`}
                   onClick={() => setSelectedDateStr(loopDateStr)}
-                  className={`p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] flex flex-col justify-between transition relative cursor-pointer group ${
+                  className={`p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] lg:min-h-0 flex flex-col justify-between transition relative cursor-pointer group ${
                     isSelected ? 'bg-blue-50/60 ring-2 ring-inset ring-[#0070c0]' : 'bg-white hover:bg-slate-50'
                   }`}
                 >
@@ -219,7 +219,7 @@ export default function ScheduleManagement() {
 
             {/* 3. Next Month Overflow Days */}
             {Array.from({ length: (7 - ((firstDayIndex + daysInMonth) % 7)) % 7 }).map((_, idx) => (
-              <div key={`next-${idx}`} className="bg-slate-50/60 p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] flex flex-col justify-between">
+              <div key={`next-${idx}`} className="bg-slate-50/60 p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] lg:min-h-0 flex flex-col justify-between">
                 <span className="text-[11px] font-medium text-slate-400 font-mono">{idx + 1}</span>
               </div>
             ))}
@@ -227,7 +227,7 @@ export default function ScheduleManagement() {
         </div>
 
         {/* TIMELINE SIDE PANEL */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm flex flex-col h-full space-y-4">
+        <div className="min-w-0 bg-white rounded-3xl lg:rounded-[22px] border border-slate-200/80 p-5 lg:p-[18px] shadow-sm flex flex-col h-full space-y-4">
           <div>
             <h3 className="text-sm font-bold tracking-wider uppercase text-slate-900 font-serif">Scheduled Makeovers</h3>
             <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mt-0.5">
@@ -267,7 +267,7 @@ export default function ScheduleManagement() {
                 </div>
               ))
             ) : (
-              <div className="h-48 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-center p-4 space-y-2">
+              <div className="h-48 lg:h-44 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-center p-4 space-y-2">
                 <CalendarIcon className="w-8 h-8 text-slate-300" />
                 <div>
                   <p className="text-xs text-slate-500 font-bold">No Makeover Bookings</p>
