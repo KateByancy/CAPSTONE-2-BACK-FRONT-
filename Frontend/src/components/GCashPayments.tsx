@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, RefreshCw, Smartphone, Pencil } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Smartphone, Pencil, Eye, EyeOff } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
 import Image from 'next/image';
 import AdminImageUpload, { imageSource } from './AdminImageUpload';
@@ -34,6 +34,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   const [qrUploading, setQrUploading] = useState(false);
   const [manualReady, setManualReady] = useState(false);
   const [editingAccount, setEditingAccount] = useState(true);
+  const [accountSectionsHidden, setAccountSectionsHidden] = useState(false);
   const [savedAccount, setSavedAccount] = useState<{ account_name: string; account_number: string; qr_image: string } | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [savingAccount, setSavingAccount] = useState(false);
@@ -169,6 +170,14 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
     {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
     {admin && <div className="grid gap-5 lg:grid-cols-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 lg:col-span-2">
+        <h2 className="font-bold">Payment accounts</h2>
+        <button type="button" aria-expanded={!accountSectionsHidden} aria-controls="admin-payment-accounts" onClick={() => setAccountSectionsHidden(hidden => !hidden)} className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50">
+          {accountSectionsHidden ? <Eye size={16} /> : <EyeOff size={16} />}
+          {accountSectionsHidden ? 'Unhide' : 'Hide'}
+        </button>
+      </div>
+      <div id="admin-payment-accounts" hidden={accountSectionsHidden} className={accountSectionsHidden ? 'hidden' : 'grid gap-5 lg:col-span-2 lg:grid-cols-2'}>
       <section className={card}>
         <div className="flex items-center justify-between gap-3"><h2 className="font-bold">Admin GCash account</h2>
           {!editingAccount && savedAccount && <button type="button" aria-label="Edit GCash account" title="Edit GCash account" disabled={busy} onClick={() => setEditingAccount(true)} className="flex h-11 w-11 items-center justify-center rounded-xl text-blue-700 hover:bg-blue-50 disabled:opacity-50"><Pencil size={18} /></button>}
@@ -188,6 +197,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       </form>}
       </section>
       <section className={card}><h2 className="font-bold">GCash via PayMongo</h2><p className="mt-3 text-sm">{configured ? testMode ? 'GCash checkout is in test mode.' : 'Live GCash checkout is enabled.' : 'GCash checkout is unavailable. Contact the system operator.'}</p><p className="mt-3 text-sm text-slate-500">Clients authorize payments on PayMongo checkout. Payments are confirmed automatically after PayMongo verifies the funds. Refresh to see the latest status.</p></section>
+      </div>
       <form id="gcash-payment-request-form" className={card} onSubmit={async event => { event.preventDefault(); event.stopPropagation(); const form = event.currentTarget; const fields = new FormData(form); if (await mutate('', Object.fromEntries(fields), 'Payment request sent to the client.')) form.reset(); }}>
         <h2 className="font-bold">Request a booking payment</h2><p className="mt-1 text-xs text-slate-500">Set the agreed amount for a deposit, installment, or final payment. One open request per booking.</p>
         <label className="mt-3 block text-sm">Payment method<select name="payment_provider" value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)} className={input}><option value="Manual">Admin GCash QR</option><option value="PayMongo">PayMongo GCash checkout</option></select></label>
