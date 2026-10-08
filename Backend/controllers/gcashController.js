@@ -1,6 +1,5 @@
 const db = require('../config/db');
 const paymongo = require('../services/paymongoCheckout');
-const paymentConfig = require('../services/paymentConfig');
 const query = (sql, values = []) => new Promise((resolve, reject) => db.query(sql, values, (error, rows) => error ? reject(error) : resolve(rows)));
 const wrap = handler => async (req, res) => {
     try { await handler(req, res); }
@@ -21,8 +20,7 @@ const imageType = buffer => {
 };
 exports.getSettings = wrap(async (_req, res) => {
     const rows = await query('SELECT account_name, account_number, qr_image FROM gcash_settings WHERE id=1');
-    const config = paymentConfig.configuration();
-    res.json({ settings: rows[0] || null, provider: 'PayMongo', configured: config.configured, testMode: config.mode === 'test', mode: config.mode });
+    res.json({ settings: rows[0] || null, provider: 'Manual', configured: Boolean(rows[0]?.qr_image) });
 });
 exports.saveSettings = wrap(async (req, res) => {
     const name = typeof req.body.account_name === 'string' ? req.body.account_name.trim() : '';
@@ -65,15 +63,12 @@ exports.create = wrap(async (req, res) => {
     if (!Number.isSafeInteger(Number(booking_id)) || Number(booking_id) < 1 || !/^[0-9]+(?:\.[0-9]{1,2})?$/.test(String(amount)) || Number(amount) < 100 || Number(amount) > 99999999.99 || typeof description !== 'string' || !description.trim() || description.trim().length > 200) {
         return res.status(400).json({ message: 'Select an accepted booking, enter at least PHP 100 with up to two decimal places, and a description (up to 200 characters).' });
     }
-    const manual = req.body.payment_provider === 'Manual';
-    let settings;
-    if (manual) {
-        settings = (await query('SELECT account_name, account_number, qr_image FROM gcash_settings WHERE id=1'))[0];
-        if (!settings?.qr_image) return res.status(409).json({ message: 'Save the admin GCash account and QR image first.' });
-    } else paymentConfig.assertConfigured();
+    if (req.body.payment_provider && req.body.payment_provider !== 'Manual') return res.status(400).json({ message: 'Payments use the admin GCash QR only.' });
+    const settings = (await query('SELECT account_name, account_number, qr_image FROM gcash_settings WHERE id=1'))[0];
+    if (!settings?.qr_image) return res.status(409).json({ message: 'Save the admin GCash account and QR image first.' });
     const result = await query(`INSERT INTO gcash_requests (booking_id, amount, description, account_name, account_number, payment_provider, qr_image)
         SELECT b.id, ?, ?, ?, ?, ?, ? FROM bookings b
-        WHERE b.id=? AND ${accepted}`, [amount, description.trim(), settings?.account_name || '', settings?.account_number || '', manual ? 'Manual' : 'PayMongo', settings?.qr_image || null, booking_id]);
+        WHERE b.id=? AND ${accepted}`, [amount, description.trim(), settings.account_name, settings.account_number, 'Manual', settings.qr_image, booking_id]);
     if (!result.affectedRows) return res.status(409).json({ message: 'Select an accepted booking first.' });
     res.status(201).json({ success: true });
 });
@@ -120,38 +115,4 @@ async function syncPayment(payment) {
     }
     return session;
 }
-exports.checkout = wrap(async (req, res) => {
-    const config = paymentConfig.assertConfigured();
-    const rows = await query(`SELECT p.*, b.service_type FROM gcash_requests p JOIN bookings b ON b.id=p.booking_id
-        WHERE p.id=? AND b.user_id=? AND p.payment_provider='PayMongo' AND ${accepted}`, [req.params.id, req.user.id]);
-    const payment = rows[0];
-    if (!payment) return res.status(404).json({ message: 'Payment request not found for this account.' });
-    if (payment.checkout_session_id) {
-        const session = await syncPayment(payment);
-        if (payment.status === 'Paid') return res.json({ paid: true });
-        if (session.attributes.status === 'expired') return res.status(409).json({ message: 'This checkout expired. Contact the admin to reconcile it before creating another payment.' });
-        return res.json({ checkoutUrl: payment.checkout_url });
-    }
-    if (payment.status !== 'Awaiting payment') return res.status(409).json({ message: 'This payment cannot start checkout.' });
-    const lock = await query("UPDATE gcash_requests SET checkout_creating=TRUE WHERE id=? AND status='Awaiting payment' AND checkout_creating=FALSE AND checkout_session_id IS NULL", [payment.id]);
-    if (!lock.affectedRows) return res.status(409).json({ message: 'Checkout is being prepared or needs reconciliation. Refresh shortly; contact the admin if this persists.' });
-    try {
-        const frontend = config.frontendUrl;
-        const session = await paymongo.request('/checkout_sessions', { method: 'POST', body: JSON.stringify({ data: { attributes: {
-            line_items: [{ amount: Math.round(Number(payment.amount) * 100), currency: 'PHP', name: payment.description, quantity: 1 }],
-            payment_method_types: ['gcash'], reference_number: `GCASH-${payment.id}`,
-            description: `Booking #${payment.booking_id}: ${payment.service_type}`,
-            success_url: `${frontend}/payments?payment=success`, cancel_url: `${frontend}/payments?payment=cancelled`,
-            send_email_receipt: true,
-            show_description: true, show_line_items: true,
-        } } }) });
-        const url = new URL(session.attributes.checkout_url);
-        if (url.protocol !== 'https:' || url.hostname !== 'checkout.paymongo.com') throw new Error('Unexpected checkout URL.');
-        await query('UPDATE gcash_requests SET checkout_session_id=?, checkout_url=?, checkout_creating=FALSE WHERE id=?', [session.id, url.href, payment.id]);
-        return res.json({ checkoutUrl: url.href });
-    } catch (error) {
-        // An ambiguous timeout may have created a session. Keep the lock to avoid charging twice.
-        if (error.providerStatus >= 400 && error.providerStatus < 500 || error.statusCode === 503) await query('UPDATE gcash_requests SET checkout_creating=FALSE WHERE id=?', [payment.id]);
-        throw error;
-    }
-});
+exports.checkout = (_req, res) => res.status(410).json({ message: 'PayMongo checkout is disabled. Contact the admin for a GCash QR payment request.' });

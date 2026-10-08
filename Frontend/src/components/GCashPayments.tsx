@@ -35,14 +35,10 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   const [manualReady, setManualReady] = useState(false);
   const [editingAccount, setEditingAccount] = useState(true);
   const [gcashAccountHidden, setGcashAccountHidden] = useState(false);
-  const [payMongoHidden, setPayMongoHidden] = useState(false);
   const [savedAccount, setSavedAccount] = useState<{ account_name: string; account_number: string; qr_image: string } | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [savingAccount, setSavingAccount] = useState(false);
   const accountSaveInFlight = useRef(false);
-  const [paymentMethod, setPaymentMethod] = useState('Manual');
-  const [configured, setConfigured] = useState(false);
-  const [testMode, setTestMode] = useState(false);
   const [filter, setFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -85,8 +81,6 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
           setSavedAccount(result.settings);
           setEditingAccount(false);
         }
-        setConfigured(result.provider === 'PayMongo' && result.configured === true);
-        setTestMode(result.testMode === true);
       } else setError(settingsResult.reason.message);
     }).catch(err => { if (active) setError(err.message); }).finally(() => { if (active) setLoading(false); });
     const refresh = () => { if (!inFlight.current && document.visibilityState === 'visible') void load().catch(err => setError(err.message)); };
@@ -103,8 +97,6 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       setPayments(billing.payments); setBookings(billing.bookings); setLegacy(billing.legacy);
       setEstimates(billing.estimates || []);
       setManualReady(Boolean(settings.settings?.qr_image));
-      setConfigured(settings.provider === 'PayMongo' && settings.configured === true);
-      setTestMode(settings.testMode === true);
       if (billing.syncWarning) setError(billing.syncWarning);
       else setNotice('Payments refreshed.');
     } catch (error) { setError(error instanceof Error ? error.message : 'Unable to refresh payments.'); }
@@ -134,18 +126,6 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     } catch (error) { setError(error instanceof Error ? error.message : 'Unable to save GCash account.'); }
     finally { accountSaveInFlight.current = false; setSavingAccount(false); }
   }
-  async function checkout(id: number) {
-    if (inFlight.current) return;
-    inFlight.current = true; setBusy(true); setError('');
-    try {
-      const result = await request(`/${id}/checkout`, { method: 'POST' });
-      if (result.paid) { setNotice('PayMongo confirmed this payment.'); await load(); return; }
-      const url = new URL(result.checkoutUrl);
-      if (url.protocol !== 'https:' || url.hostname !== 'checkout.paymongo.com') throw new Error('Invalid PayMongo checkout response.');
-      window.location.assign(url.href);
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to start checkout.'); }
-    finally { inFlight.current = false; setBusy(false); }
-  }
   async function showProof(id: number) {
     setError('');
     try {
@@ -166,8 +146,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       <div className="flex items-center gap-3">{onBack && <button onClick={onBack} aria-label="Back" className={`rounded-xl p-2 hover:bg-slate-100 ${admin ? 'hidden md:inline-flex' : ''}`}><ArrowLeft size={20} /></button>}<Smartphone className="text-blue-600" /><div><h1 className="text-2xl font-bold">GCash Payments</h1><p className="text-sm text-slate-500">{admin ? 'Request payments and verify received funds.' : 'Pay your booking requests and track verification.'}</p></div></div>
       <button disabled={busy || refreshing || loading} onClick={() => void refreshPayments()} className="flex items-center gap-2 rounded-xl border px-4 py-2 text-sm"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />{refreshing ? 'Refreshing...' : 'Refresh'}</button>
     </div>
-    <p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">Pay with the admin’s GCash QR and submit a receipt for verification, or use PayMongo checkout when available.</p>
-    {testMode && <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">PayMongo test mode — checkout simulates payments; no real money is collected.</p>}
+    <p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">Pay using the admin GCash QR, then submit your GCash reference number and receipt for admin verification.</p>
     {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
     {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
     {admin && <div className="grid items-start gap-5 lg:grid-cols-2">
@@ -176,7 +155,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
           <div className="flex shrink-0 items-center gap-1">
             {!editingAccount && savedAccount && <button type="button" aria-label="Edit GCash account" title="Edit GCash account" disabled={busy} onClick={() => { setEditingAccount(true); setGcashAccountHidden(false); }} className="flex h-11 w-11 items-center justify-center rounded-xl text-blue-700 hover:bg-blue-50 disabled:opacity-50"><Pencil size={18} /></button>}
             <button type="button" aria-expanded={!gcashAccountHidden} aria-controls="gcash-account-content" onClick={() => setGcashAccountHidden(hidden => !hidden)} className="flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-              {gcashAccountHidden ? <Eye size={16} /> : <EyeOff size={16} />}{gcashAccountHidden ? 'Unhide' : 'Hide'}
+              {gcashAccountHidden ? <EyeOff size={16} /> : <Eye size={16} />}{gcashAccountHidden ? 'Unhide' : 'Hide'}
             </button>
           </div>
         </div>
@@ -196,22 +175,12 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       </form>}
         </div>
       </section>
-      <section className={card}>
-        <div className="flex items-center justify-between gap-2"><h2 className="min-w-0 font-bold">GCash via PayMongo</h2>
-          <button type="button" aria-expanded={!payMongoHidden} aria-controls="paymongo-account-content" onClick={() => setPayMongoHidden(hidden => !hidden)} className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl px-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-            {payMongoHidden ? <Eye size={16} /> : <EyeOff size={16} />}{payMongoHidden ? 'Unhide' : 'Hide'}
-          </button>
-        </div>
-        <div id="paymongo-account-content" hidden={payMongoHidden}><p className="mt-3 text-sm">{configured ? testMode ? 'GCash checkout is in test mode.' : 'Live GCash checkout is enabled.' : 'GCash checkout is unavailable. Contact the system operator.'}</p><p className="mt-3 text-sm text-slate-500">Clients authorize payments on PayMongo checkout. Payments are confirmed automatically after PayMongo verifies the funds. Refresh to see the latest status.</p></div>
-      </section>
       <form id="gcash-payment-request-form" className={`${card} min-w-0 lg:col-span-2`} onSubmit={async event => { event.preventDefault(); event.stopPropagation(); const form = event.currentTarget; const fields = new FormData(form); if (await mutate('', Object.fromEntries(fields), 'Payment request sent to the client.')) form.reset(); }}>
         <h2 className="font-bold">Request a booking payment</h2><p className="mt-1 text-xs text-slate-500">Set the agreed amount for a deposit, installment, or final payment. One open request per booking.</p>
-        <label className="mt-3 block text-sm">Payment method<select name="payment_provider" value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)} className={input}><option value="Manual">Admin GCash QR</option><option value="PayMongo">PayMongo GCash checkout</option></select></label>
         <label className="mt-3 block text-sm">Accepted booking<select name="booking_id" required className={input} defaultValue=""><option value="">Select booking</option>{bookings.map(b => <option key={b.id} value={b.id}>#{b.id} · {b.client_name} · {b.service_type}</option>)}</select></label>
         <div className="grid gap-3 sm:grid-cols-2"><label className="mt-3 block text-sm">Amount (PHP)<input name="amount" required type="number" min="100" max="99999999.99" step="0.01" className={input} /></label><label className="mt-3 block text-sm">Payment for<input name="description" required maxLength={200} placeholder="e.g. Agreed booking deposit" className={input} /></label></div>
-        <button type="submit" form="gcash-payment-request-form" disabled={busy || loading || !(paymentMethod === 'Manual' ? manualReady : configured) || !bookings.length} className={`${button} mt-4`}>{busyAction === '' ? 'Sending payment request...' : 'Send payment request'}</button>
-        {paymentMethod === 'Manual' && !manualReady && <p className="mt-2 text-xs text-amber-700">Save your GCash account and QR first.</p>}
-        {paymentMethod === 'PayMongo' && !configured && <p className="mt-2 text-xs text-amber-700">Configure PayMongo on the backend first.</p>}
+        <button type="submit" form="gcash-payment-request-form" disabled={busy || loading || !manualReady || !bookings.length} className={`${button} mt-4`}>{busyAction === '' ? 'Sending payment request...' : 'Send payment request'}</button>
+        {!manualReady && <p className="mt-2 text-xs text-amber-700">Save your GCash account and QR first.</p>}
         {!loading && !bookings.length && <p className="mt-2 text-xs text-slate-500">No accepted bookings without an open payment request.</p>}
       </form>
     </div>}
@@ -225,7 +194,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       {payment.review_note && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Admin note: {payment.review_note}</p>}
       {!!payment.has_proof && <button disabled={busy} className="mt-3 text-sm font-semibold text-blue-700 underline" onClick={() => void showProof(payment.id)}>View submitted receipt</button>}
       {payment.reviewed_at && <p className="mt-2 text-xs text-slate-500">Reviewed {new Date(payment.reviewed_at).toLocaleString()}</p>}
-      {!admin && payment.payment_provider === 'PayMongo' && payment.status === 'Awaiting payment' && !['rejected','cancelled'].includes(payment.booking_status.toLowerCase()) && <div className="mt-4 border-t pt-4"><p className="mb-3 text-sm">Pay the requested amount through PayMongo’s GCash checkout. Returning from checkout does not itself confirm payment.</p><button disabled={busy || !configured} className={button} onClick={() => void checkout(payment.id)}>{busy ? 'Please wait...' : payment.checkout_session_id ? 'Resume GCash checkout' : 'Pay with GCash'}</button></div>}
+      {payment.payment_provider === 'PayMongo' && payment.status !== 'Paid' && payment.status !== 'Cancelled' && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Previous PayMongo request. Contact the admin to check whether funds were received before replacing this bill with a GCash QR request.</p>}
       {!admin && payment.payment_provider === 'Manual' && ['Awaiting payment','Returned'].includes(payment.status) && !['rejected','cancelled'].includes(payment.booking_status.toLowerCase()) && <div className="mt-4 border-t pt-4">
         <p className="text-sm">{payment.status === 'Returned' ? 'Check the admin note and correct your receipt or reference. Do not pay again if funds were already sent.' : 'Open GCash and send the exact requested amount to the account below. Check the recipient before confirming.'}</p>
         <div className="my-3 rounded-xl bg-blue-50 p-4"><p className="text-xs text-slate-500">GCash recipient</p><p className="font-bold">{payment.account_name}</p><p className="text-lg font-bold tracking-wide">{payment.account_number}</p><p className="mt-1 text-sm">Amount: {peso(payment.amount)}</p>{payment.qr_image && <Image src={imageSource(payment.qr_image)} alt={`GCash QR for ${payment.account_name}`} width={320} height={320} unoptimized className="mx-auto mt-4 block h-auto w-full max-w-60 rounded-lg object-contain md:mx-0 md:max-w-72" />}</div>

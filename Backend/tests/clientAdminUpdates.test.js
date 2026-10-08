@@ -27,13 +27,23 @@ test('manual billing snapshots the saved GCash account and QR without PayMongo c
         return { affectedRows: 1 };
     };
     const res = response();
-    await payments.create({ body: { booking_id: 5, amount: '100.50', description: 'Deposit', payment_provider: 'Manual' } }, res);
+    await payments.create({ body: { booking_id: 5, amount: '100.50', description: 'Deposit' } }, res);
     assert.equal(res.statusCode, 201);
     assert.deepEqual(inserted, ['100.50', 'Deposit', 'MARC', '09123456789', 'Manual', settings.qr_image, 5]);
     queryHandler = () => [{ ...settings, qr_image: null }];
     const missing = response();
     await payments.create({ body: { booking_id: 5, amount: '100.50', description: 'Deposit', payment_provider: 'Manual' } }, missing);
     assert.equal(missing.statusCode, 409);
+});
+
+test('new PayMongo requests and checkout are disabled without querying billing records', async () => {
+    queryHandler = () => { throw new Error('No provider checkout or billing mutation allowed'); };
+    const res = response();
+    await payments.create({ body: { booking_id: 5, amount: '100.50', description: 'Deposit', payment_provider: 'PayMongo' } }, res);
+    assert.equal(res.statusCode, 400);
+    const checkout = response();
+    await payments.checkout({}, checkout);
+    assert.equal(checkout.statusCode, 410);
 });
 
 test('QR settings reject external image paths', async () => {

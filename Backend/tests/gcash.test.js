@@ -11,7 +11,7 @@ const provider = require('../services/paymongoCheckout');
 const { issueAccessToken } = require('../utils/authTokens');
 const query = (sql, values = []) => new Promise((resolve, reject) => db.query(sql, values, (err, rows) => err ? reject(err) : resolve(rows)));
 
-test('PayMongo GCash: ownership, fixed amount, duplicate checkout, provider confirmation and legacy protection', async () => {
+test('GCash QR: ownership, duplicate billing, references, receipts and disabled checkout', async () => {
   let server;
   const sessions = new Map(); let creates = 0;
   provider.request = async (path, options) => {
@@ -40,6 +40,7 @@ test('PayMongo GCash: ownership, fixed amount, duplicate checkout, provider conf
       const response = await fetch(base + path, { method, headers: { 'Content-Type': 'application/json', ...(user ? { Authorization: `Bearer ${issueAccessToken(user)}` } : {}) }, body: body ? JSON.stringify(body) : undefined });
       return { status: response.status, data: await response.json() };
     };
+    await query("INSERT INTO gcash_settings (id,account_name,account_number,qr_image) VALUES (1,'MARC','09123456789','/api/portfolio/images/fixture.png')");
     const invoice = { booking_id: 1, amount: '100.50', description: 'Deposit' };
     assert.equal((await call('', null)).status, 401);
     assert.equal((await call('', client, 'POST', invoice)).status, 403);
@@ -50,27 +51,25 @@ test('PayMongo GCash: ownership, fixed amount, duplicate checkout, provider conf
     const list = (await call('', client)).data;
     for (const name of ['payments','bookings','legacy']) assert.ok(Array.isArray(list[name]));
     const id = list.payments[0].id;
-    assert.equal(list.payments[0].payment_provider, 'PayMongo');
+    assert.equal(list.payments[0].payment_provider, 'Manual');
+    assert.equal(list.payments[0].qr_image, '/api/portfolio/images/fixture.png');
     assert.equal((await call('?user_id=2', other)).data.payments.length, 0);
-    assert.equal((await call(`/${id}/checkout`, other, 'POST')).status, 404);
-    assert.equal((await call(`/${id}/checkout`, admin, 'POST')).status, 403);
-    const started = await Promise.all([call(`/${id}/checkout`, client, 'POST', { amount: 1 }),call(`/${id}/checkout`, client, 'POST')]);
-    assert.ok(started.some(result => result.status === 200));
-    assert.equal(creates, 1);
-    assert.equal((await call(`/${id}/checkout`, client, 'POST')).data.checkoutUrl, 'https://checkout.paymongo.com/cs_test1');
-    assert.equal(creates, 1);
-    assert.equal((await call(`/${id}/cancel`, admin, 'PUT', { note: 'No cancellation with active checkout' })).status, 409);
-    assert.equal((await call(`/${id}/review`, admin, 'PUT', { decision: 'Paid', confirmed: true })).status, 409);
-    const session = sessions.get('cs_test1');
-    session.attributes.payments = [{ id: 'pay_test', attributes: { status: 'paid', amount: 1, currency: 'PHP', source: { type: 'gcash' } } }];
-    assert.equal((await call('', client)).data.payments[0].status, 'Awaiting payment');
-    session.attributes.payments[0].attributes.amount = 10050;
-    session.attributes.livemode = true;
-    assert.equal((await call('', client)).data.payments[0].status, 'Awaiting payment');
-    session.attributes.livemode = false;
+    assert.equal((await call('/' + id + '/checkout', client, 'POST')).status, 410);
+    assert.equal(creates, 0);
+    assert.equal((await call('', admin, 'POST', { ...invoice, payment_provider: 'PayMongo' })).status, 400);
+    assert.equal((await call('/' + id + '/review', admin, 'PUT', { decision: 'Paid', confirmed: true })).status, 409);
+    const submit = async (user, reference) => {
+      const body = new FormData(); body.append('reference_number', reference);
+      body.append('proof', new Blob([Buffer.from([137,80,78,71,13,10,26,10])], { type: 'image/png' }), 'receipt.png');
+      return fetch(base + '/' + id + '/proof', { method: 'POST', headers: { Authorization: 'Bearer ' + issueAccessToken(user) }, body });
+    };
+    assert.equal((await submit(other, '1234567890123')).status, 409);
+    assert.equal((await submit(client, 'bad-reference')).status, 400);
+    assert.equal((await submit(client, '1234567890123')).status, 200);
+    assert.equal((await call('', client)).data.payments[0].status, 'For verification');
+    assert.equal((await call('/' + id + '/review', admin, 'PUT', { decision: 'Paid', confirmed: false })).status, 400);
+    assert.equal((await call('/' + id + '/review', admin, 'PUT', { decision: 'Paid', confirmed: true })).status, 200);
     assert.equal((await call('', client)).data.payments[0].status, 'Paid');
-    assert.equal((await call(`/${id}/checkout`, client, 'POST')).data.paid, true);
-    assert.equal((await call('', admin, 'POST', invoice)).status, 201);
-    assert.equal((await call('/settings', admin)).data.testMode, true);
+    assert.equal((await call('/settings', admin)).data.provider, 'Manual');
   } finally { if (server) await new Promise(resolve => server.close(resolve)); db.destroy(); }
 });

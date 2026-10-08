@@ -104,7 +104,6 @@ app.use(errorHandler);
 const PORT = Number(process.env.PORT || 5000);
 
 const startServer = async () => {
-    if (process.env.PAYMONGO_SECRET_KEY || process.env.PAYMENTS_MODE === 'live') require('./services/paymentConfig').assertConfigured();
     try {
         await connectDatabase();
     } catch (error) {
