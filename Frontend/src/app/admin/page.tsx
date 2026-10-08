@@ -52,8 +52,8 @@ export default function AdminPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6 py-10">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+    <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-4 py-6 sm:px-6 sm:py-10">
+      <div className="min-w-0 w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl">
         <div className="mb-8 text-center">
           <p className="text-xs uppercase tracking-[0.35em] text-slate-500 mb-2">Admin Access</p>
           <h1 className="text-3xl font-serif font-black tracking-tight">Sign in to Admin</h1>
@@ -62,25 +62,25 @@ export default function AdminPage() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.3em] text-slate-350 mb-2">Email</label>
+            <label className="block text-[10px] sm:text-[11px] uppercase tracking-[0.15em] sm:tracking-[0.3em] text-slate-350 mb-2">Email</label>
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="Enter your email address"
-              className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="min-h-11 min-w-0 w-full rounded-xl sm:rounded-2xl border border-slate-700 bg-slate-950 px-3 sm:px-4 py-3 text-xs sm:text-sm text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.3em] text-slate-350 mb-2">Password</label>
+            <label className="block text-[10px] sm:text-[11px] uppercase tracking-[0.15em] sm:tracking-[0.3em] text-slate-350 mb-2">Password</label>
             <div className="relative w-full flex items-center">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Enter your password"
-                className="w-full rounded-2xl border border-slate-700 bg-slate-950 pl-4 pr-12 py-3 text-sm text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="min-h-11 min-w-0 w-full rounded-xl sm:rounded-2xl border border-slate-700 bg-slate-950 pl-3 sm:pl-4 pr-12 py-3 text-xs sm:text-sm text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
               {/* FIXED LOGIC: When showPassword is false (hidden), it shows EyeOff (\). When true, it shows Eye. */}
               {password.length > 0 && (
