@@ -726,7 +726,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                     </div>
 
                     <div className="min-w-0 space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 min-h-8 flex items-end">
                         Preferred Project Start Date
                       </label>
                       <input
@@ -741,9 +741,14 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                     </div>
 
                     <div className="min-w-0 space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">Preferred Start Time</label>
+                      <label className="min-h-8 flex items-end text-[10px] font-black uppercase tracking-wider text-slate-300">Preferred Start Time</label>
                       <input
-                        type="time"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="HH:MM (24-hour)"
+                        pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
+                        maxLength={5}
+                        aria-label="Preferred start time in 24-hour format"
                         value={preferredStartTime}
                         onChange={(e) => setPreferredStartTime(e.target.value)}
                         required

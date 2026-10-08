@@ -38,6 +38,47 @@ const redPinIcon = L.divIcon({
   popupAnchor: [0, -36],
 });
 
+function MapGestures() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    let midpoint: L.Point | null = null;
+    const touchStart = (event: TouchEvent) => {
+      map.dragging.disable();
+      if (event.touches.length === 2) event.preventDefault();
+      midpoint = event.touches.length === 2 ? L.point((event.touches[0].clientX + event.touches[1].clientX) / 2, (event.touches[0].clientY + event.touches[1].clientY) / 2) : null;
+    };
+    const touchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 2 || !midpoint) return;
+      event.preventDefault();
+      const next = L.point((event.touches[0].clientX + event.touches[1].clientX) / 2, (event.touches[0].clientY + event.touches[1].clientY) / 2);
+      map.panBy(midpoint.subtract(next), { animate: false });
+      midpoint = next;
+    };
+    const touchEnd = (event: TouchEvent) => {
+      if (event.touches.length < 2) { midpoint = null; map.dragging.disable(); }
+    };
+    const mouseStart = () => map.dragging.enable();
+    container.style.touchAction = 'pan-y';
+    container.addEventListener('touchstart', touchStart, { passive: false, capture: true });
+    container.addEventListener('touchmove', touchMove, { passive: false });
+    container.addEventListener('touchend', touchEnd, { passive: true });
+    container.addEventListener('touchcancel', touchEnd, { passive: true });
+    container.addEventListener('mousedown', mouseStart);
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(container);
+    return () => {
+      observer.disconnect();
+      container.removeEventListener('touchstart', touchStart, true);
+      container.removeEventListener('touchmove', touchMove);
+      container.removeEventListener('touchend', touchEnd);
+      container.removeEventListener('touchcancel', touchEnd);
+      container.removeEventListener('mousedown', mouseStart);
+    };
+  }, [map]);
+  return null;
+}
+
 function RecenterMap({ coordinates, allCoordinates }: { coordinates?: Coordinates; allCoordinates: Coordinates[] }) {
   const map = useMap();
 
@@ -102,8 +143,9 @@ function FleetProjectMap({ projects, selectedProjectId, onSelectProject }: Fleet
   );
 
   return (
-    <div className="relative isolate z-0 h-full min-h-[430px] w-full">
-    <MapContainer center={PHILIPPINES_CENTER} zoom={6} scrollWheelZoom className="h-full min-h-[430px] w-full">
+    <div className="relative isolate z-0 h-[340px] sm:h-[430px] w-full">
+    <MapContainer center={PHILIPPINES_CENTER} zoom={6} scrollWheelZoom={false} dragging={false} touchZoom={false} className="h-full w-full">
+      <MapGestures />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -119,7 +161,7 @@ function FleetProjectMap({ projects, selectedProjectId, onSelectProject }: Fleet
             eventHandlers={{ click: () => onSelectProject(project.id) }}
           >
             <Popup>
-              <div className="min-w-52 space-y-1 text-xs">
+              <div className="w-44 max-w-[60vw] space-y-1 break-words text-xs">
                 <p className="text-sm font-bold text-slate-900">{project.clientName}</p>
                 <p className="font-semibold text-red-600">{project.projectDetails || 'Client project'}</p>
                 <p><strong>Address:</strong> {project.locationName}</p>

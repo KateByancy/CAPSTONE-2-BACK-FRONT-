@@ -105,10 +105,10 @@ export default function FleetMapManagement() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
         {/* PERSISTENT MAP WINDOW CONTAINER */}
-        <div className="lg:col-span-3 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl overflow-hidden relative min-h-[550px] flex flex-col justify-between">
+        <div className="min-w-0 lg:col-span-3 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl overflow-hidden relative flex flex-col justify-between">
           
           {/* SIMULATED DEVICE HEADER BAR */}
-          <div className="bg-slate-950 text-white px-6 py-3 flex justify-between items-center text-xs font-bold border-b border-slate-800/60 z-10">
+          <div className="bg-slate-950 text-white px-4 py-3 flex flex-wrap gap-2 justify-between items-center text-xs font-bold border-b border-slate-800/60 z-10">
             <span className="font-mono">Accepted Client Project Locations ({liveProjects.length})</span>
             <div className="flex items-center space-x-2 text-slate-400">
               <Compass className="w-3.5 h-3.5 animate-pulse text-sky-400" />

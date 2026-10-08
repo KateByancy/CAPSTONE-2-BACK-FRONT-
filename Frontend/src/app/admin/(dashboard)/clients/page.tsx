@@ -142,6 +142,8 @@ export default function ClientsManagement() {
     try {
       const response = await fetch(`${getApiUrl()}/chat`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('adminToken') || ''}`}, body:JSON.stringify({user_id:Number(clientId),sender:'admin',message:text}) });
       if (!response.ok) throw new Error('Unable to send message.');
+      const result = await response.json();
+      if (result.notificationWarning) setClientsError(result.notificationWarning);
       setNewMessageText('');
       await loadConversation(clientId);
     } catch (error) {
@@ -310,6 +312,7 @@ export default function ClientsManagement() {
               </div>
 
               {/* CHAT INPUT FOOTER */}
+              {clientsError && <p role="alert" className="shrink-0 bg-rose-50 px-3 py-2 text-xs text-rose-700">{clientsError}</p>}
               <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-slate-200/80 flex items-center space-x-2 shrink-0">
                 <input
                   type="text"

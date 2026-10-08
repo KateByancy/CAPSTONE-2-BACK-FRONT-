@@ -21,6 +21,8 @@ module.exports = [
  active_booking INT GENERATED ALWAYS AS (CASE WHEN status IN ('Awaiting payment','For verification','Returned') THEN booking_id ELSE NULL END) STORED,
  UNIQUE KEY one_open_request (active_booking)
 )`,
+`ALTER TABLE gcash_settings ADD COLUMN IF NOT EXISTS qr_image TEXT NULL`,
+`ALTER TABLE gcash_requests ADD COLUMN IF NOT EXISTS qr_image TEXT NULL`,
 `ALTER TABLE gcash_requests ADD COLUMN IF NOT EXISTS payment_provider VARCHAR(20) NOT NULL DEFAULT 'Manual'`,
 `ALTER TABLE gcash_requests ADD COLUMN IF NOT EXISTS checkout_session_id VARCHAR(100) NULL`,
 `ALTER TABLE gcash_requests ADD COLUMN IF NOT EXISTS checkout_url TEXT NULL`,

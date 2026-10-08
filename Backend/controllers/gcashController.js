@@ -19,7 +19,7 @@ const imageType = buffer => {
     return null;
 };
 exports.getSettings = wrap(async (_req, res) => {
-    const rows = await query('SELECT account_name, account_number FROM gcash_settings WHERE id=1');
+    const rows = await query('SELECT account_name, account_number, qr_image FROM gcash_settings WHERE id=1');
     const config = paymentConfig.configuration();
     res.json({ settings: rows[0] || null, provider: 'PayMongo', configured: config.configured, testMode: config.mode === 'test', mode: config.mode });
 });
@@ -27,14 +27,16 @@ exports.saveSettings = wrap(async (req, res) => {
     const name = typeof req.body.account_name === 'string' ? req.body.account_name.trim() : '';
     const number = typeof req.body.account_number === 'string' ? req.body.account_number.trim() : '';
     if (!name || name.length > 100 || !/^09\d{9}$/.test(number)) return res.status(400).json({ message: 'Enter the GCash account name and an 11-digit mobile number starting with 09.' });
-    await query('INSERT INTO gcash_settings (id, account_name, account_number) VALUES (1,?,?) ON DUPLICATE KEY UPDATE account_name=VALUES(account_name), account_number=VALUES(account_number)', [name, number]);
+    const qr = req.body.qr_image || null;
+    if (qr && (typeof qr !== 'string' || !/^\/api\/portfolio\/images\/[a-zA-Z0-9_.-]+$/.test(qr))) return res.status(400).json({ message: 'Upload a GCash QR image first.' });
+    await query('INSERT INTO gcash_settings (id, account_name, account_number, qr_image) VALUES (1,?,?,?) ON DUPLICATE KEY UPDATE account_name=VALUES(account_name), account_number=VALUES(account_number), qr_image=VALUES(qr_image)', [name, number, qr]);
     res.json({ success: true });
 });
 exports.list = wrap(async (req, res) => {
     const admin = req.user.role === 'admin';
     const payments = await query(`SELECT p.id, p.booking_id, p.amount, p.description, p.account_name, p.account_number, p.status,
         p.reference_number, p.review_note, p.created_at, p.submitted_at, p.reviewed_at,
-        p.payment_provider, p.checkout_session_id, p.checkout_creating,
+        p.payment_provider, p.checkout_session_id, p.checkout_creating, p.qr_image,
         p.proof IS NOT NULL AS has_proof, b.service_type, b.status AS booking_status, u.fullname AS client_name
         FROM gcash_requests p JOIN bookings b ON b.id=p.booking_id JOIN users u ON u.id=b.user_id
         ${admin ? '' : 'WHERE b.user_id=?'} ORDER BY p.id DESC`, admin ? [] : [req.user.id]);
@@ -49,17 +51,28 @@ exports.list = wrap(async (req, res) => {
     const legacy = await query(`SELECT p.id, p.booking_id, p.amount, p.reference_number, p.payment_status AS status, p.created_at,
         b.service_type, u.fullname AS client_name FROM payments p JOIN bookings b ON b.id=p.booking_id
         JOIN users u ON u.id=b.user_id ${admin ? '' : 'WHERE b.user_id=?'} ORDER BY p.id DESC`, admin ? [] : [req.user.id]);
-    res.json({ payments, bookings, legacy, syncWarning });
+    const estimates = await query(`SELECT b.id, b.service_type, b.status, b.estimate, u.fullname AS client_name
+        FROM bookings b JOIN users u ON u.id=b.user_id WHERE b.estimate IS NOT NULL
+        ${admin ? '' : 'AND b.user_id=?'} ORDER BY b.id DESC`, admin ? [] : [req.user.id]);
+    for (const row of estimates) {
+        if (typeof row.estimate === 'string') { try { row.estimate = JSON.parse(row.estimate); } catch { row.estimate = null; } }
+    }
+    res.json({ payments, bookings, legacy, estimates, syncWarning });
 });
 exports.create = wrap(async (req, res) => {
     const { booking_id, amount, description } = req.body;
     if (!Number.isSafeInteger(Number(booking_id)) || Number(booking_id) < 1 || !/^[0-9]+(?:\.[0-9]{1,2})?$/.test(String(amount)) || Number(amount) < 100 || Number(amount) > 99999999.99 || typeof description !== 'string' || !description.trim() || description.trim().length > 200) {
         return res.status(400).json({ message: 'Select an accepted booking, enter at least PHP 100 with up to two decimal places, and a description (up to 200 characters).' });
     }
-    paymentConfig.assertConfigured();
-    const result = await query(`INSERT INTO gcash_requests (booking_id, amount, description, account_name, account_number, payment_provider)
-        SELECT b.id, ?, ?, '', '', 'PayMongo' FROM bookings b
-        WHERE b.id=? AND ${accepted}`, [amount, description.trim(), booking_id]);
+    const manual = req.body.payment_provider === 'Manual';
+    let settings;
+    if (manual) {
+        settings = (await query('SELECT account_name, account_number, qr_image FROM gcash_settings WHERE id=1'))[0];
+        if (!settings?.qr_image) return res.status(409).json({ message: 'Save the admin GCash account and QR image first.' });
+    } else paymentConfig.assertConfigured();
+    const result = await query(`INSERT INTO gcash_requests (booking_id, amount, description, account_name, account_number, payment_provider, qr_image)
+        SELECT b.id, ?, ?, ?, ?, ?, ? FROM bookings b
+        WHERE b.id=? AND ${accepted}`, [amount, description.trim(), settings?.account_name || '', settings?.account_number || '', manual ? 'Manual' : 'PayMongo', settings?.qr_image || null, booking_id]);
     if (!result.affectedRows) return res.status(409).json({ message: 'Select an accepted booking first.' });
     res.status(201).json({ success: true });
 });

@@ -12,9 +12,10 @@ const adminIsOnline = async () => (await query(
 
 async function notifyChatRecipients(userId, sender, message) {
     const clients = await query("SELECT fullname, email FROM users WHERE id = ?", [userId]);
-    if (!clients.length) return;
+    if (!clients.length) throw new Error('CHAT_RECIPIENT_NOT_FOUND');
     const recipients = sender === 'admin' ? clients : await query("SELECT email FROM users WHERE role = 'admin'");
     const senderName = sender === 'admin' ? 'MARC Admin' : clients[0].fullname || 'A client';
+    if (!recipients.some(row => row.email)) throw new Error('CHAT_RECIPIENT_EMAIL_MISSING');
     const results = await Promise.allSettled([...new Set(recipients.map(row => row.email).filter(Boolean))]
         .map(email => require('../services/adminRecoveryMail').sendChatNotification(email, senderName, message)));
     if (results.some(result => result.status === 'rejected')) throw new Error('CHAT_EMAIL_FAILED');
@@ -36,9 +37,11 @@ const sendMessage = async (req, res) => {
     if (sender === "client") pending.add(userId);
     try {
         await query("INSERT INTO messages (user_id, sender, message) VALUES (?, ?, ?)", [userId, sender, message]);
-        void notifyChatRecipients(userId, sender, message).catch(() => {
-            console.error("Chat email notification failed; the message remains available in chat.");
-        });
+        let emailDelivered = false;
+        try { await notifyChatRecipients(userId, sender, message); emailDelivered = true; }
+        catch { console.error("Chat email notification failed; the message remains available in chat."); }
+        if (sender === 'admin') return res.status(201).json({ success: true, responder: 'admin', emailDelivered,
+            notificationWarning: emailDelivered ? '' : 'Message saved in chat, but email delivery failed. Check the Gmail sender configuration.' });
         const profileReply = sender === 'client' ? getMarcProfileReply(message) : null;
         if (profileReply) {
             await query("INSERT INTO messages (user_id, sender, message) VALUES (?, 'bot', ?)", [userId, profileReply]);

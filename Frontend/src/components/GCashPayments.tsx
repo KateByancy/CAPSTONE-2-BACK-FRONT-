@@ -3,6 +3,8 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, RefreshCw, Smartphone } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
+import Image from 'next/image';
+import AdminImageUpload, { imageSource } from './AdminImageUpload';
 
 type Status = 'Awaiting payment' | 'For verification' | 'Paid' | 'Returned' | 'Cancelled';
 interface Payment {
@@ -10,10 +12,11 @@ interface Payment {
   account_name: string; account_number: string; reference_number: string | null;
   review_note: string | null; has_proof: boolean; created_at: string; reviewed_at: string | null;
   service_type: string; client_name: string; booking_status: string;
-  payment_provider: string; checkout_session_id: string | null; checkout_creating: boolean;
+  payment_provider: string; checkout_session_id: string | null; checkout_creating: boolean; qr_image?: string;
 }
 interface Booking { id: number; service_type: string; client_name: string }
 interface Legacy { id: number; booking_id: number; amount: string; status: string; reference_number: string; client_name: string }
+interface BookingEstimate { id: number; service_type: string; status: string; client_name: string; estimate: { min: number; max: number; area: number; unit: string; style: string; complexity: string } | null }
 const peso = (amount: string | number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
 const input = 'mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900';
 const button = 'rounded-xl bg-[#0070c0] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50';
@@ -24,6 +27,13 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   const [payments, setPayments] = useState<Payment[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [legacy, setLegacy] = useState<Legacy[]>([]);
+  const [estimates, setEstimates] = useState<BookingEstimate[]>([]);
+  const [accountName, setAccountName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [qrImage, setQrImage] = useState('');
+  const [qrUploading, setQrUploading] = useState(false);
+  const [manualReady, setManualReady] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('Manual');
   const [configured, setConfigured] = useState(false);
   const [testMode, setTestMode] = useState(false);
   const [filter, setFilter] = useState('All');
@@ -47,6 +57,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   const load = useCallback(async () => {
     const result = await request('');
     setPayments(result.payments); setBookings(result.bookings); setLegacy(result.legacy);
+    setEstimates(result.estimates || []);
     if (result.syncWarning) setError(result.syncWarning);
   }, [request]);
   useEffect(() => {
@@ -54,6 +65,9 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     void Promise.all([request(''), request('/settings')]).then(([billing, result]) => {
       if (!active) return;
       setPayments(billing.payments); setBookings(billing.bookings); setLegacy(billing.legacy);
+      setEstimates(billing.estimates || []);
+      setAccountName(result.settings?.account_name || ''); setAccountNumber(result.settings?.account_number || ''); setQrImage(result.settings?.qr_image || '');
+      setManualReady(Boolean(result.settings?.qr_image));
       setConfigured(result.provider === 'PayMongo' && result.configured === true);
       setTestMode(result.testMode === true);
       if (billing.syncWarning) setError(billing.syncWarning);
@@ -70,6 +84,8 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     try {
       const [billing, settings] = await Promise.all([request(''), request('/settings')]);
       setPayments(billing.payments); setBookings(billing.bookings); setLegacy(billing.legacy);
+      setEstimates(billing.estimates || []);
+      setManualReady(Boolean(settings.settings?.qr_image));
       setConfigured(settings.provider === 'PayMongo' && settings.configured === true);
       setTestMode(settings.testMode === true);
       if (billing.syncWarning) setError(billing.syncWarning);
@@ -120,21 +136,35 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       <div className="flex items-center gap-3">{onBack && <button onClick={onBack} aria-label="Back" className={`rounded-xl p-2 hover:bg-slate-100 ${admin ? 'hidden md:inline-flex' : ''}`}><ArrowLeft size={20} /></button>}<Smartphone className="text-blue-600" /><div><h1 className="text-2xl font-bold">GCash Payments</h1><p className="text-sm text-slate-500">{admin ? 'Request payments and verify received funds.' : 'Pay your booking requests and track verification.'}</p></div></div>
       <button disabled={busy || refreshing || loading} onClick={() => void refreshPayments()} className="flex items-center gap-2 rounded-xl border px-4 py-2 text-sm"><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />{refreshing ? 'Refreshing...' : 'Refresh'}</button>
     </div>
-    <p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">Booking accepted → Admin requests an amount → Client pays with GCash through PayMongo → PayMongo confirms payment</p>
+    <p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">Pay with the admin’s GCash QR and submit a receipt for verification, or use PayMongo checkout when available.</p>
     {testMode && <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">PayMongo test mode — checkout simulates payments; no real money is collected.</p>}
     {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
     {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
     {admin && <div className="grid gap-5 lg:grid-cols-2">
+      <form className={card} onSubmit={async event => {
+        event.preventDefault();
+        if (await mutate('/settings', { account_name: accountName, account_number: accountNumber, qr_image: qrImage }, 'GCash account and QR saved.', 'PUT')) setManualReady(Boolean(qrImage));
+      }}>
+        <h2 className="font-bold">Admin GCash account</h2>
+        <label className="mt-3 block text-sm">Account name<input required maxLength={100} value={accountName} onChange={event => setAccountName(event.target.value)} className={input} /></label>
+        <label className="mt-3 block text-sm">GCash mobile number<input required pattern="09[0-9]{9}" maxLength={11} inputMode="numeric" value={accountNumber} onChange={event => setAccountNumber(event.target.value)} className={input} /></label>
+        <p className="my-3 text-sm">Upload the QR exported from your GCash account. Clients will see it on their payment request.</p>
+        <AdminImageUpload value={qrImage} onChange={setQrImage} onBusyChange={setQrUploading} disabled={busy} />
+        <button disabled={busy || qrUploading || !qrImage} className={`${button} mt-4`}>Save GCash account</button>
+      </form>
       <section className={card}><h2 className="font-bold">GCash via PayMongo</h2><p className="mt-3 text-sm">{configured ? testMode ? 'GCash checkout is in test mode.' : 'Live GCash checkout is enabled.' : 'GCash checkout is unavailable. Contact the system operator.'}</p><p className="mt-3 text-sm text-slate-500">Clients authorize payments on PayMongo checkout. Payments are confirmed automatically after PayMongo verifies the funds. Refresh to see the latest status.</p></section>
       <form className={card} onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const fields = new FormData(form); if (await mutate('', Object.fromEntries(fields), 'Payment request sent to the client.')) form.reset(); }}>
         <h2 className="font-bold">Request a booking payment</h2><p className="mt-1 text-xs text-slate-500">Set the agreed amount for a deposit, installment, or final payment. One open request per booking.</p>
+        <label className="mt-3 block text-sm">Payment method<select name="payment_provider" value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)} className={input}><option value="Manual">Admin GCash QR</option><option value="PayMongo">PayMongo GCash checkout</option></select></label>
         <label className="mt-3 block text-sm">Accepted booking<select name="booking_id" required className={input} defaultValue=""><option value="">Select booking</option>{bookings.map(b => <option key={b.id} value={b.id}>#{b.id} · {b.client_name} · {b.service_type}</option>)}</select></label>
         <div className="grid gap-3 sm:grid-cols-2"><label className="mt-3 block text-sm">Amount (PHP)<input name="amount" required type="number" min="100" max="99999999.99" step="0.01" className={input} /></label><label className="mt-3 block text-sm">Payment for<input name="description" required maxLength={200} placeholder="e.g. Agreed booking deposit" className={input} /></label></div>
-        <button disabled={busy || loading || !configured || !bookings.length} className={`${button} mt-4`}>Send payment request</button>
-        {!configured && <p className="mt-2 text-xs text-amber-700">Configure PayMongo on the backend first.</p>}
+        <button disabled={busy || loading || !(paymentMethod === 'Manual' ? manualReady : configured) || !bookings.length} className={`${button} mt-4`}>Send payment request</button>
+        {paymentMethod === 'Manual' && !manualReady && <p className="mt-2 text-xs text-amber-700">Save your GCash account and QR first.</p>}
+        {paymentMethod === 'PayMongo' && !configured && <p className="mt-2 text-xs text-amber-700">Configure PayMongo on the backend first.</p>}
         {!loading && !bookings.length && <p className="mt-2 text-xs text-slate-500">No accepted bookings without an open payment request.</p>}
       </form>
     </div>}
+    {!!estimates.length && <section className={card}><h2 className="font-bold">Project estimates</h2><p className="mt-1 text-xs text-slate-500">Estimates submitted with bookings appear here automatically. These are preliminary amounts; the admin requests the agreed payment separately.</p><div className="mt-3 space-y-3">{estimates.filter(row => row.estimate).map(row => <div key={row.id} className="rounded-xl bg-slate-50 p-3 text-sm"><p className="font-semibold">Booking #{row.id} · {row.service_type}{admin && ` · ${row.client_name}`}</p><p>{peso(row.estimate!.min)} – {peso(row.estimate!.max)} · {row.status}</p><p className="mt-1 text-xs text-slate-500">{row.estimate!.area} {row.estimate!.unit} · {row.estimate!.style} · {row.estimate!.complexity}</p></div>)}</div></section>}
     <div className="grid gap-3 sm:grid-cols-3">{(['Awaiting payment', 'For verification', 'Paid'] as Status[]).map(status => <div key={status} className={card}><p className="text-xs text-slate-500">{status}</p><p className="mt-1 text-xl font-bold">{peso(total(status))}</p></div>)}</div>
     <div className="flex flex-wrap gap-2" aria-label="Filter payment status">{['All','Awaiting payment','For verification','Paid','Returned','Cancelled'].map(status => <button key={status} onClick={() => setFilter(status)} className={`rounded-full border px-4 py-2 text-xs font-semibold ${filter === status ? 'bg-blue-700 text-white' : 'bg-white'}`}>{status} ({payments.filter(p => status === 'All' || p.status === status).length})</button>)}</div>
     {loading ? <p className={card}>Loading payments...</p> : !payments.some(p => filter === 'All' || p.status === filter) ? <p className={card}>{admin ? 'No payment requests in this view.' : 'No payment requests yet in this view. Your admin will request payment after accepting your booking.'}</p> : null}
@@ -147,7 +177,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       {!admin && payment.payment_provider === 'PayMongo' && payment.status === 'Awaiting payment' && !['rejected','cancelled'].includes(payment.booking_status.toLowerCase()) && <div className="mt-4 border-t pt-4"><p className="mb-3 text-sm">Pay the requested amount through PayMongo’s GCash checkout. Returning from checkout does not itself confirm payment.</p><button disabled={busy || !configured} className={button} onClick={() => void checkout(payment.id)}>{busy ? 'Please wait...' : payment.checkout_session_id ? 'Resume GCash checkout' : 'Pay with GCash'}</button></div>}
       {!admin && payment.payment_provider === 'Manual' && ['Awaiting payment','Returned'].includes(payment.status) && !['rejected','cancelled'].includes(payment.booking_status.toLowerCase()) && <div className="mt-4 border-t pt-4">
         <p className="text-sm">{payment.status === 'Returned' ? 'Check the admin note and correct your receipt or reference. Do not pay again if funds were already sent.' : 'Open GCash and send the exact requested amount to the account below. Check the recipient before confirming.'}</p>
-        <div className="my-3 rounded-xl bg-blue-50 p-4"><p className="text-xs text-slate-500">GCash recipient</p><p className="font-bold">{payment.account_name}</p><p className="text-lg font-bold tracking-wide">{payment.account_number}</p><p className="mt-1 text-sm">Amount: {peso(payment.amount)}</p></div>
+        <div className="my-3 rounded-xl bg-blue-50 p-4"><p className="text-xs text-slate-500">GCash recipient</p><p className="font-bold">{payment.account_name}</p><p className="text-lg font-bold tracking-wide">{payment.account_number}</p><p className="mt-1 text-sm">Amount: {peso(payment.amount)}</p>{payment.qr_image && <Image src={imageSource(payment.qr_image)} alt={`GCash QR for ${payment.account_name}`} width={320} height={320} unoptimized className="mt-3 max-h-80 w-full object-contain" />}</div>
         <form onSubmit={e => void submitProof(e, payment.id)} className="grid items-end gap-3 md:grid-cols-3">
           <label className="text-sm">GCash reference number<input name="reference_number" required pattern="[0-9]{10,30}" maxLength={30} inputMode="numeric" defaultValue={payment.reference_number || ''} className={input} /></label>
           <label className="text-sm">Receipt image (max 5 MB)<input name="proof" required type="file" accept="image/png,image/jpeg,image/webp" className={`${input} text-xs`} /></label>

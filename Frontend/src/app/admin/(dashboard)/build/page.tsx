@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Camera, Plus, Check, X, Trash2 } from 'lucide-react';
+import { Camera, Plus, Check, X, Trash2, Pencil } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
 import Image from 'next/image';
 import AdminImageUpload, { imageSource } from '@/components/AdminImageUpload';
@@ -14,7 +14,7 @@ interface BuildProject {
   title: string;
   status: 'Pending' | 'Ongoing' | 'Completed';
   progress: number;
-  concepts: { title: string; url: string; description?: string }[];
+  concepts: { id: number; title: string; url: string; description?: string }[];
   milestones: { id: string; label: string; completed: boolean }[];
 }
 
@@ -30,7 +30,7 @@ export default function BuildManagement() {
       setBuilds((bookingData.bookings ?? []).filter((b:{accepted_at?:string|null})=>Boolean(b.accepted_at)).map((b:{id:number;user_id:number;client_name?:string;service_type:string;status:string})=>{
         const track=tracks.find(t=>t.booking_id===b.id); const progress=track?.progress??0;
         const status:BuildProject['status']=progress>=100?'Completed':progress>=20?'Ongoing':'Pending';
-        return {id:String(b.id),userId:b.user_id,clientName:b.client_name||'Client',trackingId:track?.id,title:b.service_type,status,progress,concepts:(Array.isArray(designData)?designData:[]).filter((d:{user_id:number})=>d.user_id===b.user_id).map((d:{title:string;image?:string;description?:string})=>({title:d.title,url:d.image||'',description:d.description})),milestones:[20,40,60,80,100].map((point,index)=>({id:`${b.id}-${point}`,label:['Initial Consultation','Design Proposal','Material Selection','Execution','Final Handover'][index],completed:progress>=point}))};
+        return {id:String(b.id),userId:b.user_id,clientName:b.client_name||'Client',trackingId:track?.id,title:b.service_type,status,progress,concepts:(Array.isArray(designData)?designData:[]).filter((d:{user_id:number})=>d.user_id===b.user_id).map((d:{id:number;title:string;image?:string;description?:string})=>({id:d.id,title:d.title,url:d.image||'',description:d.description})),milestones:[20,40,60,80,100].map((point,index)=>({id:`${b.id}-${point}`,label:['Initial Consultation','Design Proposal','Material Selection','Execution','Final Handover'][index],completed:progress>=point}))};
       })); setMounted(true);
     }).catch(()=>setMounted(true));
   }, []);
@@ -43,6 +43,7 @@ export default function BuildManagement() {
 
   // New Concept Form State
   const [conceptTitle, setConceptTitle] = useState("");
+  const [editingConceptId, setEditingConceptId] = useState<number | null>(null);
   const [conceptUrl, setConceptUrl] = useState("");
   const [conceptDesc, setConceptDesc] = useState("");
 
@@ -116,14 +117,28 @@ export default function BuildManagement() {
     setConceptSaving(true); setConceptError('');
     try {
       const newConcept = { title: conceptTitle.trim(), url: conceptUrl, description: conceptDesc };
-      const response = await fetch(`${getApiUrl()}/designs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: activeConceptModalBuild.userId, title: newConcept.title, description: conceptDesc, image: conceptUrl }) });
+      const response = await fetch(`${getApiUrl()}/designs${editingConceptId ? `/${editingConceptId}` : ''}`, { method: editingConceptId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: activeConceptModalBuild.userId, title: newConcept.title, description: conceptDesc, image: conceptUrl }) });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save design concept.');
-      setBuilds(prev => prev.map(build => build.id === activeConceptModalBuild.id ? { ...build, concepts: [...build.concepts, newConcept] } : build));
+      const savedConcept = { ...newConcept, id: editingConceptId || result.designId };
+      setBuilds(prev => prev.map(build => build.userId === activeConceptModalBuild.userId ? { ...build, concepts: editingConceptId ? build.concepts.map(c => c.id === editingConceptId ? savedConcept : c) : [...build.concepts, savedConcept] } : build));
+      setEditingConceptId(null);
       setConceptTitle(''); setConceptUrl(''); setConceptDesc(''); setActiveConceptModalBuild(null);
     } catch (err) { setConceptError(err instanceof Error ? err.message : 'Unable to save design concept.'); }
     finally { setConceptSaving(false); }
   };
+
+  async function deleteConcept(id: number) {
+    if (conceptSaving) return;
+    setConceptSaving(true); setConceptError('');
+    try {
+      const response = await fetch(`${getApiUrl()}/designs/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Unable to delete concept.');
+      const update = (build: BuildProject) => ({ ...build, concepts: build.concepts.filter(c => c.id !== id) });
+      setBuilds(prev => prev.map(update)); setActivePhotosBuild(prev => prev ? update(prev) : null);
+    } catch (error) { setConceptError(error instanceof Error ? error.message : 'Unable to delete concept.'); }
+    finally { setConceptSaving(false); }
+  }
 
   if (!mounted) return null;
 
@@ -226,7 +241,7 @@ export default function BuildManagement() {
               <div className="flex justify-between items-center pt-1">
                 <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Design Concepts</span>
                 <button 
-                  onClick={() => { setConceptTitle(''); setConceptUrl(''); setConceptDesc(''); setConceptError(''); setActiveConceptModalBuild(build); }}
+                  onClick={() => { setEditingConceptId(null); setConceptTitle(''); setConceptUrl(''); setConceptDesc(''); setConceptError(''); setActiveConceptModalBuild(build); }}
                   className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition border border-slate-200/80 cursor-pointer"
                   title="Add Design Concept"
                 >
@@ -375,7 +390,7 @@ export default function BuildManagement() {
                   disabled={conceptSaving || conceptUploading}
                   className="py-2.5 bg-[#101828] hover:bg-black text-white text-xs font-bold uppercase tracking-wider rounded-xl transition border-none cursor-pointer shadow-sm"
                 >
-                  {conceptSaving ? 'Saving...' : 'Upload Concept'}
+                  {conceptSaving ? 'Saving...' : editingConceptId ? 'Save Changes' : 'Upload Concept'}
                 </button>
                 <button 
                   type="button"
@@ -401,11 +416,15 @@ export default function BuildManagement() {
               </button>
             </div>
 
+            {conceptError && <p role="alert" className="text-sm text-red-600">{conceptError}</p>}
             <div className="space-y-3 max-h-60 overflow-y-auto">
               {activePhotosBuild.concepts.length > 0 ? (
                 activePhotosBuild.concepts.map((c, idx) => (
                   <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
-                    <p className="font-bold text-slate-800">{c.title}</p>
+                    <div className="flex items-center justify-between gap-2"><p className="font-bold text-slate-800">{c.title}</p><div className="flex gap-2">
+                      <button aria-label={`Edit ${c.title}`} disabled={conceptSaving} onClick={() => { setEditingConceptId(c.id); setConceptTitle(c.title); setConceptUrl(c.url); setConceptDesc(c.description || ''); setConceptError(''); setActiveConceptModalBuild(activePhotosBuild); setActivePhotosBuild(null); }} className="p-2 text-blue-700"><Pencil size={16} /></button>
+                      <button aria-label={`Delete ${c.title}`} disabled={conceptSaving} onClick={() => void deleteConcept(c.id)} className="p-2 text-red-600"><Trash2 size={16} /></button>
+                    </div></div>
                     {c.description && <p className="text-slate-500 text-[11px]">{c.description}</p>}
                     {c.url && <Image src={imageSource(c.url)} alt={c.title} width={640} height={360} unoptimized className="w-full rounded-lg object-contain" />}
                   </div>
