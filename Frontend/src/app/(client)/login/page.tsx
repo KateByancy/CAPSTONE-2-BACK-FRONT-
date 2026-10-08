@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/lib/api';
 import { renderGoogleButton } from '@/lib/google-auth';
-import { ChevronLeft, Home, Loader2, ShieldCheck, Layout, Eye } from 'lucide-react';
+import { ChevronLeft, Home, Loader2, ShieldCheck, Layout, Eye, EyeOff } from 'lucide-react';
 
 interface LoginViewProps {
   onLoginSuccess?: (userName?: string) => void; // pass the authenticated user name back to the parent
@@ -259,18 +259,11 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showPassword}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors flex items-center justify-center cursor-pointer"
                     >
-                      <div className="relative w-4 h-4 flex items-center justify-center">
-                        <Eye className="w-4 h-4 shrink-0" />
-                        {!showPassword && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none scale-110">
-                            <span className="text-slate-400 font-extrabold text-[15px] leading-none select-none rotate-[12deg] transform translate-y-[-1px]">
-                              \
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      {showPassword ? <Eye aria-hidden="true" className="w-4 h-4" /> : <EyeOff aria-hidden="true" className="w-4 h-4" />}
                     </button>
                   )}
                 </div>

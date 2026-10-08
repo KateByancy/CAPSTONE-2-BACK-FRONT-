@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { Calculator, ArrowRight, Wallet, CalendarRange, Check, Calendar, ArrowLeft, Clock, ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
 import ClientProfileIcon from '@/components/ClientProfileIcon';
+import MobileTimePicker from '@/components/MobileTimePicker';
 import { formatClientName, getApiUrl, getClientSession } from '@/lib/api';
 
 interface HomeProps {
@@ -752,18 +753,14 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
 
                     <div className="min-w-0 space-y-1">
                       <label className="min-h-8 flex items-end text-[10px] font-black uppercase tracking-wider text-slate-300">Preferred Start Time</label>
-                      <input
-                        type={desktopTimePicker ? 'time' : 'text'}
-                        inputMode={desktopTimePicker ? undefined : 'numeric'}
-                        placeholder={desktopTimePicker ? undefined : 'HH:MM (24-hour)'}
-                        pattern={desktopTimePicker ? undefined : '([01][0-9]|2[0-3]):[0-5][0-9]'}
-                        maxLength={desktopTimePicker ? undefined : 5}
-                        aria-label="Preferred start time in 24-hour format"
+                      {desktopTimePicker ? <input
+                        type="time"
+                        aria-label="Preferred start time"
                         value={preferredStartTime}
                         onChange={(e) => setPreferredStartTime(e.target.value)}
                         required
                         className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
-                      />
+                      /> : <MobileTimePicker value={preferredStartTime} onChange={setPreferredStartTime} />}
                     </div>
 
                   </form>

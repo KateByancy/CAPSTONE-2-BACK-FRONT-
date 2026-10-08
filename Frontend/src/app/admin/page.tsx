@@ -57,12 +57,12 @@ export default function AdminPage() {
         <div className="mb-8 text-center">
           <p className="text-xs uppercase tracking-[0.35em] text-slate-500 mb-2">Admin Access</p>
           <h1 className="text-3xl font-serif font-black tracking-tight">Sign in to Admin</h1>
-          <p className="mt-3 text-sm text-slate-400">Enter your administrator credentials to continue.</p>
+          <p className="mt-3 text-sm text-slate-300">Enter your administrator credentials to continue.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.3em] text-slate-500 mb-2">Email</label>
+            <label className="block text-[11px] uppercase tracking-[0.3em] text-slate-350 mb-2">Email</label>
             <input
               type="email"
               value={email}
@@ -73,7 +73,7 @@ export default function AdminPage() {
           </div>
 
           <div>
-            <label className="block text-[11px] uppercase tracking-[0.3em] text-slate-500 mb-2">Password</label>
+            <label className="block text-[11px] uppercase tracking-[0.3em] text-slate-350 mb-2">Password</label>
             <div className="relative w-full flex items-center">
               <input
                 type={showPassword ? "text" : "password"}

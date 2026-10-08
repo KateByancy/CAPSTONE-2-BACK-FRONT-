@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const paymongo = require('../services/paymongoCheckout');
+const latestPaymentFirst = require('../utils/paymentOrder');
 const query = (sql, values = []) => new Promise((resolve, reject) => db.query(sql, values, (error, rows) => error ? reject(error) : resolve(rows)));
 const wrap = handler => async (req, res) => {
     try { await handler(req, res); }
@@ -45,6 +46,7 @@ exports.list = wrap(async (req, res) => {
         try { await syncPayment(payment); }
         catch { syncWarning = 'Some payment statuses could not be checked with PayMongo. Refresh to try again; do not pay again while confirmation is pending.'; }
     }
+    payments.sort(latestPaymentFirst);
     const bookings = admin ? await query(`SELECT b.id, b.service_type, u.fullname AS client_name FROM bookings b JOIN users u ON u.id=b.user_id
         WHERE ${accepted} AND NOT EXISTS (SELECT 1 FROM gcash_requests p WHERE p.booking_id=b.id AND p.status IN ('Awaiting payment','For verification','Returned')) ORDER BY b.id DESC`) : [];
     const legacy = await query(`SELECT p.id, p.booking_id, p.amount, p.reference_number, p.payment_status AS status, p.created_at,
@@ -112,6 +114,7 @@ async function syncPayment(payment) {
     if (paid) {
         await query("UPDATE gcash_requests SET status='Paid', provider_payment_id=?, reviewed_at=NOW() WHERE id=? AND checkout_session_id=? AND payment_provider='PayMongo' AND status <> 'Paid'", [paid.id, payment.id, payment.checkout_session_id]);
         payment.status = 'Paid';
+        payment.reviewed_at = new Date().toISOString();
     }
     return session;
 }
