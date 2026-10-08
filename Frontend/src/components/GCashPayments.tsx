@@ -150,7 +150,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
     {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
     {admin && <div className="grid items-start gap-5 lg:grid-cols-2">
-      <section className={card}>
+      <section className={`${card} min-w-0 lg:col-span-2`}>
         <div className="flex items-center justify-between gap-2"><h2 className="min-w-0 font-bold">Admin GCash account</h2>
           <div className="flex shrink-0 items-center gap-1">
             {!editingAccount && savedAccount && <button type="button" aria-label="Edit GCash account" title="Edit GCash account" disabled={busy} onClick={() => { setEditingAccount(true); setGcashAccountHidden(false); }} className="flex h-11 w-11 items-center justify-center rounded-xl text-blue-700 hover:bg-blue-50 disabled:opacity-50"><Pencil size={18} /></button>}
