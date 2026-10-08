@@ -180,7 +180,7 @@ export default function DashboardShell({
       </aside>
 
       {/* 2. MAIN CONTENT AREA */}
-      <main className={`flex-1 min-w-0 ${activeTab === 'chat' ? 'h-full min-h-0 overflow-hidden' : 'overflow-y-auto'} bg-slate-50 relative p-4 md:p-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8 w-full max-w-7xl mx-auto`}>
+      <main data-dashboard-content className={`flex-1 min-w-0 ${activeTab === 'chat' ? 'h-full min-h-0 overflow-hidden' : 'overflow-y-auto'} bg-slate-50 relative p-3 sm:p-4 md:p-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8 w-full max-w-7xl mx-auto`}>
         {React.Children.map(children, child => {
           if (React.isValidElement(child)) {
             return React.cloneElement(child, { userName, setActiveTab } as { userName: string; setActiveTab: (tab: string) => void });
@@ -190,7 +190,7 @@ export default function DashboardShell({
       </main>
 
       {/* 3. MOBILE ONLY: BOTTOM NAVIGATION BAR */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 max-h-dvh overflow-auto overscroll-contain bg-[#0070c0] border-t border-blue-600/30 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] grid grid-cols-5 items-center z-50 shadow-lg">
+      <div data-mobile-navigation className="md:hidden fixed bottom-0 left-0 right-0 max-h-dvh overflow-auto overscroll-contain bg-[#0070c0] border-t border-blue-600/30 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] grid grid-cols-5 items-center z-50 shadow-lg">
         {tabs.map((tab) => {
           const IconComponent = tab.icon;
           const isSelected = activeTab === tab.id;

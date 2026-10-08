@@ -20,7 +20,7 @@ export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
   useEffect(() => {
     if (!isOpen) return;
     formRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
-    currentPasswordRef.current?.focus({ preventScroll: true });
+    if (window.matchMedia('(min-width: 768px)').matches) currentPasswordRef.current?.focus({ preventScroll: true });
   }, [isOpen]);
 
   function closeForm() {
@@ -58,7 +58,7 @@ export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
     <button type="button" aria-expanded={isOpen} aria-controls={formId} disabled={saving} onClick={() => { if (isOpen) closeForm(); else setIsOpen(true); }} className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800 hover:bg-slate-50 disabled:opacity-50">
       Change Password
     </button>
-    {isOpen && <form ref={formRef} id={formId} onSubmit={submit} className="scroll-mt-4 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 space-y-4">
+    {isOpen && <form ref={formRef} id={formId} onSubmit={submit} className="min-w-0 scroll-mt-4 rounded-3xl border border-slate-200 bg-white p-4 sm:p-8 space-y-4">
     <h2 className="text-lg font-bold text-slate-900">Change Password</h2>
     <fieldset disabled={saving} className="space-y-4">
       {([
@@ -82,7 +82,7 @@ export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
               field.setValue(event.target.value);
               if (!event.target.value) setVisiblePasswords(current => ({ ...current, [field.key]: false }));
             }}
-            className="w-full rounded-xl border border-slate-200 p-3 pr-12 text-sm text-slate-900"
+            className="min-w-0 w-full rounded-xl border border-slate-200 p-3 pr-12 text-base md:text-sm text-slate-900"
           />
           {field.value.length > 0 && <button
             type="button"

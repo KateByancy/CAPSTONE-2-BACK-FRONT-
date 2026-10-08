@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* Safari zooms focused fields below 16px. Keep user pinch zoom available. */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    textarea, select {
+      font-size: 16px !important;
+    }
+
+    body:has(input:focus, textarea:focus, select:focus) [data-mobile-navigation] {
+      display: none;
+    }
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -34,4 +48,20 @@ select:not(.appearance-none):not([multiple]):not([size]) {
   background-position: right 0.75rem center;
   background-size: 1rem 1rem;
   padding-right: 2.5rem;
+}
+
+@media (max-width: 767px) {
+  main[data-dashboard-content] {
+    overflow-wrap: anywhere;
+  }
+
+  main[data-dashboard-content] > *,
+  main[data-dashboard-content] :where(.grid, .flex, fieldset) {
+    min-width: 0;
+  }
+
+  main[data-dashboard-content] > *,
+  main[data-dashboard-content] :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    max-width: 100%;
+  }
 }

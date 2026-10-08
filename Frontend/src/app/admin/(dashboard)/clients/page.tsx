@@ -133,20 +133,24 @@ export default function ClientsManagement() {
   // --- HANDLERS ---
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessageText.trim() || !activeChatClient) return;
+    if (!newMessageText.trim() || !activeChatClient || isSending) return;
 
     const clientId = activeChatClient.id;
     const text = newMessageText.trim();
+    const draft = newMessageText;
+    let messageSent = false;
+    setNewMessageText('');
     setIsSending(true);
     setClientsError('');
     try {
       const response = await fetch(`${getApiUrl()}/chat`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('adminToken') || ''}`}, body:JSON.stringify({user_id:Number(clientId),sender:'admin',message:text}) });
       if (!response.ok) throw new Error('Unable to send message.');
+      messageSent = true;
       const result = await response.json();
       if (result.notificationWarning) setClientsError(result.notificationWarning);
-      setNewMessageText('');
       await loadConversation(clientId);
     } catch (error) {
+      if (!messageSent) setNewMessageText(current => current || draft);
       setClientsError(error instanceof Error ? error.message : 'Unable to send message.');
     } finally {
       setIsSending(false);

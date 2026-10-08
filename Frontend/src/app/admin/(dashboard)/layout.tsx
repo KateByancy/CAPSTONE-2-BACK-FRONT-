@@ -59,7 +59,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col md:flex-row relative">
+    <div className="min-w-0 w-full max-w-full min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col md:flex-row relative">
       
       {/* DESKTOP HOVER-EXPANDABLE SIDEBAR */}
       <aside 
@@ -130,12 +130,12 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
       </aside>
 
       {/* INTERACTIVE WORK AREA */}
-      <main className="min-w-0 flex-1 overflow-y-auto p-4 md:p-8 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
+      <main data-dashboard-content className="min-w-0 w-full flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
         {children}
       </main>
 
       {/* MOBILE BOTTOM NAV BAR */}
-      <nav aria-label="Admin navigation" className="md:hidden fixed bottom-0 left-0 right-0 min-h-16 bg-[#0070c0] border-t border-white/15 grid grid-cols-5 items-center gap-1 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40 shadow-lg">
+      <nav data-mobile-navigation aria-label="Admin navigation" className="md:hidden fixed bottom-0 left-0 right-0 min-h-16 bg-[#0070c0] border-t border-white/15 grid grid-cols-5 items-center gap-1 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-40 shadow-lg">
         {navItems.slice(0, 5).map((item) => {
           const active = checkActive(item.path);
           const Icon = item.icon;

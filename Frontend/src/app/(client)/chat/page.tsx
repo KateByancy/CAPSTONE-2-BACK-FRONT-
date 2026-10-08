@@ -76,18 +76,24 @@ export default function Chat() {
     
     const client = getClientSession();
     if (!client) { setError('Please sign in again before sending a message.'); return; }
+    const draft = input;
+    let messageSent = false;
+    setInput('');
     setIsSending(true);
     setError('');
     try {
       const response = await fetch(`${getApiUrl()}/chat`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('clientToken') || ''}` },
-        body: JSON.stringify({ user_id: client.id, sender: 'client', message: input.trim() }),
+        body: JSON.stringify({ user_id: client.id, sender: 'client', message: draft.trim() }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Unable to send message.');
-      setInput('');
+      messageSent = true;
       await loadMessages();
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to send message.'); } finally { setIsSending(false); }
+    } catch (err) {
+      if (!messageSent) setInput(current => current || draft);
+      setError(err instanceof Error ? err.message : 'Unable to send message.');
+    } finally { setIsSending(false); }
   };
 
   return (

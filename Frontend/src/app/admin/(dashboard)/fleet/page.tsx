@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, Compass, Info, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -30,6 +30,8 @@ const getStatus = (progress: number): 'Pending' | 'Ongoing' | 'Completed' => {
 export default function FleetMapManagement() {
   // --- DYNAMIC STATE SYSTEM CONNECTED TO BUILDS & PROJECT ROADMAP ---
   const [liveProjects, setLiveProjects] = useState<ProjectMarker[]>([]);
+  const mapSectionRef = useRef<HTMLDivElement>(null);
+  const [selectionRevision, setSelectionRevision] = useState(0);
   const [loadError, setLoadError] = useState('');
   const [selectedProject, setSelectedProject] = useState<ProjectMarker | null>(null);
   const [hoveredProject, setHoveredProject] = useState<ProjectMarker | null>(null);
@@ -82,7 +84,10 @@ export default function FleetMapManagement() {
   const activeProject = selectedProject || liveProjects[0] || null;
   const selectProject = useCallback((projectId: string) => {
     const project = liveProjects.find(item => item.id === projectId);
-    if (project) setSelectedProject(project);
+    if (project) {
+      setSelectedProject(project); setSelectionRevision(current => current + 1);
+      if (window.matchMedia('(max-width: 1023px)').matches) mapSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }, [liveProjects]);
 
   return (
@@ -105,7 +110,7 @@ export default function FleetMapManagement() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
         {/* PERSISTENT MAP WINDOW CONTAINER */}
-        <div className="min-w-0 lg:col-span-3 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl overflow-hidden relative flex flex-col justify-between">
+        <div ref={mapSectionRef} className="scroll-mt-4 min-w-0 lg:col-span-3 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl overflow-hidden relative flex flex-col justify-between">
           
           {/* SIMULATED DEVICE HEADER BAR */}
           <div className="bg-slate-950 text-white px-4 py-3 flex flex-wrap gap-2 justify-between items-center text-xs font-bold border-b border-slate-800/60 z-10">
@@ -122,6 +127,7 @@ export default function FleetMapManagement() {
               <FleetProjectMap
                 projects={liveProjects}
                 selectedProjectId={activeProject?.id}
+                selectionRevision={selectionRevision}
                 onSelectProject={selectProject}
               />
             ) : (
@@ -159,7 +165,7 @@ export default function FleetMapManagement() {
                   onMouseEnter={() => setHoveredProject(project)}
                   onMouseLeave={() => setHoveredProject(null)}
                   onClick={() => {
-                    setSelectedProject(project);
+                    selectProject(project.id);
                   }}
                   className={`w-full p-3 text-left rounded-xl border transition flex flex-col space-y-1 text-xs cursor-pointer ${
                     isActive

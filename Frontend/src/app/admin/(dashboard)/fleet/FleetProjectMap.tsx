@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import L from 'leaflet';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -25,6 +25,7 @@ interface Coordinates {
 interface FleetProjectMapProps {
   projects: FleetMapProject[];
   selectedProjectId?: string;
+  selectionRevision?: number;
   onSelectProject: (projectId: string) => void;
 }
 
@@ -79,15 +80,19 @@ function MapGestures() {
   return null;
 }
 
-function RecenterMap({ coordinates, allCoordinates }: { coordinates?: Coordinates; allCoordinates: Coordinates[] }) {
+function RecenterMap({ coordinates, allCoordinates, selectedProjectId, selectionRevision, markers }: { coordinates?: Coordinates; allCoordinates: Coordinates[]; selectedProjectId?: string; selectionRevision: number; markers: RefObject<Record<string, L.Marker>> }) {
   const map = useMap();
 
   const lat = coordinates?.lat;
   const lng = coordinates?.lng;
   const hasSelection = lat !== undefined && lng !== undefined;
   useEffect(() => {
-    if (lat !== undefined && lng !== undefined) map.setView([lat, lng], 16, { animate: false });
-  }, [lat, lng, map]);
+    if (lat !== undefined && lng !== undefined) {
+      map.invalidateSize({ pan: false });
+      map.setView([lat, lng], 16, { animate: false });
+      if (selectedProjectId) markers.current[selectedProjectId]?.openPopup();
+    }
+  }, [lat, lng, map, selectedProjectId, selectionRevision, markers]);
   useEffect(() => {
     if (!hasSelection && allCoordinates.length) {
       map.fitBounds(allCoordinates.map(item => [item.lat, item.lng]), { padding: [40, 40], maxZoom: 14 });
@@ -97,7 +102,8 @@ function RecenterMap({ coordinates, allCoordinates }: { coordinates?: Coordinate
   return null;
 }
 
-function FleetProjectMap({ projects, selectedProjectId, onSelectProject }: FleetProjectMapProps) {
+function FleetProjectMap({ projects, selectedProjectId, selectionRevision = 0, onSelectProject }: FleetProjectMapProps) {
+  const markers = useRef<Record<string, L.Marker>>({});
   const [coordinatesById, setCoordinatesById] = useState<Record<string, Coordinates>>({});
   const [pendingLocations, setPendingLocations] = useState(0);
   const projectSignature = projects
@@ -150,12 +156,13 @@ function FleetProjectMap({ projects, selectedProjectId, onSelectProject }: Fleet
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <RecenterMap coordinates={selectedCoordinates} allCoordinates={allCoordinates} />
+      <RecenterMap coordinates={selectedCoordinates} allCoordinates={allCoordinates} selectedProjectId={selectedProjectId} selectionRevision={selectionRevision} markers={markers} />
       {locatedProjects.map((project) => {
         const coordinates = coordinatesById[project.id];
         return (
           <Marker
             key={project.id}
+            ref={marker => { if (marker) markers.current[project.id] = marker; else delete markers.current[project.id]; }}
             position={[coordinates.lat, coordinates.lng]}
             icon={redPinIcon}
             eventHandlers={{ click: () => onSelectProject(project.id) }}
