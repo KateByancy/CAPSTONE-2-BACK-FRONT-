@@ -1,7 +1,7 @@
 // src/components/Chat.tsx
 "use client";
-import React, { useEffect, useState } from 'react';
-import { MessageSquare, Send, Bot, UserRound, ChevronDown } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { MessageSquare, Send, Bot, UserRound, ChevronDown, X } from 'lucide-react';
 import useChatScroll from '@/components/useChatScroll';
 import { getApiUrl, getClientSession } from '@/lib/api';
 
@@ -9,6 +9,19 @@ interface PortfolioImage { id: number; title: string; image: string; }
 interface ChatMessage { id: number; text: string; isMe: boolean; sender: string; portfolio?: PortfolioImage[]; }
 
 export default function Chat() {
+  const [previewImage, setPreviewImage] = useState<PortfolioImage | null>(null);
+  const previewRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (!previewImage) return;
+    const dialog = previewRef.current;
+    dialog?.showModal();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [previewImage]);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -133,12 +146,12 @@ export default function Chat() {
             >
               {msg.text}
               {msg.portfolio?.map(item => (
-                <a key={item.id} href={item.image} target="_blank" rel="noopener noreferrer" className="mt-3 block overflow-hidden rounded-lg border border-slate-200">
+                <button type="button" key={item.id} onClick={() => setPreviewImage(item)} aria-label={`View ${item.title || 'MARC portfolio project'} in full`} className="mt-3 block w-full overflow-hidden rounded-lg border border-slate-200 text-left">
                   {/* Portfolio URLs are supplied by the admin and validated by the backend. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={item.image} alt={item.title || 'MARC portfolio project'} loading="lazy" className="max-h-64 w-full object-contain" />
                   <span className="block p-2 font-medium">{item.title || 'MARC portfolio project'}</span>
-                </a>
+                </button>
               ))}
             </div>
           </div>
@@ -152,6 +165,14 @@ export default function Chat() {
           </button>
         )}
       </div>
+
+      <dialog ref={previewRef} aria-label={previewImage?.title || 'Portfolio image preview'} onCancel={() => setPreviewImage(null)} className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none border-0 bg-black/95 p-0 text-white backdrop:bg-black/80">
+        {previewImage && <div className="relative flex h-full w-full items-center justify-center p-4 pt-[max(4rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <button type="button" autoFocus onClick={() => setPreviewImage(null)} aria-label="Close image preview" className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-white/15 hover:bg-white/25"><X className="h-6 w-6" /></button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={previewImage.image} alt={previewImage.title || 'MARC portfolio project'} className="max-h-full max-w-full object-contain" />
+        </div>}
+      </dialog>
 
       {/* Interactive Chat Input Area */}
       <form onSubmit={handleSend} className="shrink-0 p-3 bg-white border-t border-slate-200 flex items-center space-x-2">
