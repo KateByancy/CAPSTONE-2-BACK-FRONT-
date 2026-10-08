@@ -104,7 +104,7 @@ app.use(errorHandler);
 const PORT = Number(process.env.PORT || 5000);
 
 const startServer = async () => {
-    if (process.env.NODE_ENV === 'production' || process.env.PAYMENTS_MODE === 'live') require('./services/paymentConfig').assertConfigured();
+    if (process.env.PAYMONGO_SECRET_KEY || process.env.PAYMENTS_MODE === 'live') require('./services/paymentConfig').assertConfigured();
     try {
         await connectDatabase();
     } catch (error) {
@@ -119,6 +119,16 @@ const startServer = async () => {
         failure.code = error.code;
         db.destroy();
         throw failure;
+    }
+
+    try {
+        await require('./migrations/paymentStorage')((sql) => new Promise((resolve, reject) => {
+            db.query(sql, (error, rows) => error ? reject(error) : resolve(rows));
+        }));
+        console.log('GCash payment storage ready.');
+    } catch (error) {
+        db.destroy();
+        throw new Error(`Payment storage migration failed (${error.code || 'unknown'}). ${error.message}`, { cause: error });
     }
 
     try {

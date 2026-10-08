@@ -62,15 +62,21 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   }, [request]);
   useEffect(() => {
     let active = true;
-    void Promise.all([request(''), request('/settings')]).then(([billing, result]) => {
+    void Promise.allSettled([request(''), request('/settings')]).then(([billingResult, settingsResult]) => {
       if (!active) return;
-      setPayments(billing.payments); setBookings(billing.bookings); setLegacy(billing.legacy);
-      setEstimates(billing.estimates || []);
-      setAccountName(result.settings?.account_name || ''); setAccountNumber(result.settings?.account_number || ''); setQrImage(result.settings?.qr_image || '');
-      setManualReady(Boolean(result.settings?.qr_image));
-      setConfigured(result.provider === 'PayMongo' && result.configured === true);
-      setTestMode(result.testMode === true);
-      if (billing.syncWarning) setError(billing.syncWarning);
+      if (billingResult.status === 'fulfilled') {
+        const billing = billingResult.value;
+        setPayments(billing.payments); setBookings(billing.bookings); setLegacy(billing.legacy);
+        setEstimates(billing.estimates || []);
+        if (billing.syncWarning) setError(billing.syncWarning);
+      } else setError(billingResult.reason.message);
+      if (settingsResult.status === 'fulfilled') {
+        const result = settingsResult.value;
+        setAccountName(result.settings?.account_name || ''); setAccountNumber(result.settings?.account_number || ''); setQrImage(result.settings?.qr_image || '');
+        setManualReady(Boolean(result.settings?.qr_image));
+        setConfigured(result.provider === 'PayMongo' && result.configured === true);
+        setTestMode(result.testMode === true);
+      } else setError(settingsResult.reason.message);
     }).catch(err => { if (active) setError(err.message); }).finally(() => { if (active) setLoading(false); });
     const refresh = () => { if (!inFlight.current && document.visibilityState === 'visible') void load().catch(err => setError(err.message)); };
     const timer = window.setInterval(refresh, 30000);
@@ -99,7 +105,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     try {
       await request(path, { method, headers: body instanceof FormData ? {} : { 'Content-Type': 'application/json' }, body: body instanceof FormData ? body : JSON.stringify(body) });
       setNotice(message);
-      await load();
+      if (path !== '/settings') await load();
       return true;
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save payment.'); return false; }
     finally { inFlight.current = false; setBusy(false); }

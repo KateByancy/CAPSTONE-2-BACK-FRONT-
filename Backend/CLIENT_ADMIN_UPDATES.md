@@ -1,4 +1,4 @@
-Run `npm run db:migrate:gcash` from Backend and restart the backend before using the updated Payments page. The migration adds QR image fields to settings and requests without removing payment data.
+The backend initializes GCash storage automatically at startup. Redeploy the latest backend and look for `GCash payment storage ready.` in its logs. The migration adds missing payment tables, QR fields, booking estimates and acceptance timestamps without removing existing data. It inspects columns before adding them for compatibility with MySQL and MariaDB. The database user must have CREATE and ALTER permissions. You can also run `npm run db:migrate:gcash` from Backend for manual setup.
 
 In Admin Payments, enter the GCash account name and mobile number, upload the actual QR exported from that GCash account, and save. Choose Admin GCash QR when requesting a booking payment. The client sees that request's saved account and QR automatically, submits the transaction reference and receipt, and the admin verifies the received funds. PayMongo checkout remains available as a separate payment method.
 

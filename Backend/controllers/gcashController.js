@@ -6,7 +6,8 @@ const wrap = handler => async (req, res) => {
     try { await handler(req, res); }
     catch (error) {
         if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ message: 'This reference is already used, or this booking already has an open payment request. Refresh and check your entries.' });
-        console.error('GCash payment error:', error.message);
+        console.error('GCash payment error:', error.code || 'UNKNOWN', error.message);
+        if (['ER_NO_SUCH_TABLE', 'ER_BAD_FIELD_ERROR'].includes(error.code)) return res.status(503).json({ message: 'Payment database setup is incomplete. Redeploy the updated backend to initialize GCash storage.' });
         res.status(error.statusCode || 500).json({ message: error.statusCode ? error.message : 'Unable to save or load payments. Please try again.' });
     }
 };
