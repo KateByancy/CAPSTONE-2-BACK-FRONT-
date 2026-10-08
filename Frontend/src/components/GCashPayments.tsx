@@ -34,7 +34,8 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   const [qrUploading, setQrUploading] = useState(false);
   const [manualReady, setManualReady] = useState(false);
   const [editingAccount, setEditingAccount] = useState(true);
-  const [accountSectionsHidden, setAccountSectionsHidden] = useState(false);
+  const [gcashAccountHidden, setGcashAccountHidden] = useState(false);
+  const [payMongoHidden, setPayMongoHidden] = useState(false);
   const [savedAccount, setSavedAccount] = useState<{ account_name: string; account_number: string; qr_image: string } | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [savingAccount, setSavingAccount] = useState(false);
@@ -169,19 +170,17 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     {testMode && <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">PayMongo test mode — checkout simulates payments; no real money is collected.</p>}
     {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
     {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
-    {admin && <div className="grid gap-5 lg:grid-cols-2">
-      <div className="flex flex-wrap items-center justify-between gap-3 lg:col-span-2">
-        <h2 className="font-bold">Payment accounts</h2>
-        <button type="button" aria-expanded={!accountSectionsHidden} aria-controls="admin-payment-accounts" onClick={() => setAccountSectionsHidden(hidden => !hidden)} className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50">
-          {accountSectionsHidden ? <Eye size={16} /> : <EyeOff size={16} />}
-          {accountSectionsHidden ? 'Unhide' : 'Hide'}
-        </button>
-      </div>
-      <div id="admin-payment-accounts" hidden={accountSectionsHidden} className={accountSectionsHidden ? 'hidden' : 'grid gap-5 lg:col-span-2 lg:grid-cols-2'}>
+    {admin && <div className="grid items-start gap-5 lg:grid-cols-2">
       <section className={card}>
-        <div className="flex items-center justify-between gap-3"><h2 className="font-bold">Admin GCash account</h2>
-          {!editingAccount && savedAccount && <button type="button" aria-label="Edit GCash account" title="Edit GCash account" disabled={busy} onClick={() => setEditingAccount(true)} className="flex h-11 w-11 items-center justify-center rounded-xl text-blue-700 hover:bg-blue-50 disabled:opacity-50"><Pencil size={18} /></button>}
+        <div className="flex items-center justify-between gap-2"><h2 className="min-w-0 font-bold">Admin GCash account</h2>
+          <div className="flex shrink-0 items-center gap-1">
+            {!editingAccount && savedAccount && <button type="button" aria-label="Edit GCash account" title="Edit GCash account" disabled={busy} onClick={() => { setEditingAccount(true); setGcashAccountHidden(false); }} className="flex h-11 w-11 items-center justify-center rounded-xl text-blue-700 hover:bg-blue-50 disabled:opacity-50"><Pencil size={18} /></button>}
+            <button type="button" aria-expanded={!gcashAccountHidden} aria-controls="gcash-account-content" onClick={() => setGcashAccountHidden(hidden => !hidden)} className="flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+              {gcashAccountHidden ? <Eye size={16} /> : <EyeOff size={16} />}{gcashAccountHidden ? 'Unhide' : 'Hide'}
+            </button>
+          </div>
         </div>
+        <div id="gcash-account-content" hidden={gcashAccountHidden}>
         {!editingAccount && savedAccount ? <div className="mt-4 space-y-3">
           <dl className="space-y-3"><div><dt className="text-xs text-slate-500">Account name</dt><dd className="mt-1 break-words font-semibold">{savedAccount.account_name}</dd></div><div><dt className="text-xs text-slate-500">GCash mobile number</dt><dd className="mt-1 font-semibold tracking-wide">{savedAccount.account_number}</dd></div></dl>
           <Image src={imageSource(savedAccount.qr_image)} alt={`GCash QR for ${savedAccount.account_name}`} width={288} height={288} unoptimized className="mx-auto block h-auto w-full max-w-60 rounded-lg object-contain md:max-w-72" />
@@ -195,10 +194,17 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
           {savedAccount && <button type="button" disabled={savingAccount || qrUploading} className="rounded-xl border px-4 py-3 text-sm" onClick={() => { setAccountName(savedAccount.account_name); setAccountNumber(savedAccount.account_number); setQrImage(savedAccount.qr_image); setEditingAccount(false); }}>Cancel</button>}
         </div>
       </form>}
+        </div>
       </section>
-      <section className={card}><h2 className="font-bold">GCash via PayMongo</h2><p className="mt-3 text-sm">{configured ? testMode ? 'GCash checkout is in test mode.' : 'Live GCash checkout is enabled.' : 'GCash checkout is unavailable. Contact the system operator.'}</p><p className="mt-3 text-sm text-slate-500">Clients authorize payments on PayMongo checkout. Payments are confirmed automatically after PayMongo verifies the funds. Refresh to see the latest status.</p></section>
-      </div>
-      <form id="gcash-payment-request-form" className={card} onSubmit={async event => { event.preventDefault(); event.stopPropagation(); const form = event.currentTarget; const fields = new FormData(form); if (await mutate('', Object.fromEntries(fields), 'Payment request sent to the client.')) form.reset(); }}>
+      <section className={card}>
+        <div className="flex items-center justify-between gap-2"><h2 className="min-w-0 font-bold">GCash via PayMongo</h2>
+          <button type="button" aria-expanded={!payMongoHidden} aria-controls="paymongo-account-content" onClick={() => setPayMongoHidden(hidden => !hidden)} className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl px-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+            {payMongoHidden ? <Eye size={16} /> : <EyeOff size={16} />}{payMongoHidden ? 'Unhide' : 'Hide'}
+          </button>
+        </div>
+        <div id="paymongo-account-content" hidden={payMongoHidden}><p className="mt-3 text-sm">{configured ? testMode ? 'GCash checkout is in test mode.' : 'Live GCash checkout is enabled.' : 'GCash checkout is unavailable. Contact the system operator.'}</p><p className="mt-3 text-sm text-slate-500">Clients authorize payments on PayMongo checkout. Payments are confirmed automatically after PayMongo verifies the funds. Refresh to see the latest status.</p></div>
+      </section>
+      <form id="gcash-payment-request-form" className={`${card} min-w-0 lg:col-span-2`} onSubmit={async event => { event.preventDefault(); event.stopPropagation(); const form = event.currentTarget; const fields = new FormData(form); if (await mutate('', Object.fromEntries(fields), 'Payment request sent to the client.')) form.reset(); }}>
         <h2 className="font-bold">Request a booking payment</h2><p className="mt-1 text-xs text-slate-500">Set the agreed amount for a deposit, installment, or final payment. One open request per booking.</p>
         <label className="mt-3 block text-sm">Payment method<select name="payment_provider" value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)} className={input}><option value="Manual">Admin GCash QR</option><option value="PayMongo">PayMongo GCash checkout</option></select></label>
         <label className="mt-3 block text-sm">Accepted booking<select name="booking_id" required className={input} defaultValue=""><option value="">Select booking</option>{bookings.map(b => <option key={b.id} value={b.id}>#{b.id} · {b.client_name} · {b.service_type}</option>)}</select></label>
