@@ -25,13 +25,13 @@ export default function MobileTimePicker({ value, onChange }: { value: string; o
   return <div className="relative min-w-0 w-full" onBlur={event => {
     if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
   }} onKeyDown={event => { if (event.key === 'Escape') setOpen(false); }}>
-    <div className="relative">
+    <div className="relative min-w-0 w-full">
       <input type="text" required maxLength={5} pattern="(0?[1-9]|1[0-2]):[0-5][0-9]" placeholder="hh:mm" aria-label="Preferred start time, hours and minutes" title="Enter a time such as 09:30 and choose AM or PM" value={time} onChange={event => {
         setTime(event.target.value);
         updateTime(event.target.value, period);
       }} onBlur={() => {
         if (/^(0?[1-9]|1[0-2]):[0-5][0-9]$/.test(time)) setTime(time.padStart(5, '0'));
-      }} className="min-h-11 w-full rounded-xl border border-slate-700 bg-[#121620] py-2.5 pl-3 pr-14 text-xs font-medium text-slate-200 shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      }} className="block h-11 min-w-0 w-full max-w-full rounded-xl border border-slate-700 bg-[#121620] py-2.5 pl-3 pr-14 text-xs font-medium text-slate-200 shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-500" />
       <button type="button" aria-label={`Choose AM or PM, currently ${period}`} aria-expanded={open} aria-controls={cardId} onClick={() => setOpen(!open)} className="absolute inset-y-0 right-1 flex min-w-11 items-center justify-center rounded-lg text-xs font-bold text-blue-300 hover:bg-slate-800">{period}</button>
     </div>
     {open && <div id={cardId} role="group" aria-label="Choose AM or PM" className="absolute bottom-full right-0 z-30 mb-2 grid w-full max-w-40 grid-cols-2 gap-1 rounded-xl border border-slate-600 bg-slate-800 p-1 shadow-lg">

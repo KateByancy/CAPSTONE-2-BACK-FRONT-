@@ -11,6 +11,22 @@
     body:has(input:focus, textarea:focus, select:focus) [data-mobile-navigation] {
       display: none;
     }
+
+    /* Safari's native date editor otherwise keeps an intrinsic width in a grid. */
+    .booking-start-date {
+      min-inline-size: 0;
+      overflow: hidden;
+    }
+
+    .booking-start-date::-webkit-date-and-time-value {
+      min-width: 0;
+      text-align: left;
+    }
+
+    .booking-start-date::-webkit-datetime-edit {
+      min-width: 0;
+      padding: 0;
+    }
   }
 }
 

@@ -746,7 +746,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         min={new Date().toISOString().slice(0, 10)}
                         onChange={(e) => setPreferredStartDate(e.target.value)}
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
+                        className="booking-start-date block h-11 min-w-0 w-full max-w-full appearance-none bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
                       />
                       {(hasDuplicateBooking || hasScheduleConflict) && <p className="text-[10px] text-red-300">{hasDuplicateBooking ? 'You already have a booking for this day. Only one booking per day is allowed.' : 'This day is unavailable. Choose another date.'}</p>}
                     </div>
