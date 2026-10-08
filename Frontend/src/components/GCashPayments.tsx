@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, RefreshCw, Smartphone } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Smartphone, Pencil } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
 import Image from 'next/image';
 import AdminImageUpload, { imageSource } from './AdminImageUpload';
@@ -33,6 +33,11 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   const [qrImage, setQrImage] = useState('');
   const [qrUploading, setQrUploading] = useState(false);
   const [manualReady, setManualReady] = useState(false);
+  const [editingAccount, setEditingAccount] = useState(true);
+  const [savedAccount, setSavedAccount] = useState<{ account_name: string; account_number: string; qr_image: string } | null>(null);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [savingAccount, setSavingAccount] = useState(false);
+  const accountSaveInFlight = useRef(false);
   const [paymentMethod, setPaymentMethod] = useState('Manual');
   const [configured, setConfigured] = useState(false);
   const [testMode, setTestMode] = useState(false);
@@ -74,6 +79,10 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
         const result = settingsResult.value;
         setAccountName(result.settings?.account_name || ''); setAccountNumber(result.settings?.account_number || ''); setQrImage(result.settings?.qr_image || '');
         setManualReady(Boolean(result.settings?.qr_image));
+        if (result.settings?.qr_image) {
+          setSavedAccount(result.settings);
+          setEditingAccount(false);
+        }
         setConfigured(result.provider === 'PayMongo' && result.configured === true);
         setTestMode(result.testMode === true);
       } else setError(settingsResult.reason.message);
@@ -101,14 +110,27 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   }
   async function mutate(path: string, body: object | FormData, message: string, method = 'POST') {
     if (inFlight.current) return false;
-    inFlight.current = true; setBusy(true); setError(''); setNotice('');
+    inFlight.current = true; setBusy(true); setBusyAction(path); setError(''); setNotice('');
     try {
       await request(path, { method, headers: body instanceof FormData ? {} : { 'Content-Type': 'application/json' }, body: body instanceof FormData ? body : JSON.stringify(body) });
       setNotice(message);
       if (path !== '/settings') await load();
       return true;
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save payment.'); return false; }
-    finally { inFlight.current = false; setBusy(false); }
+    finally { inFlight.current = false; setBusy(false); setBusyAction(null); }
+  }
+  async function saveAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); event.stopPropagation();
+    if (accountSaveInFlight.current || qrUploading) return;
+    accountSaveInFlight.current = true; setSavingAccount(true); setError(''); setNotice('');
+    const account = { account_name: accountName.trim(), account_number: accountNumber.trim(), qr_image: qrImage };
+    try {
+      await request('/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(account) });
+      setAccountName(account.account_name); setAccountNumber(account.account_number);
+      setManualReady(Boolean(account.qr_image)); setSavedAccount(account); setEditingAccount(false);
+      setNotice('GCash account and QR saved.');
+    } catch (error) { setError(error instanceof Error ? error.message : 'Unable to save GCash account.'); }
+    finally { accountSaveInFlight.current = false; setSavingAccount(false); }
   }
   async function checkout(id: number) {
     if (inFlight.current) return;
@@ -147,24 +169,31 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
     {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
     {admin && <div className="grid gap-5 lg:grid-cols-2">
-      <form className={card} onSubmit={async event => {
-        event.preventDefault();
-        if (await mutate('/settings', { account_name: accountName, account_number: accountNumber, qr_image: qrImage }, 'GCash account and QR saved.', 'PUT')) setManualReady(Boolean(qrImage));
-      }}>
-        <h2 className="font-bold">Admin GCash account</h2>
+      <section className={card}>
+        <div className="flex items-center justify-between gap-3"><h2 className="font-bold">Admin GCash account</h2>
+          {!editingAccount && savedAccount && <button type="button" aria-label="Edit GCash account" title="Edit GCash account" disabled={busy} onClick={() => setEditingAccount(true)} className="flex h-11 w-11 items-center justify-center rounded-xl text-blue-700 hover:bg-blue-50 disabled:opacity-50"><Pencil size={18} /></button>}
+        </div>
+        {!editingAccount && savedAccount ? <div className="mt-4 space-y-3">
+          <dl className="space-y-3"><div><dt className="text-xs text-slate-500">Account name</dt><dd className="mt-1 break-words font-semibold">{savedAccount.account_name}</dd></div><div><dt className="text-xs text-slate-500">GCash mobile number</dt><dd className="mt-1 font-semibold tracking-wide">{savedAccount.account_number}</dd></div></dl>
+          <Image src={imageSource(savedAccount.qr_image)} alt={`GCash QR for ${savedAccount.account_name}`} width={288} height={288} unoptimized className="mx-auto block h-auto w-full max-w-60 rounded-lg object-contain md:max-w-72" />
+          <p className="text-xs text-green-700">GCash account saved</p>
+        </div> : <form id="gcash-account-form" onSubmit={saveAccount}>
         <label className="mt-3 block text-sm">Account name<input required maxLength={100} value={accountName} onChange={event => setAccountName(event.target.value)} className={input} /></label>
         <label className="mt-3 block text-sm">GCash mobile number<input required pattern="09[0-9]{9}" maxLength={11} inputMode="numeric" value={accountNumber} onChange={event => setAccountNumber(event.target.value)} className={input} /></label>
         <p className="my-3 text-sm">Upload the QR exported from your GCash account. Clients will see it on their payment request.</p>
-        <AdminImageUpload value={qrImage} onChange={setQrImage} onBusyChange={setQrUploading} disabled={busy} />
-        <button disabled={busy || qrUploading || !qrImage} className={`${button} mt-4`}>Save GCash account</button>
-      </form>
+        <AdminImageUpload value={qrImage} onChange={setQrImage} onBusyChange={setQrUploading} disabled={savingAccount} />
+        <div className="mt-4 flex flex-wrap gap-3"><button type="submit" form="gcash-account-form" disabled={savingAccount || loading || qrUploading || !qrImage} className={button}>{savingAccount ? 'Saving GCash account...' : 'Save GCash account'}</button>
+          {savedAccount && <button type="button" disabled={savingAccount || qrUploading} className="rounded-xl border px-4 py-3 text-sm" onClick={() => { setAccountName(savedAccount.account_name); setAccountNumber(savedAccount.account_number); setQrImage(savedAccount.qr_image); setEditingAccount(false); }}>Cancel</button>}
+        </div>
+      </form>}
+      </section>
       <section className={card}><h2 className="font-bold">GCash via PayMongo</h2><p className="mt-3 text-sm">{configured ? testMode ? 'GCash checkout is in test mode.' : 'Live GCash checkout is enabled.' : 'GCash checkout is unavailable. Contact the system operator.'}</p><p className="mt-3 text-sm text-slate-500">Clients authorize payments on PayMongo checkout. Payments are confirmed automatically after PayMongo verifies the funds. Refresh to see the latest status.</p></section>
-      <form className={card} onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const fields = new FormData(form); if (await mutate('', Object.fromEntries(fields), 'Payment request sent to the client.')) form.reset(); }}>
+      <form id="gcash-payment-request-form" className={card} onSubmit={async event => { event.preventDefault(); event.stopPropagation(); const form = event.currentTarget; const fields = new FormData(form); if (await mutate('', Object.fromEntries(fields), 'Payment request sent to the client.')) form.reset(); }}>
         <h2 className="font-bold">Request a booking payment</h2><p className="mt-1 text-xs text-slate-500">Set the agreed amount for a deposit, installment, or final payment. One open request per booking.</p>
         <label className="mt-3 block text-sm">Payment method<select name="payment_provider" value={paymentMethod} onChange={event => setPaymentMethod(event.target.value)} className={input}><option value="Manual">Admin GCash QR</option><option value="PayMongo">PayMongo GCash checkout</option></select></label>
         <label className="mt-3 block text-sm">Accepted booking<select name="booking_id" required className={input} defaultValue=""><option value="">Select booking</option>{bookings.map(b => <option key={b.id} value={b.id}>#{b.id} · {b.client_name} · {b.service_type}</option>)}</select></label>
         <div className="grid gap-3 sm:grid-cols-2"><label className="mt-3 block text-sm">Amount (PHP)<input name="amount" required type="number" min="100" max="99999999.99" step="0.01" className={input} /></label><label className="mt-3 block text-sm">Payment for<input name="description" required maxLength={200} placeholder="e.g. Agreed booking deposit" className={input} /></label></div>
-        <button disabled={busy || loading || !(paymentMethod === 'Manual' ? manualReady : configured) || !bookings.length} className={`${button} mt-4`}>Send payment request</button>
+        <button type="submit" form="gcash-payment-request-form" disabled={busy || loading || !(paymentMethod === 'Manual' ? manualReady : configured) || !bookings.length} className={`${button} mt-4`}>{busyAction === '' ? 'Sending payment request...' : 'Send payment request'}</button>
         {paymentMethod === 'Manual' && !manualReady && <p className="mt-2 text-xs text-amber-700">Save your GCash account and QR first.</p>}
         {paymentMethod === 'PayMongo' && !configured && <p className="mt-2 text-xs text-amber-700">Configure PayMongo on the backend first.</p>}
         {!loading && !bookings.length && <p className="mt-2 text-xs text-slate-500">No accepted bookings without an open payment request.</p>}
@@ -183,7 +212,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       {!admin && payment.payment_provider === 'PayMongo' && payment.status === 'Awaiting payment' && !['rejected','cancelled'].includes(payment.booking_status.toLowerCase()) && <div className="mt-4 border-t pt-4"><p className="mb-3 text-sm">Pay the requested amount through PayMongo’s GCash checkout. Returning from checkout does not itself confirm payment.</p><button disabled={busy || !configured} className={button} onClick={() => void checkout(payment.id)}>{busy ? 'Please wait...' : payment.checkout_session_id ? 'Resume GCash checkout' : 'Pay with GCash'}</button></div>}
       {!admin && payment.payment_provider === 'Manual' && ['Awaiting payment','Returned'].includes(payment.status) && !['rejected','cancelled'].includes(payment.booking_status.toLowerCase()) && <div className="mt-4 border-t pt-4">
         <p className="text-sm">{payment.status === 'Returned' ? 'Check the admin note and correct your receipt or reference. Do not pay again if funds were already sent.' : 'Open GCash and send the exact requested amount to the account below. Check the recipient before confirming.'}</p>
-        <div className="my-3 rounded-xl bg-blue-50 p-4"><p className="text-xs text-slate-500">GCash recipient</p><p className="font-bold">{payment.account_name}</p><p className="text-lg font-bold tracking-wide">{payment.account_number}</p><p className="mt-1 text-sm">Amount: {peso(payment.amount)}</p>{payment.qr_image && <Image src={imageSource(payment.qr_image)} alt={`GCash QR for ${payment.account_name}`} width={320} height={320} unoptimized className="mt-3 max-h-80 w-full object-contain" />}</div>
+        <div className="my-3 rounded-xl bg-blue-50 p-4"><p className="text-xs text-slate-500">GCash recipient</p><p className="font-bold">{payment.account_name}</p><p className="text-lg font-bold tracking-wide">{payment.account_number}</p><p className="mt-1 text-sm">Amount: {peso(payment.amount)}</p>{payment.qr_image && <Image src={imageSource(payment.qr_image)} alt={`GCash QR for ${payment.account_name}`} width={320} height={320} unoptimized className="mx-auto mt-4 block h-auto w-full max-w-60 rounded-lg object-contain md:mx-0 md:max-w-72" />}</div>
         <form onSubmit={e => void submitProof(e, payment.id)} className="grid items-end gap-3 md:grid-cols-3">
           <label className="text-sm">GCash reference number<input name="reference_number" required pattern="[0-9]{10,30}" maxLength={30} inputMode="numeric" defaultValue={payment.reference_number || ''} className={input} /></label>
           <label className="text-sm">Receipt image (max 5 MB)<input name="proof" required type="file" accept="image/png,image/jpeg,image/webp" className={`${input} text-xs`} /></label>

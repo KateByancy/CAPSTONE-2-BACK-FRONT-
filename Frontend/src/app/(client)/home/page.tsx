@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { Calculator, ArrowRight, Wallet, CalendarRange, Check, Calendar, ArrowLeft, Clock, ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
 import ClientProfileIcon from '@/components/ClientProfileIcon';
 import { formatClientName, getApiUrl, getClientSession } from '@/lib/api';
@@ -20,7 +20,17 @@ const SERVICE_TYPE_MULTIPLIERS: Record<string, number> = {
   'Commercial room': 1.5,
 };
 
+const desktopTimeQuery = '(min-width: 768px)';
+function subscribeToDesktopTime(onChange: () => void) {
+  const media = window.matchMedia(desktopTimeQuery);
+  media.addEventListener('change', onChange);
+  return () => media.removeEventListener('change', onChange);
+}
+const desktopTimeSnapshot = () => window.matchMedia(desktopTimeQuery).matches;
+const serverTimeSnapshot = () => false;
+
 export default function Home({ setActiveTab, userName = '' }: HomeProps) {
+  const desktopTimePicker = useSyncExternalStore(subscribeToDesktopTime, desktopTimeSnapshot, serverTimeSnapshot);
   const [area, setArea] = useState<number>(0);
   const [measurementUnit, setMeasurementUnit] = useState('sq ft');
   const [estimateServiceType, setEstimateServiceType] = useState<string>('');
@@ -743,11 +753,11 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                     <div className="min-w-0 space-y-1">
                       <label className="min-h-8 flex items-end text-[10px] font-black uppercase tracking-wider text-slate-300">Preferred Start Time</label>
                       <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="HH:MM (24-hour)"
-                        pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
-                        maxLength={5}
+                        type={desktopTimePicker ? 'time' : 'text'}
+                        inputMode={desktopTimePicker ? undefined : 'numeric'}
+                        placeholder={desktopTimePicker ? undefined : 'HH:MM (24-hour)'}
+                        pattern={desktopTimePicker ? undefined : '([01][0-9]|2[0-3]):[0-5][0-9]'}
+                        maxLength={desktopTimePicker ? undefined : 5}
                         aria-label="Preferred start time in 24-hour format"
                         value={preferredStartTime}
                         onChange={(e) => setPreferredStartTime(e.target.value)}
