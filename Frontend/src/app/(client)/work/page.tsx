@@ -171,7 +171,7 @@ export default function Work() {
             <button
               type="button"
               onClick={() => setActivePreviewItem(null)}
-              className="col-start-2 row-start-1 mr-2 p-2.5 bg-white/15 hover:bg-white/25 active:scale-95 rounded-full transition text-white cursor-pointer"
+              className="relative -top-1 col-start-2 row-start-1 mr-3 p-2.5 bg-white/15 hover:bg-white/25 active:scale-95 rounded-full transition text-white cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
