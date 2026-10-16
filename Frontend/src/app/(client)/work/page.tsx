@@ -160,18 +160,18 @@ export default function Work() {
           className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[100] flex flex-col justify-center items-center p-4 animate-in fade-in duration-200"
         >
           {/* Top Menu Actions Panel */}
-          <div className="w-full max-w-4xl flex justify-between items-center mb-3 text-white">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+          <div className="w-full max-w-4xl grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 mb-3 text-white">
+            <div className="contents">
+              <span className="justify-self-start text-[10px] font-bold uppercase tracking-widest text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
                 {activePreviewItem.category}
               </span>
-              <h3 className="text-sm font-bold tracking-tight">{activePreviewItem.title}</h3>
-              <p className="max-w-2xl text-xs leading-relaxed text-slate-300">{activePreviewItem.description}</p>
+              <h3 className="col-start-1 row-start-2 min-w-0 break-words text-sm font-bold tracking-tight">{activePreviewItem.title}</h3>
+              <p className="col-start-1 row-start-3 max-w-2xl text-xs leading-relaxed text-slate-300">{activePreviewItem.description}</p>
             </div>
             <button
               type="button"
               onClick={() => setActivePreviewItem(null)}
-              className="p-2.5 bg-white/15 hover:bg-white/25 active:scale-95 rounded-full transition text-white cursor-pointer"
+              className="col-start-2 row-start-2 p-2.5 bg-white/15 hover:bg-white/25 active:scale-95 rounded-full transition text-white cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
