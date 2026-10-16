@@ -197,7 +197,7 @@ export default function Work() {
         <div
           role="presentation"
           onClick={() => setActivePreviewItem(null)}
-          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[100] flex flex-col items-center p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-200"
+          className="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-200"
         >
           {/* Top Menu Actions Panel */}
           <div onClick={(event) => event.stopPropagation()} className="w-full max-w-4xl shrink-0 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 mt-auto mb-3 text-white">
