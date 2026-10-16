@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Layers, Eye, X } from 'lucide-react';
 import { getApiUrl } from '@/lib/api';
 
@@ -22,6 +23,45 @@ export default function Work() {
   
   // Track the active image item for the fullscreen preview modal
   const [activePreviewItem, setActivePreviewItem] = useState<PortfolioItem | null>(null);
+
+  useEffect(() => {
+    if (!activePreviewItem) return;
+
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+    const previousBodyStyle = body.getAttribute('style');
+    const previousHtmlOverflow = html.style.overflow;
+    const content = document.querySelector<HTMLElement>('[data-dashboard-content]');
+    const previousContentOverflow = content?.style.overflow;
+    const scrollbarWidth = window.innerWidth - html.clientWidth;
+
+    html.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = `-${scrollX}px`;
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${parseFloat(getComputedStyle(body).paddingRight) + scrollbarWidth}px`;
+    }
+    if (content) content.style.overflow = 'hidden';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setActivePreviewItem(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      if (previousBodyStyle === null) body.removeAttribute('style');
+      else body.setAttribute('style', previousBodyStyle);
+      html.style.overflow = previousHtmlOverflow;
+      if (content) content.style.overflow = previousContentOverflow ?? '';
+      window.scrollTo({ left: scrollX, top: scrollY, behavior: 'instant' });
+    };
+  }, [activePreviewItem]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -153,14 +193,14 @@ export default function Work() {
       </div>
 
       {/* Interactive Cinematic Lightbox Modal Sheet Container */}
-      {activePreviewItem && (
+      {activePreviewItem && createPortal(
         <div
           role="presentation"
           onClick={() => setActivePreviewItem(null)}
-          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[100] flex flex-col justify-center items-center p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[100] flex flex-col items-center p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-200"
         >
           {/* Top Menu Actions Panel */}
-          <div className="w-full max-w-4xl grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 mb-3 text-white">
+          <div onClick={(event) => event.stopPropagation()} className="w-full max-w-4xl shrink-0 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 mt-auto mb-3 text-white">
             <div className="contents">
               <span className="justify-self-start text-[10px] font-bold uppercase tracking-widest text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
                 {activePreviewItem.category}
@@ -171,6 +211,7 @@ export default function Work() {
             <button
               type="button"
               onClick={() => setActivePreviewItem(null)}
+              aria-label="Close project preview"
               className="relative -top-1 col-start-2 row-start-1 mr-3 p-2.5 bg-white/15 hover:bg-white/25 active:scale-95 rounded-full transition text-white cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -183,7 +224,7 @@ export default function Work() {
             aria-modal="true"
             aria-label={activePreviewItem.title}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-4xl max-h-[75vh] rounded-2xl overflow-hidden bg-slate-900 shadow-2xl border border-white/10 flex items-center justify-center animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-4xl shrink-0 mb-auto max-h-[75vh] rounded-2xl overflow-hidden bg-slate-900 shadow-2xl border border-white/10 flex items-center justify-center animate-in zoom-in-95 duration-200"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
@@ -192,7 +233,8 @@ export default function Work() {
               className="w-full h-auto max-h-[75vh] object-contain"
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
