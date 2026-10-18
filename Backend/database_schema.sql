@@ -46,6 +46,7 @@ CREATE TABLE `bookings` (
   `preferred_date` date NOT NULL,
   `preferred_time` time NOT NULL,
   `location` text NOT NULL,
+
   `status` varchar(50) NOT NULL DEFAULT 'Pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `accepted_at` datetime DEFAULT NULL,
@@ -85,8 +86,7 @@ CREATE TABLE `portfolio` (
 CREATE TABLE `designs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `portfolio_id` int DEFAULT NULL,
-  `user_id` int DEFAULT NULL,
-  `title` varchar(150) NOT NULL,
+  `design_name` varchar(150) NOT NULL,
   `design_type` varchar(100) DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
   `description` text DEFAULT NULL,
@@ -195,7 +195,7 @@ CREATE TABLE `schedules` (
   `booking_id` int DEFAULT NULL,
   `date` date NOT NULL,
   `time_start` time NOT NULL,
-  `time_end` time DEFAULT NULL,
+  `time_end` time NOT NULL,
   `title` varchar(150) NOT NULL,
   `location` text DEFAULT NULL,
   `status` varchar(30) NOT NULL DEFAULT 'Pending',
