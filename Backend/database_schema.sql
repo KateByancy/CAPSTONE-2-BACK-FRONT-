@@ -86,13 +86,17 @@ CREATE TABLE `designs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `portfolio_id` int DEFAULT NULL,
   `user_id` int DEFAULT NULL,
+  `project_id` int DEFAULT NULL,
   `title` varchar(150) NOT NULL,
   `design_type` varchar(100) DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `concept_fingerprint` char(64) GENERATED ALWAYS AS (SHA2(JSON_ARRAY(TRIM(title), COALESCE(image, ''), COALESCE(description, '')), 256)) STORED,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `designs_project_concept_unique` (`project_id`, `concept_fingerprint`),
   KEY `portfolio_id` (`portfolio_id`),
+  CONSTRAINT `designs_project_fk` FOREIGN KEY (`project_id`) REFERENCES `bookings` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `designs_ibfk_1` FOREIGN KEY (`portfolio_id`) REFERENCES `portfolio` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -21,18 +21,21 @@ interface BuildProject {
 export default function BuildManagement() {
   const [mounted, setMounted] = useState(false);
 
-  // Load initial state from localStorage if available
   const [builds, setBuilds] = useState<BuildProject[]>([]);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    Promise.all([fetch(`${getApiUrl()}/booking`).then(r=>r.json()),fetch(`${getApiUrl()}/tracking`).then(r=>r.json()),fetch(`${getApiUrl()}/designs`).then(r=>r.json())]).then(([bookingData,trackingData,designData]) => {
+    Promise.all([fetch(`${getApiUrl()}/booking`).then(r=>r.json()),fetch(`${getApiUrl()}/tracking`).then(r=>r.json())]).then(async ([bookingData,trackingData]) => {
       const tracks: Array<{id:number;booking_id:number;progress:number;current_stage:string}> = trackingData.tracking ?? [];
-      setBuilds((bookingData.bookings ?? []).filter((b:{accepted_at?:string|null})=>Boolean(b.accepted_at)).map((b:{id:number;user_id:number;client_name?:string;service_type:string;status:string})=>{
+      setBuilds(await Promise.all((bookingData.bookings ?? []).filter((b:{accepted_at?:string|null})=>Boolean(b.accepted_at)).map(async (b:{id:number;user_id:number;client_name?:string;service_type:string;status:string})=>{
+        const response = await fetch(`${getApiUrl()}/designs?project_id=${b.id}`, { cache: 'no-store' });
+        const designData = await response.json();
+        if (!response.ok || !Array.isArray(designData)) throw new Error('Unable to load project concepts.');
         const track=tracks.find(t=>t.booking_id===b.id); const progress=track?.progress??0;
         const status:BuildProject['status']=progress>=100?'Completed':progress>=20?'Ongoing':'Pending';
-        return {id:String(b.id),userId:b.user_id,clientName:b.client_name||'Client',trackingId:track?.id,title:b.service_type,status,progress,concepts:(Array.isArray(designData)?designData:[]).filter((d:{user_id:number})=>d.user_id===b.user_id).map((d:{id:number;title:string;image?:string;description?:string})=>({id:d.id,title:d.title,url:d.image||'',description:d.description})),milestones:[20,40,60,80,100].map((point,index)=>({id:`${b.id}-${point}`,label:['Initial Consultation','Design Proposal','Material Selection','Execution','Final Handover'][index],completed:progress>=point}))};
-      })); setMounted(true);
-    }).catch(()=>setMounted(true));
+        return {id:String(b.id),userId:b.user_id,clientName:b.client_name||'Client',trackingId:track?.id,title:b.service_type,status,progress,concepts:designData.map((d:{id:number;title:string;image?:string;description?:string})=>({id:d.id,title:d.title,url:d.image||'',description:d.description})),milestones:[20,40,60,80,100].map((point,index)=>({id:`${b.id}-${point}`,label:['Initial Consultation','Design Proposal','Material Selection','Execution','Final Handover'][index],completed:progress>=point}))};
+      }))); setMounted(true);
+    }).catch(()=>{ setLoadError('Unable to load project concepts. Please refresh to try again.'); setMounted(true); });
   }, []);
 
   // Active Modals & Selection States
@@ -117,11 +120,11 @@ export default function BuildManagement() {
     setConceptSaving(true); setConceptError('');
     try {
       const newConcept = { title: conceptTitle.trim(), url: conceptUrl, description: conceptDesc };
-      const response = await fetch(`${getApiUrl()}/designs${editingConceptId ? `/${editingConceptId}` : ''}`, { method: editingConceptId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: activeConceptModalBuild.userId, title: newConcept.title, description: conceptDesc, image: conceptUrl }) });
+      const response = await fetch(`${getApiUrl()}/designs${editingConceptId ? `/${editingConceptId}` : ''}`, { method: editingConceptId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: Number(activeConceptModalBuild.id), user_id: activeConceptModalBuild.userId, title: newConcept.title, description: conceptDesc, image: conceptUrl }) });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save design concept.');
       const savedConcept = { ...newConcept, id: editingConceptId || result.designId };
-      setBuilds(prev => prev.map(build => build.userId === activeConceptModalBuild.userId ? { ...build, concepts: editingConceptId ? build.concepts.map(c => c.id === editingConceptId ? savedConcept : c) : [...build.concepts, savedConcept] } : build));
+      setBuilds(prev => prev.map(build => build.id === activeConceptModalBuild.id ? { ...build, concepts: editingConceptId ? build.concepts.map(c => c.id === editingConceptId ? savedConcept : c) : [...build.concepts, savedConcept] } : build));
       setEditingConceptId(null);
       setConceptTitle(''); setConceptUrl(''); setConceptDesc(''); setActiveConceptModalBuild(null);
     } catch (err) { setConceptError(err instanceof Error ? err.message : 'Unable to save design concept.'); }
@@ -129,10 +132,10 @@ export default function BuildManagement() {
   };
 
   async function deleteConcept(id: number) {
-    if (conceptSaving) return;
+    if (conceptSaving || !activePhotosBuild) return;
     setConceptSaving(true); setConceptError('');
     try {
-      const response = await fetch(`${getApiUrl()}/designs/${id}`, { method: 'DELETE' });
+      const response = await fetch(`${getApiUrl()}/designs/${id}?project_id=${activePhotosBuild.id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Unable to delete concept.');
       const update = (build: BuildProject) => ({ ...build, concepts: build.concepts.filter(c => c.id !== id) });
       setBuilds(prev => prev.map(update)); setActivePhotosBuild(prev => prev ? update(prev) : null);
@@ -156,6 +159,7 @@ export default function BuildManagement() {
       </div>
 
       {/* 2. ACTIVE BUILDS GRID */}
+      {loadError && <p role="alert" className="text-sm text-red-600">{loadError}</p>}
       {builds.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {builds.map((build) => (
@@ -253,8 +257,8 @@ export default function BuildManagement() {
               <div className="border border-slate-200/80 rounded-2xl p-6 flex flex-col items-center justify-center text-center bg-slate-50/50 min-h-[110px]">
                 {build.concepts.length > 0 ? (
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {build.concepts.map((c, idx) => (
-                      <div key={idx} className="bg-white p-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs flex items-center space-x-1">
+                    {build.concepts.map((c) => (
+                      <div key={c.id} className="bg-white p-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs flex items-center space-x-1">
                         <Camera className="w-3.5 h-3.5 text-[#0070c0]" />
                         <span className="truncate max-w-[120px]">{c.title}</span>
                       </div>
@@ -419,8 +423,8 @@ export default function BuildManagement() {
             {conceptError && <p role="alert" className="text-sm text-red-600">{conceptError}</p>}
             <div className="space-y-3 max-h-60 overflow-y-auto">
               {activePhotosBuild.concepts.length > 0 ? (
-                activePhotosBuild.concepts.map((c, idx) => (
-                  <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+                activePhotosBuild.concepts.map((c) => (
+                  <div key={c.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
                     <div className="flex items-center justify-between gap-2"><p className="font-bold text-slate-800">{c.title}</p><div className="flex gap-2">
                       <button aria-label={`Edit ${c.title}`} disabled={conceptSaving} onClick={() => { setEditingConceptId(c.id); setConceptTitle(c.title); setConceptUrl(c.url); setConceptDesc(c.description || ''); setConceptError(''); setActiveConceptModalBuild(activePhotosBuild); setActivePhotosBuild(null); }} className="p-2 text-blue-700"><Pencil size={16} /></button>
                       <button aria-label={`Delete ${c.title}`} disabled={conceptSaving} onClick={() => void deleteConcept(c.id)} className="p-2 text-red-600"><Trash2 size={16} /></button>
