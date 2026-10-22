@@ -1,5 +1,6 @@
 "use client";
 import AdminNotificationBell from '@/components/AdminNotificationBell';
+import MarcBrand from '@/components/MarcBrand';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -78,15 +79,9 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
           
           {/* Top Branding Section */}
-          <div className="p-5 h-[81px] border-b border-white/15 flex items-center space-x-3 shrink-0 overflow-hidden">
-            <div className="w-9 h-9 bg-brand-600 rounded-xl flex items-center justify-center font-bold text-base shadow-md shrink-0">
-              M
-            </div>
-            <div className={`transition-opacity duration-200 whitespace-nowrap ${isSidebarExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              <h1 className="text-sm font-bold tracking-wider uppercase font-serif">Marc Interior</h1>
-              <p className="text-[10px] text-stone-400 font-semibold tracking-widest uppercase">Admin Workspace</p>
-            </div>
-          </div>
+          <Link href="/admin/dashboard" aria-label="Admin dashboard" className="marc-navigation-brand px-4 h-[81px] border-b border-white/15 flex items-center justify-center shrink-0 overflow-hidden">
+            <MarcBrand light />
+          </Link>
 
           {/* Navigation Links */}
           <nav className="p-4 space-y-1 overflow-hidden">
