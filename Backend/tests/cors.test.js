@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-test('Client/Admin login accepts both custom domain origins and retains strict CORS', async () => {
+test('Authentication accepts configured production origins and retains strict CORS', async () => {
     process.env.FRONTEND_URL = 'http://localhost:3000,https://configured-preview.example.test/';
     const dbPath = require.resolve('../config/db');
     require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
@@ -12,9 +12,9 @@ test('Client/Admin login accepts both custom domain origins and retains strict C
     await new Promise(resolve => server.once('listening', resolve));
     const base = `http://127.0.0.1:${server.address().port}/api/auth`;
     try {
-        for (const origin of ['https://marcinteriordesign.site', 'https://www.marcinteriordesign.site',
+        for (const origin of ['https://marcinteriorbooking.vercel.app', 'https://marcinteriordesign.site', 'https://www.marcinteriordesign.site',
             'http://localhost:3000', 'https://configured-preview.example.test']) {
-            for (const route of ['/login', '/admin-login']) {
+            for (const route of ['/login', '/admin-login', '/register']) {
                 const preflight = await fetch(base + route, { method: 'OPTIONS', headers: {
                     Origin: origin, 'Access-Control-Request-Method': 'POST',
                     'Access-Control-Request-Headers': 'content-type,authorization',
@@ -31,7 +31,7 @@ test('Client/Admin login accepts both custom domain origins and retains strict C
                 assert.notEqual((await response.json()).message, 'Origin is not allowed by CORS.');
             }
         }
-        for (const origin of ['https://attacker.example', 'https://marcinteriordesign.site.attacker.example',
+        for (const origin of ['https://attacker.example', 'https://marcinteriorbooking.vercel.app.attacker.example', 'https://untrusted-preview.vercel.app', 'https://marcinteriordesign.site.attacker.example',
             'http://marcinteriordesign.site', 'https://www.marcinteriordesign.site:444']) {
             const response = await fetch(base + '/login', { method: 'POST', headers: {
                 Origin: origin, 'Content-Type': 'application/json',

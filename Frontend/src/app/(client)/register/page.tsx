@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import MarcBrand from '@/components/MarcBrand';
-import { apiFetch, getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl, readApiResponse } from '@/lib/api';
 
 interface ClientAccount {
   id: number;
@@ -145,7 +145,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
           password,
         }),
       });
-      const result: RegisterResponse = await response.json();
+      const result = await readApiResponse<RegisterResponse>(response);
 
       if (!response.ok || !result.success || !result.user) {
         throw new Error(result.message || 'Unable to create your account.');

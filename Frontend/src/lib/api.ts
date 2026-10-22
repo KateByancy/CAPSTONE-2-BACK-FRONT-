@@ -4,6 +4,22 @@ export function getApiUrl(): string {
   return configuredApiUrl || "/api";
 }
 
+/** Keep upstream/proxy errors from being replaced by a JSON SyntaxError. */
+export async function readApiResponse<T>(response: Response): Promise<T> {
+  const text = await response.text();
+  try {
+    const result: unknown = JSON.parse(text);
+    if (result && typeof result === 'object' && !Array.isArray(result)) return result as T;
+  } catch {
+    // Hosting platforms can return plain text or HTML before Express is reached.
+  }
+  const contentType = response.headers.get('content-type') || '';
+  const detail = !contentType.includes('html') && !/<[a-z!][\s\S]*>/i.test(text)
+    ? text.trim().replace(/\s+/g, ' ').slice(0, 300)
+    : '';
+  throw new Error(`The API returned an unexpected response (HTTP ${response.status}).${detail ? ` ${detail}` : ' Please try again or contact support.'}`);
+}
+
 export function formatClientName(fullName: string): string {
   const trimmedName = fullName.trim().replace(/\s+/g, ' ');
   if (!trimmedName) return "Client User";

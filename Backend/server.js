@@ -34,6 +34,7 @@ const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000")
     .map((origin) => origin.trim().replace(/\/$/, ""))
     .filter(Boolean)
     .concat([
+        "https://marcinteriorbooking.vercel.app",
         "https://marcinteriordesign.site",
         "https://www.marcinteriordesign.site",
     ]);

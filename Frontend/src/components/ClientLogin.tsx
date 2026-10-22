@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiFetch, getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl, readApiResponse } from '@/lib/api';
 import { renderGoogleButton } from '@/lib/google-auth';
 import { Eye, EyeOff } from 'lucide-react';
 import MarcBrand from '@/components/MarcBrand';
@@ -54,7 +54,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
-      let result: LoginResponse = await response.json();
+      let result = await readApiResponse<LoginResponse>(response);
 
       if (!response.ok) {
         response = await fetch(`${apiUrl}/auth/admin-login`, {
@@ -62,7 +62,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(credentials),
         });
-        result = await response.json();
+        result = await readApiResponse<LoginResponse>(response);
       }
 
       if (!response.ok || !result.success) {
@@ -101,7 +101,7 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
       const response = await apiFetch(`${getApiUrl()}/auth/google`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }),
       });
-      const result: LoginResponse = await response.json();
+      const result = await readApiResponse<LoginResponse>(response);
       if (!response.ok || !result.success || !result.user) throw new Error(result.message || 'Unable to sign in with Google.');
       if (result.token) localStorage.setItem('clientToken', result.token);
       localStorage.setItem('clientAccount', JSON.stringify(result.user));

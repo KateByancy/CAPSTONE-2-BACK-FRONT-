@@ -11,7 +11,13 @@ const nextConfig: NextConfig = {
     }];
   },
   async rewrites() {
-    const backendUrl = (process.env.BACKEND_API_URL || "http://localhost:5000/api").replace(/\/$/, "");
+    const defaultBackendUrl = process.env.NODE_ENV === 'production'
+      ? 'https://api-marc.onrender.com/api'
+      : 'http://localhost:5000/api';
+    const backendUrl = (process.env.BACKEND_API_URL?.trim() || defaultBackendUrl).replace(/\/$/, "");
+    if (process.env.NODE_ENV === 'production' && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(backendUrl).hostname)) {
+      throw new Error('BACKEND_API_URL must point to the public backend in production, such as https://api-marc.onrender.com/api.');
+    }
 
     return [
       {
