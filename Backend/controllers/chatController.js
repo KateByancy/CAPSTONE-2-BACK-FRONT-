@@ -36,7 +36,12 @@ const sendMessage = async (req, res) => {
     }
     if (sender === "client") pending.add(userId);
     try {
+        if(req.body.human_only===true){const recipients=await query("SELECT id FROM users WHERE id=? AND role='client'",[userId]);if(!recipients.length)return res.status(404).json({success:false,message:'Client conversation not found.'});}
         await query("INSERT INTO messages (user_id, sender, message) VALUES (?, ?, ?)", [userId, sender, message]);
+        if(req.body.human_only===true){
+            void notifyChatRecipients(userId,sender,message).catch(()=>console.error('Chat email notification failed; the message remains available in chat.'));
+            return res.status(201).json({success:true,responder:'admin',notificationPending:true});
+        }
         let emailDelivered = false;
         try { await notifyChatRecipients(userId, sender, message); emailDelivered = true; }
         catch { console.error("Chat email notification failed; the message remains available in chat."); }

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Camera } from 'lucide-react';
-import { getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl } from '@/lib/api';
 
 export default function ProfileAvatar({ role, name }: { role: 'client' | 'admin'; name: string }) {
   const input = useRef<HTMLInputElement>(null);
@@ -14,7 +14,7 @@ export default function ProfileAvatar({ role, name }: { role: 'client' | 'admin'
     let active = true;
     const controller = new AbortController();
     const revision = uploadRevision.current;
-    void fetch(`${getApiUrl()}/profile/me/avatar`, { cache: 'no-store', headers: { Authorization: `Bearer ${localStorage.getItem(`${role}Token`) || ''}` }, signal: controller.signal })
+    void apiFetch(`${getApiUrl()}/profile/me/avatar`, { cache: 'no-store', headers: { Authorization: `Bearer ${localStorage.getItem(`${role}Token`) || ''}` }, signal: controller.signal })
       .then(async response => {
         if (response.status === 404) return;
         if (!response.ok) throw new Error('Please sign in again to load your profile picture.');
@@ -33,7 +33,7 @@ export default function ProfileAvatar({ role, name }: { role: 'client' | 'admin'
     setBusy(true);
     try {
       const body = new FormData(); body.append('avatar', file);
-      const response = await fetch(`${getApiUrl()}/profile/me/avatar`, { method: 'PUT', headers: { Authorization: `Bearer ${localStorage.getItem(`${role}Token`) || ''}` }, body });
+      const response = await apiFetch(`${getApiUrl()}/profile/me/avatar`, { method: 'PUT', headers: { Authorization: `Bearer ${localStorage.getItem(`${role}Token`) || ''}` }, body });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save picture.');
       uploadRevision.current += 1;
@@ -44,12 +44,12 @@ export default function ProfileAvatar({ role, name }: { role: 'client' | 'admin'
   }
   return <div className="flex flex-col items-center gap-2">
     <div className="relative">
-      <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-slate-300 bg-white text-3xl font-bold text-slate-800">
+      <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-stone-300 bg-white text-3xl font-bold text-stone-800">
         {photo ? <Image src={photo} alt={`${name || role}'s profile picture`} width={96} height={96} unoptimized className="h-full w-full object-cover" /> : (name.charAt(0).toUpperCase() || 'M')}
       </div>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" aria-label="Choose profile picture" onChange={event => { void changePhoto(event.target.files?.[0]); event.target.value = ''; }} />
-      <button type="button" disabled={busy} onClick={() => input.current?.click()} aria-label="Change profile picture" title="Change profile picture" className="absolute bottom-0 right-0 rounded-full border-2 border-white bg-slate-900 p-2 text-white hover:bg-slate-700 disabled:opacity-50"><Camera className="h-4 w-4" /></button>
+      <button type="button" disabled={busy} onClick={() => input.current?.click()} aria-label="Change profile picture" title="Change profile picture" className="absolute bottom-0 right-0 rounded-full border-2 border-white bg-stone-900 p-2 text-white hover:bg-stone-700 disabled:opacity-50"><Camera className="h-4 w-4" /></button>
     </div>
-    <p role="status" className="max-w-xs text-center text-xs text-slate-600">{busy ? 'Uploading picture...' : message}</p>
+    <p role="status" className="max-w-xs text-center text-xs text-stone-600">{busy ? 'Uploading picture...' : message}</p>
   </div>;
 }

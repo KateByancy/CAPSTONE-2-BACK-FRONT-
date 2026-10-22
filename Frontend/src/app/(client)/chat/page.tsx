@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquare, Send, Bot, UserRound, ChevronDown, X } from 'lucide-react';
 import useChatScroll from '@/components/useChatScroll';
-import { getApiUrl, getClientSession } from '@/lib/api';
+import { apiFetch, getApiUrl, getClientSession } from '@/lib/api';
 
 interface PortfolioImage { id: number; title: string; image: string; }
 interface ChatMessage { id: number; text: string; isMe: boolean; sender: string; portfolio?: PortfolioImage[]; }
@@ -50,7 +50,7 @@ export default function Chat() {
   const loadMessages = async () => {
     const client = getClientSession();
     if (!client) return;
-    const response = await fetch(`${getApiUrl()}/chat/${client.id}`, { headers: { Authorization: `Bearer ${localStorage.getItem("clientToken") || ""}` } });
+    const response = await apiFetch(`${getApiUrl()}/chat/${client.id}`, { headers: { Authorization: `Bearer ${localStorage.getItem("clientToken") || ""}` } });
     const result: Array<{ id: number; message: string; sender: string; portfolio?: PortfolioImage[] }> = await response.json();
     if (!response.ok) throw new Error('Unable to load messages.');
     setMessages(result.map((message) => ({ id: message.id, text: message.message, isMe: message.sender === 'client', sender: message.sender, portfolio: message.portfolio })));
@@ -70,7 +70,7 @@ export default function Chat() {
   useEffect(() => {
     const loadResponderStatus = async () => {
       try {
-        const response = await fetch(`${getApiUrl()}/chat/admin-status`, { headers: { Authorization: `Bearer ${localStorage.getItem("clientToken") || ""}` } });
+        const response = await apiFetch(`${getApiUrl()}/chat/admin-status`, { headers: { Authorization: `Bearer ${localStorage.getItem("clientToken") || ""}` } });
         const result = await response.json();
         if (response.ok) setAdminOnline(Boolean(result.adminOnline));
       } catch {
@@ -95,9 +95,9 @@ export default function Chat() {
     setIsSending(true);
     setError('');
     try {
-      const response = await fetch(`${getApiUrl()}/chat`, {
+      const response = await apiFetch(`${getApiUrl()}/chat`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('clientToken') || ''}` },
-        body: JSON.stringify({ user_id: client.id, sender: 'client', message: draft.trim() }),
+        body: JSON.stringify({ user_id: client.id, sender: 'client', message: draft.trim(), human_only:true }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Unable to send message.');
@@ -110,14 +110,14 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-dvh max-h-full min-h-0 overflow-hidden bg-slate-50 animate-fadeIn">
+    <div className="flex flex-col h-dvh max-h-full min-h-0 overflow-hidden bg-stone-50 animate-fadeIn">
       {/* Mini Title Section */}
-      <div className="shrink-0 px-3 md:px-4 py-3 bg-white border-b border-slate-200 flex flex-wrap gap-2 items-center justify-between text-[10px] md:text-xs font-bold tracking-normal md:tracking-wider text-slate-500">
-        <div className="flex items-center space-x-2"><MessageSquare className="w-4 h-4 text-blue-500" /><span>DESIGN CONCIERGE</span></div>
+      <div className="shrink-0 px-3 md:px-4 py-3 bg-white border-b border-stone-200 flex flex-wrap gap-2 items-center justify-between text-[10px] md:text-xs font-bold tracking-normal md:tracking-wider text-stone-500">
+        <div className="flex items-center space-x-2"><MessageSquare className="w-4 h-4 text-brand-500" /><span>DESIGN CONCIERGE</span></div>
         {adminOnline !== null && (
           <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider">
-            <span className={`h-2 w-2 rounded-full ${adminOnline ? 'bg-emerald-500' : 'bg-blue-500'}`} />
-            <span>{adminOnline ? 'Admin online' : 'AI assistant'}</span>
+            <span className={`h-2 w-2 rounded-full ${adminOnline ? 'bg-emerald-500' : 'bg-brand-500'}`} />
+            <span>{adminOnline ? 'Admin online' : 'Admin offline - messages are saved'}</span>
           </div>
         )}
       </div>
@@ -131,7 +131,7 @@ export default function Chat() {
             key={msg.id}
             className={`flex items-end gap-2 ${msg.isMe ? 'flex-row-reverse' : ''}`}
           >
-            <div title={msg.isMe ? 'You' : msg.sender === 'bot' ? 'AI assistant' : 'Admin'} className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-slate-600">
+            <div title={msg.isMe ? 'You' : msg.sender === 'bot' ? 'AI assistant' : 'Admin'} className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-200 text-stone-600">
               {msg.sender === 'bot' ? <Bot aria-label="AI assistant" className="h-5 w-5" /> : avatars[msg.sender] ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatars[msg.sender]} alt={msg.isMe ? 'Your profile picture' : 'Admin profile picture'} className="h-full w-full object-cover" onError={() => setAvatars(current => ({ ...current, [msg.sender]: '' }))} />
@@ -140,13 +140,13 @@ export default function Chat() {
             <div
               className={`max-w-[80%] whitespace-pre-wrap rounded-2xl p-3 text-xs leading-relaxed shadow-sm ${
                 msg.isMe
-                  ? 'bg-[#0070c0] text-white rounded-br-none'
-                  : 'bg-white text-slate-700 rounded-bl-none border border-slate-200'
+                  ? 'bg-marc-charcoal text-white rounded-br-none'
+                  : 'bg-white text-stone-700 rounded-bl-none border border-stone-200'
               }`}
             >
               {msg.text}
               {msg.portfolio?.map(item => (
-                <button type="button" key={item.id} onClick={() => setPreviewImage(item)} aria-label={`View ${item.title || 'MARC portfolio project'} in full`} className="mt-3 block w-full overflow-hidden rounded-lg border border-slate-200 text-left">
+                <button type="button" key={item.id} onClick={() => setPreviewImage(item)} aria-label={`View ${item.title || 'MARC portfolio project'} in full`} className="mt-3 block w-full overflow-hidden rounded-lg border border-stone-200 text-left">
                   {/* Portfolio URLs are supplied by the admin and validated by the backend. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={item.image} alt={item.title || 'MARC portfolio project'} loading="lazy" className="max-h-64 w-full object-contain" />
@@ -156,11 +156,11 @@ export default function Chat() {
             </div>
           </div>
         ))}
-        <p role="status" className="text-xs text-slate-500">{isSending ? "Waiting for a reply..." : ""}</p>
+        <p role="status" className="text-xs text-stone-500">{isSending ? "Waiting for a reply..." : ""}</p>
       </div>
 
       {showLatestButton && (
-          <button type="button" onClick={scrollToLatest} aria-label="Go to latest messages" title="Go to latest messages" className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-[#0070c0] shadow-lg hover:bg-blue-50 transition cursor-pointer">
+          <button type="button" onClick={scrollToLatest} aria-label="Go to latest messages" title="Go to latest messages" className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 bg-white text-brand-600 shadow-lg hover:bg-brand-50 transition cursor-pointer">
             <ChevronDown className="h-5 w-5" aria-hidden="true" />
           </button>
         )}
@@ -175,7 +175,7 @@ export default function Chat() {
       </dialog>
 
       {/* Interactive Chat Input Area */}
-      <form onSubmit={handleSend} className="shrink-0 p-3 bg-white border-t border-slate-200 flex items-center space-x-2">
+      <form onSubmit={handleSend} className="shrink-0 p-3 bg-white border-t border-stone-200 flex items-center space-x-2">
         <input
           type="text"
           maxLength={2000}
@@ -183,13 +183,13 @@ export default function Chat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
-          className="min-w-0 min-h-11 md:min-h-0 flex-1 bg-slate-100 border-none rounded-xl px-3 md:px-4 py-2 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
+          className="min-w-0 min-h-11 md:min-h-0 flex-1 bg-stone-100 border-none rounded-xl px-3 md:px-4 py-2 text-base md:text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 text-stone-800"
         />
         <button 
           type="submit"
           disabled={isSending || !input.trim()}
           aria-label="Send message"
-          className="shrink-0 min-h-11 min-w-11 md:min-h-0 md:min-w-0 p-2 flex items-center justify-center bg-[#0070c0] hover:bg-blue-600 text-white rounded-xl transition shadow-sm"
+          className="shrink-0 min-h-11 min-w-11 md:min-h-0 md:min-w-0 p-2 flex items-center justify-center bg-marc-charcoal hover:bg-brand-600 text-white rounded-xl transition shadow-sm"
         >
           <Send className="w-4 h-4" />
         </button>

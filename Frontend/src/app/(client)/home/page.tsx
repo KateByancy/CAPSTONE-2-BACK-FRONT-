@@ -1,25 +1,22 @@
 "use client";
-import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
-import { Calculator, ArrowRight, Wallet, CalendarRange, Check, Calendar, ArrowLeft, Clock, ChevronLeft, ChevronRight, X, ChevronUp, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import { ArrowRight, Wallet, CalendarRange, Check, Calendar, ArrowLeft, Clock, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import Image from 'next/image';
+import DesignGallery from '@/components/DesignGallery';
+import customizationRates from '@/lib/customizationRates.json';
+import { useDesignCatalog, designPrice } from '@/lib/use-design-catalog';
+import DesignCustomizer from '@/components/DesignCustomizer';
 import ClientProfileIcon from '@/components/ClientProfileIcon';
 import MobileTimePicker from '@/components/MobileTimePicker';
-import { formatClientName, getApiUrl, getClientSession } from '@/lib/api';
+import { apiFetch, formatClientName, getApiUrl, getClientSession } from '@/lib/api';
 
 interface HomeProps {
   setActiveTab?: (tab: string) => void;
   userName?: string;
+  initialCustomize?: boolean;
 }
 
-interface PricingOption { name: string; value: number | string }
-interface BookingService { id: number; name: string }
 
-const ESTIMATE_SERVICE_TYPE_OPTIONS = ['Living room', 'Kitchen', 'Office', 'Commercial room'];
-const SERVICE_TYPE_MULTIPLIERS: Record<string, number> = {
-  'Living room': 1,
-  Kitchen: 1.25,
-  Office: 1.1,
-  'Commercial room': 1.5,
-};
 
 const desktopTimeQuery = '(min-width: 768px)';
 function subscribeToDesktopTime(onChange: () => void) {
@@ -30,19 +27,12 @@ function subscribeToDesktopTime(onChange: () => void) {
 const desktopTimeSnapshot = () => window.matchMedia(desktopTimeQuery).matches;
 const serverTimeSnapshot = () => false;
 
-export default function Home({ setActiveTab, userName = '' }: HomeProps) {
+export default function Home({ setActiveTab = tab => window.location.assign('/?screen=dashboard&tab=' + encodeURIComponent(tab)), userName = '', initialCustomize = false }: HomeProps) {
+  const { designs: marcDesigns, loading: catalogLoading, error: catalogError } = useDesignCatalog();
   const desktopTimePicker = useSyncExternalStore(subscribeToDesktopTime, desktopTimeSnapshot, serverTimeSnapshot);
-  const [area, setArea] = useState<number>(0);
-  const [measurementUnit, setMeasurementUnit] = useState('sq ft');
-  const [estimateServiceType, setEstimateServiceType] = useState<string>('');
-  const [style, setStyle] = useState<string>('');
-  const [complexity, setComplexity] = useState<string>('');
-  const [styleOptions, setStyleOptions] = useState<PricingOption[]>([]);
-  const [complexityOptions, setComplexityOptions] = useState<PricingOption[]>([]);
-  const [estimateFactors, setEstimateFactors] = useState<PricingOption[]>([]);
   const [clientDisplayName, setClientDisplayName] = useState(userName);
+  const [isCustomizing, setIsCustomizing] = useState(initialCustomize);
   const [homeError, setHomeError] = useState('');
-  const [bookingServices, setBookingServices] = useState<BookingService[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
 
   // --- VIEW ROUTING STATE ---
@@ -64,8 +54,18 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [bookingStep, setBookingStep] = useState<'form' | 'success'>('form');
   const [serviceType, setServiceType] = useState<string>('');
-  const [otherService, setOtherService] = useState('');
-  const [isServiceTypeOpen, setIsServiceTypeOpen] = useState<boolean>(false);
+  const [customization, setCustomization] = useState<Record<string,string> | null>(null);
+  const [selectedDesignId, setSelectedDesignId] = useState('');
+  const selectedDesign = marcDesigns.find(design => design.id === selectedDesignId);
+  const customizationAdjustment = Object.entries(customizationRates).reduce((sum,[category,options])=>sum+(customization ? (options as Record<string,number>)[customization[category]] || 0 : 0),0);
+  const bookingEstimate = selectedDesign?.price == null ? null : Math.round(selectedDesign.price*(1+customizationAdjustment/100)*100)/100;
+  const chooseDesign = (id: string) => {
+    const design = marcDesigns.find(item => item.id === id);
+    setSelectedDesignId(id);
+    setCustomization(null);
+    if (design) setServiceType(design.category);
+    setBookingError('');
+  };
   const [projectAddress, setProjectAddress] = useState<string>('');
   const [projectLandmark, setProjectLandmark] = useState<string>('');
   const [projectDescription, setProjectDescription] = useState<string>('');
@@ -79,7 +79,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
     let active = true;
     const loadSchedule = async () => {
       const client=getClientSession(); if(!client)return;
-      const response=await fetch(`${getApiUrl()}/schedule?user_id=${client.id}`);
+      const response=await apiFetch(`${getApiUrl()}/schedule?user_id=${client.id}`);
       const rows=await response.json();
       if (!active) return;
       if (!response.ok) throw new Error('Unable to load project schedules.');
@@ -96,9 +96,9 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   }, [isRescheduling, selectedProjectId]);
 
   useEffect(() => {
-    const loadUnavailableSlots=async()=>{const response=await fetch(`${getApiUrl()}/schedule/unavailable`);const data=await response.json();if(response.ok)setUnavailableSlots(data.slots??[]);};
-    void loadUnavailableSlots();
-    const timer=window.setInterval(()=>void loadUnavailableSlots(),10000);
+    const loadUnavailableSlots=async()=>{const response=await apiFetch(`${getApiUrl()}/schedule/unavailable`);const data=await response.json();if(response.ok)setUnavailableSlots(data.slots??[]);};
+    void loadUnavailableSlots().catch(() => setScheduleMessage('Unable to refresh availability. Please retry before booking.'));
+    const timer=window.setInterval(()=>void loadUnavailableSlots().catch(() => setScheduleMessage('Unable to refresh availability. Please retry before booking.')),10000);
     return()=>window.clearInterval(timer);
   },[]);
   const hasDuplicateBooking = Boolean(preferredStartDate && clientBookedSlots.some(slot => String(slot.visit_date).slice(0, 10) === preferredStartDate));
@@ -111,27 +111,22 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       if (!client) { setHomeError('Please sign in again to load your dashboard.'); setServicesLoading(false); return; }
       setServicesLoading(true);
       try {
-        const response = await fetch(`${getApiUrl()}/client-home?user_id=${client.id}`, { signal: controller.signal });
+        const response = await apiFetch(`${getApiUrl()}/client-home?user_id=${client.id}`, { signal: controller.signal });
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.message || 'Unable to load the dashboard.');
-        const styles: PricingOption[] = result.pricing?.styles || [];
-        const complexities: PricingOption[] = result.pricing?.complexities || [];
-        const factors: PricingOption[] = result.pricing?.estimateFactors || [];
-        const services: BookingService[] = result.services || [];
-        setBookingServices([...services.filter(service => service.name !== 'Other'), { id: -1, name: 'Other' }]);
-        setServiceType(current => current === 'Other' || services.some(service => service.name === current) ? current : '');
-        setStyleOptions(styles);
-        setComplexityOptions(complexities);
-        setEstimateFactors(factors);
-        setStyle((current) => current || styles[0]?.name || '');
-        setComplexity((current) => current || complexities[0]?.name || '');
         setClientDisplayName(result.client?.fullname ? formatClientName(result.client.fullname) : userName);
         setProjectAddress((currentAddress) => currentAddress || result.client?.address || '');
         setProjectLandmark((currentLandmark) => currentLandmark || result.client?.landmark || '');
         setHomeError('');
+        const selectedDesign = marcDesigns.find(design => design.id === sessionStorage.getItem('marcSelectedDesign'));
+        if (selectedDesign) {
+          sessionStorage.removeItem('marcSelectedDesign');
+          setSelectedDesignId(selectedDesign.id);
+          setServiceType(selectedDesign.category);
+          setBookingStep('form'); setIsBookingOpen(true);
+        }
       } catch (error) {
         if (controller.signal.aborted) return;
-        setBookingServices([]);
         setHomeError(error instanceof Error ? error.message : 'Unable to load the dashboard.');
       } finally {
         if (!controller.signal.aborted) setServicesLoading(false);
@@ -139,7 +134,26 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
     };
     void loadHome();
     return () => controller.abort();
-  }, [userName]);
+  }, [userName, marcDesigns]);
+
+  useEffect(() => {
+    if (!isBookingOpen) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const modal = document.querySelector<HTMLElement>('[aria-label="Book a design consultation"]');
+    const elements = () => Array.from(modal?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]') || []).filter(element => element.getClientRects().length > 0);
+    elements()[0]?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsBookingOpen(false);
+      if (event.key !== 'Tab') return;
+      const focusable = elements(), first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = previousOverflow; previousFocus?.focus(); };
+  }, [isBookingOpen]);
 
   // --- AUTO-CLOSE TIMEOUT EFFECT FOR BOOKING SUCCESS ---
   useEffect(() => {
@@ -153,26 +167,9 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
     return () => clearTimeout(timer);
   }, [isBookingOpen, bookingStep, setActiveTab]);
 
-  const estimate = useMemo(() => {
-    const baseRate = Number(styleOptions.find((option) => option.name === style)?.value || 0);
-    const complexityMultiplier = Number(complexityOptions.find((option) => option.name === complexity)?.value || 0);
-    const serviceMultiplier = SERVICE_TYPE_MULTIPLIERS[estimateServiceType] || 0;
-
-    const calculatedBase = area * (measurementUnit === 'sq ft' ? 0.09290304 : 1) * baseRate * complexityMultiplier * serviceMultiplier;
-    const minFactor = Number(estimateFactors.find((option) => option.name === 'Minimum factor')?.value || 0);
-    const maxFactor = Number(estimateFactors.find((option) => option.name === 'Maximum factor')?.value || 0);
-    const minEstimate = Math.round(calculatedBase * minFactor);
-    const maxEstimate = Math.round(calculatedBase * maxFactor);
-
-    if (!Number.isFinite(area) || area <= 0) {
-      return { min: 0, max: 0 };
-    }
-    return { min: minEstimate, max: maxEstimate };
-  }, [area, measurementUnit, estimateServiceType, style, complexity, styleOptions, complexityOptions, estimateFactors]);
-
   const handleOpenBooking = () => {
     setBookingStep('form');
-    setIsServiceTypeOpen(false);
+    setBookingError('');
     setIsBookingOpen(true);
   };
 
@@ -183,12 +180,12 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
       setBookingError('Please sign in again before creating a booking.');
       return;
     }
-    if (estimate.min <= 0 && (servicesLoading || !bookingServices.some(service => service.name === serviceType))) {
-      setBookingError('Please select a service type.');
+    if (!selectedDesign || selectedDesign.category !== serviceType) {
+      setBookingError('Please choose an interior category and design.');
       return;
     }
-    if (estimate.min <= 0 && serviceType === 'Other' && !otherService.trim()) {
-      setBookingError('Specify your desired design/service.');
+    if (!projectDescription.trim()) {
+      setBookingError('Please describe your project requirements.');
       return;
     }
     if (!projectAddress.trim()) {
@@ -214,10 +211,10 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
     setIsBookingSubmitting(true);
     setBookingError('');
     try {
-      const response = await fetch(`${getApiUrl()}/booking`, {
+      const response = await apiFetch(`${getApiUrl()}/booking`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: client.id, service_type: estimate.min > 0 ? estimateServiceType : serviceType, other_service: otherService.trim(), estimate: estimate.min > 0 ? { area, unit: measurementUnit, service: estimateServiceType, style, complexity } : undefined, project_description: projectDescription, project_address: projectAddress.trim(), project_landmark: projectLandmark.trim(), preferred_start_date: preferredStartDate, preferred_start_time: preferredStartTime }),
+        body: JSON.stringify({ user_id: client.id, service_type: serviceType, design_id: selectedDesign.id, customization, project_description: projectDescription.trim(), project_address: projectAddress.trim(), project_landmark: projectLandmark.trim(), preferred_start_date: preferredStartDate, preferred_start_time: preferredStartTime }),
       });
       const result: { success: boolean; message?: string; bookingId?: number } = await response.json();
       if (!response.ok || !result.success || !result.bookingId) throw new Error(result.message || 'Unable to create booking.');
@@ -264,7 +261,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
     setIsRescheduleSubmitting(true);
     setScheduleMessage('');
     try {
-      const response = await fetch(`${getApiUrl()}/schedule/${clientSchedule.id}/reschedule`, {
+      const response = await apiFetch(`${getApiUrl()}/schedule/${clientSchedule.id}/reschedule`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: client.id, visit_date: visitDate }),
       });
@@ -283,10 +280,10 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   // --- RENDER DEDICATED SCHEDULES PAGE WITH TOGGLEABLE RIGHT CALENDAR VIEW ---
   if (currentView === 'schedules') {
     return (
-      <div className="space-y-6 animate-fadeIn relative">
-        <div className="bg-[#0070c0] text-white rounded-2xl p-4 md:p-6 shadow-md flex flex-row justify-between items-center gap-3">
+      <div className="space-y-6 animate-fadeIn relative marc-client-home">
+        <div className="bg-marc-charcoal text-white rounded-2xl p-4 md:p-6 shadow-md flex flex-row justify-between items-center gap-3">
           <div className="flex min-w-0 items-center space-x-2 md:space-x-4">
-            <button 
+            <button
               onClick={() => setCurrentView('dashboard')}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition cursor-pointer border-none text-white flex items-center justify-center"
             >
@@ -294,11 +291,11 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
             </button>
             <div>
               <h2 className="text-base md:text-xl font-serif font-black tracking-wide">Schedules</h2>
-              <p className="hidden md:block text-xs text-blue-100 font-light mt-0.5">View your upcoming project appointments and confirmed dates.</p>
+              <p className="hidden md:block text-xs text-brand-100 font-light mt-0.5">View your upcoming project appointments and confirmed dates.</p>
             </div>
           </div>
 
-          <button 
+          <button
             aria-expanded={showCalendarView}
             aria-controls="client-schedule-calendar"
             onClick={() => setShowCalendarView(!showCalendarView)}
@@ -310,20 +307,20 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
           </button>
         </div>
 
-        <label className="block rounded-2xl border border-slate-200 bg-white p-4 text-xs font-bold text-slate-600">
+        <label className="block rounded-2xl border border-stone-200 bg-white p-4 text-xs font-bold text-stone-600">
           Select Project
-          <select value={clientSchedule?.id ?? ''} onChange={event => { const project = projectSchedules.find(row => row.id === Number(event.target.value)); setSelectedProjectId(Number(event.target.value)); if (project) { setClientSchedule(project); const [year, month, day] = String(project.visit_date).slice(0, 10).split('-').map(Number); setCurrentYear(year); setCurrentMonth(month - 1); setSelectedDate(day); } setIsRescheduling(false); setScheduleMessage(''); setShowCalendarView(false); }} className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 p-3" disabled={!projectSchedules.length}>
+          <select value={clientSchedule?.id ?? ''} onChange={event => { const project = projectSchedules.find(row => row.id === Number(event.target.value)); setSelectedProjectId(Number(event.target.value)); if (project) { setClientSchedule(project); const [year, month, day] = String(project.visit_date).slice(0, 10).split('-').map(Number); setCurrentYear(year); setCurrentMonth(month - 1); setSelectedDate(day); } setIsRescheduling(false); setScheduleMessage(''); setShowCalendarView(false); }} className="mt-2 block w-full rounded-xl border border-stone-200 bg-stone-50 p-3" disabled={!projectSchedules.length}>
             {!projectSchedules.length && <option value="">No project schedules yet</option>}
             {projectSchedules.map(project => <option key={project.id} value={project.id}>{project.service_type} - {project.project_description || `Project #${project.id}`} ({project.accepted_at || ['confirmed', 'approved', 'ongoing', 'completed'].includes(project.booking_status?.toLowerCase()) ? 'Confirmed' : 'Pending approval'})</option>)}
           </select>
         </label>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className={`${showCalendarView ? 'lg:col-span-5' : 'lg:col-span-12 max-w-xl'} space-y-4 transition-all duration-300`}>
-            {clientSchedule ? <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-md space-y-6 relative">
+            {clientSchedule ? <div className="bg-white border border-stone-200/80 rounded-3xl p-6 sm:p-8 shadow-md space-y-6 relative">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-base font-serif font-black text-slate-900 tracking-wide">{clientSchedule.service_type}</h3>
-                  <p className="text-xs text-slate-500 font-medium mt-1">
+                  <h3 className="text-base font-serif font-black text-stone-900 tracking-wide">{clientSchedule.service_type}</h3>
+                  <p className="text-xs text-stone-500 font-medium mt-1">
                     {monthNames[currentMonth]} {selectedDate}, {currentYear}
                   </p>
                 </div>
@@ -332,63 +329,63 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                 </span>
               </div>
 
-              <p className="text-sm text-slate-600 font-serif italic py-1">
+              <p className="text-sm text-stone-600 font-serif italic py-1">
                 &quot;{clientSchedule.project_description}&quot;
               </p>
 
               <div className="space-y-2.5">
-                <div className="border border-slate-200 rounded-2xl px-5 py-3.5 flex items-center space-x-3 bg-slate-50/70">
-                  <Calendar className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                <div className="border border-stone-200 rounded-2xl px-5 py-3.5 flex items-center space-x-3 bg-stone-50/70">
+                  <Calendar className="w-5 h-5 text-brand-600 flex-shrink-0" />
                   <div>
-                    <p className="text-[9px] uppercase font-black tracking-widest text-slate-400">Scheduled Date</p>
-                    <p className="text-xs font-serif font-black text-slate-800 tracking-wider">
+                    <p className="text-[9px] uppercase font-black tracking-widest text-stone-400">Scheduled Date</p>
+                    <p className="text-xs font-serif font-black text-stone-800 tracking-wider">
                       {monthNames[currentMonth].substring(0, 3)} {selectedDate}, {currentYear}
                     </p>
                   </div>
                 </div>
 
-                <div className="border border-slate-200 rounded-2xl px-5 py-3.5 flex items-center space-x-3 bg-slate-50/70">
-                  <Clock className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                <div className="border border-stone-200 rounded-2xl px-5 py-3.5 flex items-center space-x-3 bg-stone-50/70">
+                  <Clock className="w-5 h-5 text-brand-600 flex-shrink-0" />
                   <div>
-                    <p className="text-[9px] uppercase font-black tracking-widest text-slate-400">Time Slot</p>
-                    <p className="text-xs font-serif font-black text-slate-800 tracking-wider">
+                    <p className="text-[9px] uppercase font-black tracking-widest text-stone-400">Time Slot</p>
+                    <p className="text-xs font-serif font-black text-stone-800 tracking-wider">
                       {clientSchedule.time_start ? `${clientSchedule.time_start}${clientSchedule.time_end ? ` - ${clientSchedule.time_end}` : ''}` : 'Start time to be confirmed'}
                     </p>
                   </div>
                 </div>
               </div>
-              {scheduleMessage && <p className="rounded-xl bg-blue-50 p-3 text-[11px] leading-relaxed text-blue-700">{scheduleMessage}</p>}
+              {scheduleMessage && <p className="rounded-xl bg-brand-50 p-3 text-[11px] leading-relaxed text-brand-700">{scheduleMessage}</p>}
               {canReschedule && !isRescheduling && (
-                <button type="button" onClick={() => { setIsRescheduling(true); setScheduleMessage(''); }} className="w-full rounded-xl border border-blue-200 bg-blue-50 py-3 text-[10px] font-black uppercase tracking-widest text-blue-700 transition hover:bg-blue-100">
+                <button type="button" onClick={() => { setIsRescheduling(true); setScheduleMessage(''); }} className="w-full rounded-xl border border-brand-200 bg-brand-50 py-3 text-[10px] font-black uppercase tracking-widest text-brand-700 transition hover:bg-brand-100">
                   Reschedule date — one time only
                 </button>
               )}
-              {isRescheduling && !showCalendarView && <p role="status" className="text-xs text-blue-700">Click Calendar View to choose your new date.</p>}
+              {isRescheduling && !showCalendarView && <p role="status" className="text-xs text-brand-700">Click Calendar View to choose your new date.</p>}
               {!bookingIsAccepted && Number(clientSchedule.reschedule_count) >= 1 && (
-                <p className="text-center text-[10px] font-bold text-slate-400">Your one-time reschedule allowance has been used.</p>
+                <p className="text-center text-[10px] font-bold text-stone-400">Your one-time reschedule allowance has been used.</p>
               )}
               {bookingIsAccepted && (
-                <p className="text-center text-[10px] font-bold text-slate-400">The admin accepted this project. Its scheduled date is now locked.</p>
+                <p className="text-center text-[10px] font-bold text-stone-400">The admin accepted this project. Its scheduled date is now locked.</p>
               )}
-            </div> : <div className="bg-white border border-slate-200/80 rounded-3xl p-8 text-center text-xs text-slate-400">No project schedule is available yet.</div>}
+            </div> : <div className="bg-white border border-stone-200/80 rounded-3xl p-8 text-center text-xs text-stone-400">No project schedule is available yet.</div>}
           </div>
 
           {showCalendarView && (
-            <div id="client-schedule-calendar" className="lg:col-span-7 bg-white rounded-3xl p-4 sm:p-8 shadow-sm border border-slate-200 space-y-4 sm:space-y-6 animate-fadeIn">
+            <div id="client-schedule-calendar" className="lg:col-span-7 bg-white rounded-3xl p-4 sm:p-8 shadow-sm border border-stone-200 space-y-4 sm:space-y-6 animate-fadeIn">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-serif font-black text-slate-900 tracking-wide uppercase">
+                <h3 className="text-sm font-serif font-black text-stone-900 tracking-wide uppercase">
                   {monthNames[currentMonth]} {currentYear}
                 </h3>
-                <div className="flex items-center space-x-1 bg-slate-50 p-1 rounded-xl border border-slate-100">
-                  <button 
+                <div className="flex items-center space-x-1 bg-stone-50 p-1 rounded-xl border border-stone-100">
+                  <button
                     onClick={handlePrevMonth}
-                    className="p-2 hover:bg-white rounded-lg text-slate-600 transition cursor-pointer border-none bg-transparent flex items-center justify-center"
+                    className="p-2 hover:bg-white rounded-lg text-stone-600 transition cursor-pointer border-none bg-transparent flex items-center justify-center"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <button 
+                  <button
                     onClick={handleNextMonth}
-                    className="p-2 hover:bg-white rounded-lg text-slate-600 transition cursor-pointer border-none bg-transparent flex items-center justify-center"
+                    className="p-2 hover:bg-white rounded-lg text-stone-600 transition cursor-pointer border-none bg-transparent flex items-center justify-center"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -398,7 +395,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
               <div className="w-full">
                 <div className="grid grid-cols-7 gap-1 text-center mb-2">
                   {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d, index) => (
-                    <span key={index} className="text-[10px] font-black uppercase tracking-widest text-slate-400 py-1">
+                    <span key={index} className="text-[10px] font-black uppercase tracking-widest text-stone-400 py-1">
                       {d}
                     </span>
                   ))}
@@ -426,16 +423,16 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         disabled={!canSelectDate}
                         onClick={() => canSelectDate && setSelectedDate(dayNum)}
                         className={`h-9 sm:h-11 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center relative border-none ${canSelectDate ? 'cursor-pointer' : 'cursor-default'} ${
-                          isSelected 
-                            ? 'bg-[#0070c0] text-white shadow-md shadow-blue-500/30' 
-                            : isToday 
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                              : `bg-slate-50 text-slate-700 ${canSelectDate ? 'hover:bg-slate-100' : 'opacity-70'}`
+                          isSelected
+                            ? 'bg-marc-charcoal text-white shadow-md shadow-brand-500/30'
+                            : isToday
+                              ? 'bg-brand-50 text-brand-700 border border-brand-200'
+                              : `bg-stone-50 text-stone-700 ${canSelectDate ? 'hover:bg-stone-100' : 'opacity-70'}`
                         }`}
                       >
                         <span>{dayNum}</span>
                         {isToday && !isSelected && (
-                          <span className="absolute bottom-1 w-1 h-1 bg-blue-600 rounded-full" />
+                          <span className="absolute bottom-1 w-1 h-1 bg-brand-600 rounded-full" />
                         )}
                       </button>
                     );
@@ -443,16 +440,16 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                 </div>
               </div>
 
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
-                <span className="text-slate-500 font-medium">{isRescheduling ? 'New requested date:' : 'Scheduled date:'}</span>
-                <span className="font-bold text-slate-800">
+              <div className="bg-stone-50 border border-stone-100 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
+                <span className="text-stone-500 font-medium">{isRescheduling ? 'New requested date:' : 'Scheduled date:'}</span>
+                <span className="font-bold text-stone-800">
                   {monthNames[currentMonth]} {selectedDate}, {currentYear}
                 </span>
               </div>
               {isRescheduling && (
                 <div className="flex gap-3">
-                  <button type="button" onClick={() => { setIsRescheduling(false); setScheduleMessage(''); }} className="flex-1 rounded-xl border border-slate-200 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600">Cancel</button>
-                  <button type="button" disabled={isRescheduleSubmitting} onClick={() => void handleReschedule()} className="flex-1 rounded-xl bg-[#0070c0] py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-60">{isRescheduleSubmitting ? 'Saving...' : 'Confirm new date'}</button>
+                  <button type="button" onClick={() => { setIsRescheduling(false); setScheduleMessage(''); }} className="flex-1 rounded-xl border border-stone-200 py-3 text-[10px] font-black uppercase tracking-widest text-stone-600">Cancel</button>
+                  <button type="button" disabled={isRescheduleSubmitting} onClick={() => void handleReschedule()} className="flex-1 rounded-xl bg-marc-charcoal py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-60">{isRescheduleSubmitting ? 'Saving...' : 'Confirm new date'}</button>
                 </div>
               )}
             </div>
@@ -465,12 +462,12 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
   // --- STANDARD DASHBOARD VIEW ---
   return (
     <div className="space-y-6 animate-fadeIn relative">
-      <div className="bg-[#0070c0] text-white rounded-2xl p-4 md:p-6 shadow-md flex flex-row justify-between items-center gap-4">
+      <div className="marc-welcome text-white flex justify-between items-center gap-4">
         <div>
           <h2 className="text-xl font-serif font-black tracking-wide">{clientDisplayName}</h2>
-          <p className="text-xs text-blue-100 font-light mt-0.5">Your dream home is in progress.</p>
+          <p className="text-xs text-brand-100 font-light mt-0.5">Your interior journey starts here.</p>
         </div>
-        
+
         <button
           type="button"
           onClick={() => setActiveTab?.('profile')}
@@ -479,147 +476,76 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
           className="flex shrink-0 min-h-11 min-w-11 items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/25 p-2 md:px-4 md:py-2.5 rounded-xl text-xs font-bold tracking-wider transition shadow-sm cursor-pointer"
         >
           <ClientProfileIcon />
-          <span className="hidden md:inline">ACCOUNT PROFILE</span>
+          <span className="hidden md:inline">Account Profile</span>
         </button>
       </div>
       {homeError && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{homeError}</p>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-[#141b2d] text-white rounded-2xl p-6 shadow-xl border border-slate-800 flex flex-col justify-between space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2 text-xs font-bold tracking-widest text-blue-400">
-              <Calculator className="w-4 h-4" />
-              <span>ESTIMATE TOOL</span>
-            </div>
-            <div>
-              <h3 className="text-sm font-serif tracking-wide text-slate-200">Quick Quote Calculator</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 pt-2">
-              <div className="relative group/input">
-                <label className="block text-xs text-slate-300 mb-2">Measurement unit
-                  <select aria-label="Measurement unit" value={measurementUnit} onChange={e => setMeasurementUnit(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 mt-1">
-                    <option value="sq ft">Square Feet (sq ft)</option>
-                    <option value="m²">Square Meters (m²)</option>
-                  </select>
-                </label>
-                <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Total Floor Area ({measurementUnit})</label>
-                <div className="relative flex items-center">
-                  <input 
-                    type="number" 
-                    min="0" step="any" aria-label="Total floor area"
-                    value={area || ''} 
-                    onChange={(e) => setArea(parseFloat(e.target.value))}
-                    placeholder="0"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-4 pr-10 py-2.5 text-xs focus:outline-none focus:border-blue-500 text-white font-bold [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" 
-                  />
-                  <div className="absolute right-2 flex flex-col items-center justify-center opacity-0 group-hover/input:opacity-100 transition-opacity duration-200 pointer-events-auto">
-                    <button 
-                      type="button" 
-                      tabIndex={-1} 
-                      onClick={() => setArea((prev) => (isNaN(prev) ? 1 : prev + 1))}
-                      className="bg-transparent border-none p-0 cursor-pointer flex items-center justify-center hover:opacity-80 transition"
-                    >
-                      <ChevronUp className="w-3 h-3 text-white bg-transparent" />
-                    </button>
-                    <button 
-                      type="button" 
-                      tabIndex={-1} 
-                      onClick={() => setArea((prev) => (isNaN(prev) || prev <= 1 ? 0 : prev - 1))}
-                      className="bg-transparent border-none p-0 cursor-pointer flex items-center justify-center hover:opacity-80 transition"
-                    >
-                      <ChevronDown className="w-3 h-3 text-white bg-transparent" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Service Type</label>
-                <select value={estimateServiceType} onChange={(e) => setEstimateServiceType(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-blue-500 text-white font-bold">
-                  <option value="">Select service type</option>
-                  {ESTIMATE_SERVICE_TYPE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Design Style</label>
-                <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-blue-500 text-white font-bold">
-                  {styleOptions.map((option) => <option key={option.name} value={option.name}>{option.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-[9px] tracking-widest font-black text-slate-400 block mb-1.5 uppercase">Complexity</label>
-                <select value={complexity} onChange={(e) => setComplexity(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-blue-500 text-white font-bold">
-                  {complexityOptions.map((option) => <option key={option.name} value={option.name}>{option.name}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-800 pt-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div>
-              <p className="text-[9px] tracking-widest font-black text-slate-400 uppercase">Estimated Range</p>
-              <p className="text-2xl font-serif font-black text-blue-400 tracking-wide mt-0.5">
-                ₱{estimate.min.toLocaleString()} - ₱{estimate.max.toLocaleString()}
-              </p>
-            </div>
-            <p className="text-[10px] text-slate-500 italic leading-relaxed max-w-xs">
-              This is a preliminary appraisal and subject to technical site assessment parameters.
-            </p>
-          </div>
-        </div>
-
+      {isCustomizing ? <DesignCustomizer initialDesignId={selectedDesignId} onBack={()=>setIsCustomizing(false)} onComplete={(id, requirements, preferences)=>{ chooseDesign(id); setCustomization(preferences); setProjectDescription(requirements); setIsCustomizing(false); handleOpenBooking(); }}/> : <div className="marc-dashboard-columns">
+        <section className="marc-dashboard-designs"><h2>BROWSE DESIGNS</h2><p>Find the perfect design for your dream space.</p><DesignGallery compact onCustomize={design=>{chooseDesign(design.id);setIsCustomizing(true);}} onChoose={design => {
+          chooseDesign(design.id); handleOpenBooking();
+        }} /></section>
         <div className="space-y-4 flex flex-col justify-between">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm flex flex-col justify-center items-center space-y-3 flex-1">
-            <p className="text-xs font-serif font-medium text-slate-700 leading-relaxed">
-              No active projects yet. Let&apos;s start something beautiful.
+          <div className="bg-white border border-stone-200 rounded-2xl p-6 text-center shadow-sm flex flex-col justify-center items-center space-y-3 flex-1">
+            <p className="text-xs font-serif font-medium text-stone-700 leading-relaxed">
+              {clientSchedule ? clientSchedule.service_type + ' - ' + clientSchedule.booking_status + '. View your project schedule below.' : <>No active projects yet. Let&apos;s start something beautiful.</>}
             </p>
-            <button 
+            <button
               onClick={handleOpenBooking}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] tracking-widest px-6 py-2.5 rounded-xl transition shadow flex items-center space-x-2 cursor-pointer border-none"
+              className="bg-stone-900 hover:bg-stone-800 text-white font-black text-[10px] tracking-widest px-6 py-2.5 rounded-xl transition shadow flex items-center space-x-2 cursor-pointer border-none"
             >
               <span>BOOK NOW!</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
+            <button type="button" className="marc-custom-launch" onClick={()=>setIsCustomizing(true)}>Customize your design <ArrowRight size={15}/></button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div 
+          <div className="marc-dashboard-shortcuts grid grid-cols-2 gap-4">
+            <button type="button"
               onClick={() => setActiveTab?.('payments')}
-              className="bg-white border border-slate-200 rounded-2xl p-4 text-center shadow-sm hover:bg-slate-50 transition cursor-pointer flex flex-col items-center justify-center space-y-2 group"
+              className="bg-white border border-stone-200 rounded-2xl p-4 text-center shadow-sm hover:bg-stone-50 transition cursor-pointer flex flex-col items-center justify-center space-y-2 group"
             >
-              <div className="p-2.5 bg-slate-50 rounded-xl group-hover:bg-blue-50 transition">
-                <Wallet className="w-5 h-5 text-slate-700 group-hover:text-blue-600 transition" />
+              <div className="p-2.5 bg-stone-50 rounded-xl group-hover:bg-brand-50 transition">
+                <Wallet className="w-5 h-5 text-stone-700 group-hover:text-brand-600 transition" />
               </div>
               <div>
-                <h4 className="text-xs font-black tracking-wider text-slate-800 uppercase">Payments</h4>
-                <p className="text-[9px] text-slate-400 font-bold mt-0.5">View Billing Page</p>
+                <h4 className="text-xs font-black tracking-wider text-stone-800 uppercase">Payments</h4>
+                <p className="text-[9px] text-stone-400 font-bold mt-0.5">View Billing Page</p>
               </div>
-            </div>
+            </button>
 
-            <div 
+            <button type="button"
               onClick={() => setCurrentView('schedules')}
-              className="bg-white border border-slate-200 rounded-2xl p-4 text-center shadow-sm hover:bg-slate-50 transition cursor-pointer flex flex-col items-center justify-center space-y-2 group"
+              className="bg-white border border-stone-200 rounded-2xl p-4 text-center shadow-sm hover:bg-stone-50 transition cursor-pointer flex flex-col items-center justify-center space-y-2 group"
             >
-              <div className="p-2.5 bg-slate-50 rounded-xl group-hover:bg-blue-50 transition">
-                <CalendarRange className="w-5 h-5 text-slate-700 group-hover:text-blue-600 transition" />
+              <div className="p-2.5 bg-stone-50 rounded-xl group-hover:bg-brand-50 transition">
+                <CalendarRange className="w-5 h-5 text-stone-700 group-hover:text-brand-600 transition" />
               </div>
               <div>
-                <h4 className="text-xs font-black tracking-wider text-slate-800 uppercase">Schedules</h4>
-                <p className="text-[9px] text-slate-400 font-bold mt-0.5">View Calendar</p>
+                <h4 className="text-xs font-black tracking-wider text-stone-800 uppercase">Schedules</h4>
+                <p className="text-[9px] text-stone-400 font-bold mt-0.5">View Calendar</p>
               </div>
-            </div>
+            </button>
           </div>
+          <section className="marc-dashboard-promo" aria-labelledby="marc-promo-title">
+            <Image src="/designs/interior photo.jpg" alt="Interior design inspiration" fill sizes="(max-width: 850px) 90vw, 35vw" />
+            <div className="marc-dashboard-promo-copy">
+              <p>INSPIRED LIVING. TIMELESS DESIGN.</p>
+              <h3 id="marc-promo-title">A space that feels like you.</h3>
+              <span>Thoughtful interiors, tailored to the way you live.</span>
+            </div>
+          </section>
         </div>
-      </div>
+      </div>}
 
       {isBookingOpen && (
-        <div className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-[#1a1f2c] text-white rounded-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col max-w-2xl w-full shadow-2xl border border-slate-800 relative animate-fadeIn">
+        <div role="dialog" aria-modal="true" aria-label="Book a design consultation" className="fixed inset-0 z-[150] bg-black/70 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-marc-charcoal text-white rounded-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col max-w-2xl w-full shadow-2xl border border-stone-800 relative animate-fadeIn">
             {bookingStep === 'form' && (
-              <button 
+              <button
                 aria-label="Close booking form"
                 onClick={() => setIsBookingOpen(false)}
-                className="absolute top-2 right-3 z-40 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer border-none flex items-center justify-center"
+                className="absolute top-2 right-3 z-40 p-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white transition cursor-pointer border-none flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -627,74 +553,28 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
 
             {bookingStep === 'form' ? (
               <div className="flex min-h-0 flex-col">
-                  <h3 className="shrink-0 border-b border-slate-800 px-4 py-4 pr-14 sm:px-6 text-xs font-black tracking-widest text-slate-400 uppercase font-sans">
-                    Book Now Form
+                  <h3 className="shrink-0 border-b border-stone-800 px-4 py-4 pr-14 sm:px-6 text-xs font-black tracking-widest text-stone-400 uppercase font-sans">
+                    Book an Interior Consultation
                   </h3>
 
-                  <form id="booking-form" onSubmit={handleBookingSubmit} className="min-h-0 overflow-y-auto overscroll-contain grid grid-cols-2 gap-x-3 gap-y-2.5 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-4">
+                  <form id="booking-form" onSubmit={handleBookingSubmit} className="min-h-0 overflow-y-auto overscroll-contain grid grid-cols-2 gap-x-3 gap-y-2.5 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-4 marc-booking-form">
+                    {catalogError && <p role="alert" className="col-span-2 text-red-300">{catalogError}</p>}
                     {bookingError && <p className="col-span-2 rounded-xl bg-red-500/10 p-2 text-xs text-red-300">{bookingError}</p>}
-                    {estimate.min <= 0 && !servicesLoading && bookingServices.length === 0 && <p role="status" className="col-span-2 text-xs text-red-300">{homeError || 'No booking services are currently available.'}</p>}
-                    {estimate.min <= 0 && <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
-                        Service Type
-                      </label>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          aria-haspopup="listbox"
-                          aria-expanded={isServiceTypeOpen}
-                          disabled={servicesLoading || bookingServices.length === 0}
-                          onClick={() => setIsServiceTypeOpen((isOpen) => !isOpen)}
-                          className="flex w-full items-center justify-between gap-3 bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-left text-xs font-medium focus:outline-none focus:border-blue-500 shadow-inner cursor-pointer"
-                        >
-                          <span className={serviceType ? 'text-slate-200' : 'text-slate-500'}>
-                            {servicesLoading ? 'Loading services...' : serviceType || 'Select service type'}
-                          </span>
-                          {isServiceTypeOpen ? (
-                            <ChevronUp className="h-4 w-4 shrink-0 text-blue-400" aria-hidden="true" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
-                          )}
-                        </button>
-
-                        {isServiceTypeOpen && (
-                          <div
-                            role="listbox"
-                            aria-label="Service type"
-                            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-40 overflow-y-auto rounded-xl border border-slate-700 bg-[#121620] shadow-xl"
-                          >
-                            {bookingServices.map((service) => (
-                              <button
-                                key={service.id}
-                                type="button"
-                                role="option"
-                                aria-selected={serviceType === service.name}
-                                onClick={() => {
-                                  setServiceType(service.name);
-                                  setIsServiceTypeOpen(false);
-                                  setBookingError('');
-                                }}
-                                className={`block w-full px-3 py-2.5 text-left text-xs transition cursor-pointer ${
-                                  serviceType === service.name
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-200 hover:bg-slate-800'
-                                }`}
-                              >
-                                {service.name}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    }
-                    {estimate.min <= 0 && serviceType === 'Other' && <label className="col-span-2 block text-xs text-slate-300">Specify your desired design/service
-                      <input required maxLength={100} value={otherService} onChange={e => setOtherService(e.target.value)} className="mt-2 w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5" />
-                    </label>}
-                    {estimate.min > 0 && <p className="col-span-2 text-[11px] leading-snug text-blue-300">Estimate included: PHP {estimate.min.toLocaleString()} - {estimate.max.toLocaleString()} ({area} {measurementUnit}, {estimateServiceType}, {style}, {complexity}). Preliminary estimate.</p>}
+                    <div className="col-span-2 marc-booking-intro"><p>INTERIOR DESIGN CONSULTATION</p><h4>Tell us about your space</h4><span>Choose a design, share your requirements, and request a schedule. Final scope and pricing are confirmed after consultation.</span></div>
+                    <label className="col-span-2 sm:col-span-1 marc-booking-field">Interior category
+                      <select required value={serviceType} onChange={e => { setServiceType(e.target.value); setSelectedDesignId(''); setCustomization(null); setBookingError(''); }}>
+                        <option value="" disabled>Select a category</option>{Array.from(new Set(marcDesigns.map(d => d.category))).map(category => <option key={category}>{category}</option>)}
+                      </select>
+                    </label>
+                    <label className="col-span-2 sm:col-span-1 marc-booking-field">Design selection
+                      <select required value={selectedDesignId} onChange={e => chooseDesign(e.target.value)} disabled={!serviceType}>
+                        <option value="" disabled>Select a design</option>{marcDesigns.filter(d => d.category === serviceType).map(design => <option key={design.id} value={design.id}>{design.name}</option>)}
+                      </select>
+                    </label>
+                    {selectedDesign && <section className="col-span-2 marc-booking-selection" aria-label="Selected interior design"><div className="marc-booking-thumbnail"><Image src={selectedDesign.image} alt={selectedDesign.name} unoptimized fill sizes="110px" /></div><div><span>{selectedDesign.category}</span><h4>{selectedDesign.name}</h4><p>{designPrice(selectedDesign.price)}</p><p>{selectedDesign.description}</p></div></section>}
+                    {selectedDesign && <div className="col-span-2 rounded-xl border border-brand-700/30 bg-stone-900 p-3 text-xs leading-relaxed"><p>Sample base: {designPrice(selectedDesign.price)}</p>{customization && <p>Customization adjustment: +{customizationAdjustment}%</p>}<p className="mt-1 text-brand-200">Preliminary estimate: {designPrice(bookingEstimate).replace('From ', '')}</p><p className="mt-1 text-stone-400">Illustrative pricing, subject to consultation and site assessment.</p></div>}
                     <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-stone-300 block">
                         Project Address
                       </label>
                       <input
@@ -704,13 +584,13 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         placeholder="Street, barangay, city, province"
                         autoComplete="street-address"
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
+                        className="w-full bg-stone-950 border border-stone-700 rounded-xl px-3 py-2.5 text-xs text-stone-200 font-medium focus:outline-none focus:border-brand-500 shadow-inner"
                       />
-                      <p className="text-[9px] text-slate-500">This exact location will be shown to the admin and used on the Fleet Map.</p>
+                      <p className="text-[9px] text-stone-500">This exact location will be shown to the admin and used on the Fleet Map.</p>
                     </div>
 
                     <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-stone-300 block">
                         Nearest Landmark
                       </label>
                       <input
@@ -719,58 +599,61 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                         onChange={(e) => setProjectLandmark(e.target.value)}
                         placeholder="e.g. Across the public market"
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner"
+                        className="w-full bg-stone-950 border border-stone-700 rounded-xl px-3 py-2.5 text-xs text-stone-200 font-medium focus:outline-none focus:border-brand-500 shadow-inner"
                       />
                     </div>
 
                     <div className="col-span-2 min-w-0 space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 block">
-                        Project Description
+                      <label className="text-[10px] font-black uppercase tracking-wider text-stone-300 block">
+                        Project Requirements
                       </label>
-                      <textarea 
-                        rows={2}
+                      <textarea
+                        rows={3}
+                        placeholder="Tell us about your space, preferred finishes, storage needs, and any changes to the selected design."
+                        maxLength={5000}
+                        aria-label="Project requirements"
                         value={projectDescription}
                         onChange={(e) => setProjectDescription(e.target.value)}
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner resize-none"
+                        className="w-full bg-stone-950 border border-stone-700 rounded-xl px-3 py-2 text-xs text-stone-200 font-medium focus:outline-none focus:border-brand-500 shadow-inner resize-none"
                       />
                     </div>
 
                     <div className="min-w-0 space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-300 min-h-8 flex items-end">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-stone-300 min-h-8 flex items-end">
                         Preferred Project Start Date
                       </label>
                       <input
                         type="date"
                         value={preferredStartDate}
-                        min={new Date().toISOString().slice(0, 10)}
+                        min={new Date().toLocaleDateString('en-CA')}
                         onChange={(e) => setPreferredStartDate(e.target.value)}
                         required
-                        className="booking-start-date block h-11 min-w-0 w-full max-w-full appearance-none bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
+                        className="booking-start-date block h-11 min-w-0 w-full max-w-full appearance-none bg-stone-950 border border-stone-700 rounded-xl px-3 py-2.5 text-xs text-stone-200 font-medium focus:outline-none focus:border-brand-500 shadow-inner [color-scheme:dark]"
                       />
                       {(hasDuplicateBooking || hasScheduleConflict) && <p className="text-[10px] text-red-300">{hasDuplicateBooking ? 'You already have a booking for this day. Only one booking per day is allowed.' : 'This day is unavailable. Choose another date.'}</p>}
                     </div>
 
                     <div className="min-w-0 space-y-1">
-                      <label className="min-h-8 flex items-end text-[10px] font-black uppercase tracking-wider text-slate-300">Preferred Start Time</label>
+                      <label className="min-h-8 flex items-end text-[10px] font-black uppercase tracking-wider text-stone-300">Preferred Start Time</label>
                       {desktopTimePicker ? <input
                         type="time"
                         aria-label="Preferred start time"
                         value={preferredStartTime}
                         onChange={(e) => setPreferredStartTime(e.target.value)}
                         required
-                        className="w-full bg-[#121620] border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 font-medium focus:outline-none focus:border-blue-500 shadow-inner [color-scheme:dark]"
+                        className="w-full bg-stone-950 border border-stone-700 rounded-xl px-3 py-2.5 text-xs text-stone-200 font-medium focus:outline-none focus:border-brand-500 shadow-inner [color-scheme:dark]"
                       /> : <MobileTimePicker value={preferredStartTime} onChange={setPreferredStartTime} />}
                     </div>
 
                   </form>
 
-                  <div className="shrink-0 border-t border-slate-800 bg-[#1a1f2c] px-4 py-3 sm:px-6">
-                    <button 
+                  <div className="shrink-0 border-t border-stone-800 bg-marc-charcoal px-4 py-3 sm:px-6">
+                    <button
                       type="submit"
                       form="booking-form"
-                      disabled={isBookingSubmitting || hasDuplicateBooking || hasScheduleConflict || servicesLoading || bookingServices.length === 0}
-                      className="w-full py-3.5 bg-[#141b2f] hover:bg-[#1d2642] text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md border border-slate-700 cursor-pointer"
+                      disabled={isBookingSubmitting || hasDuplicateBooking || hasScheduleConflict || servicesLoading || catalogLoading || !selectedDesign}
+                      className="w-full py-3.5 bg-stone-900 hover:bg-stone-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md border border-stone-700 cursor-pointer"
                     >
                       {isBookingSubmitting ? 'Submitting...' : 'Submit Booking Form'}
                     </button>
@@ -778,7 +661,7 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
               </div>
             ) : (
               <div className="py-12 px-6 text-center space-y-6">
-                <h3 className="text-xs font-black tracking-widest text-slate-400 uppercase font-sans">
+                <h3 className="text-xs font-black tracking-widest text-stone-400 uppercase font-sans">
                   Submit Booking Done!
                 </h3>
                 <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-400">
@@ -786,8 +669,8 @@ export default function Home({ setActiveTab, userName = '' }: HomeProps) {
                 </div>
                 <div className="space-y-2">
                   <h4 className="text-lg font-serif font-bold text-white">Booking Request Received</h4>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    We have successfully logged your request for <span className="text-white font-bold">{serviceType === 'Other' ? otherService : serviceType}</span>. Our team will contact you shortly.
+                  <p className="text-xs text-stone-400 max-w-md mx-auto">
+                    We have successfully logged your request for <span className="text-white font-bold">{selectedDesign?.name || serviceType}</span>. Our team will contact you shortly.
                   </p>
                 </div>
               </div>

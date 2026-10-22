@@ -33,14 +33,23 @@ const getFleetLocations = async (_req, res) => {
 const createBooking = async (req, res) => {
     const user_id = Number(req.body.user_id);
     const read = (key) => typeof req.body[key] === 'string' ? req.body[key].trim() : '';
+    let designDetails;
+    try {
+        let catalog;
+        if (req.body.design_id !== undefined) {
+            catalog = await new Promise((resolve,reject)=>db.query('SELECT *,title AS name FROM design_catalog WHERE id=? AND published=TRUE AND deleted=FALSE',[req.body.design_id],(error,rows)=>error?reject(error):resolve(rows)));
+        }
+        designDetails = require('../utils/bookingDesign')(req.body, catalog);
+    }
+    catch (error) { return res.status(error.status || 400).json({ success: false, message: error.message }); }
     const selectedService = req.body.estimate != null ? (typeof req.body.estimate.service === 'string' ? req.body.estimate.service.trim() : '') : read('service_type');
-    const service_type = selectedService === 'Other' ? read('other_service') : selectedService;
-    const project_description = read('project_description');
+    const service_type = designDetails?.service_type || (selectedService === 'Other' ? read('other_service') : selectedService);
+    const project_description = designDetails?.project_description || read('project_description');
     const project_address = read('project_address');
     const project_landmark = read('project_landmark');
     const preferred_start_date = read('preferred_start_date');
     const preferred_start_time = read('preferred_start_time');
-    if (!Number.isInteger(user_id) || user_id <= 0 || !service_type || service_type.length > 100 || !project_description || !project_address || !project_landmark || !/^\d{4}-\d{2}-\d{2}$/.test(preferred_start_date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(preferred_start_time)) {
+    if (!Number.isInteger(user_id) || user_id <= 0 || !service_type || service_type.length > 100 || !project_description || !project_address || !project_landmark || !require('../utils/projectDate')(preferred_start_date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(preferred_start_time)) {
         return res.status(400).json({ success: false, message: 'Complete all booking details. For Other, specify your desired design/service (up to 100 characters).' });
     }
     // Isolate the transaction and database lock from other requests on the shared connection.
@@ -70,6 +79,7 @@ const createBooking = async (req, res) => {
         // Older installations also require preferred_date, preferred_time and location.
         const [columns] = await connection.query('SHOW COLUMNS FROM bookings');
         const record = { user_id, service_type, project_description, project_address, project_landmark, estimate: estimate ? JSON.stringify(estimate) : null };
+        if(columns.some(column=>column.Field==='design_snapshot'))record.design_snapshot=designDetails?.design_snapshot?JSON.stringify(designDetails.design_snapshot):null;
         for (const [name, value] of Object.entries({ preferred_date: preferred_start_date, preferred_time: preferred_start_time, location: project_address })) {
             if (columns.some(column => column.Field === name)) record[name] = value;
         }
@@ -142,6 +152,7 @@ const updateBooking = (req, res) => {
         return res.status(400).json({ success: false, message: "Provide a status or the complete booking details." });
     }
 
+    if(status && (typeof status!=='string' || !['Pending','Confirmed','Approved','Ongoing','Completed','Rejected','Cancelled'].some(value=>value.toLowerCase()===status.toLowerCase())))return res.status(400).json({success:false,message:'Choose a valid booking status.'});
     const updates = [];
     const values = [];
     if (service_type) { updates.push("service_type = ?"); values.push(service_type); }
@@ -154,7 +165,7 @@ const updateBooking = (req, res) => {
     values.push(req.params.id);
 
     db.query(
-        `UPDATE bookings SET ${updates.join(", ")} WHERE id = ?`,
+        `UPDATE bookings SET ${updates.join(", ")} WHERE id = ? ${status && ['rejected','cancelled'].includes(status.toLowerCase()) ? "AND NOT EXISTS (SELECT 1 FROM gcash_requests p WHERE p.booking_id=bookings.id AND p.status <> 'Cancelled') AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM quotations q WHERE q.booking_id=bookings.id)" : ''}`,
         values,
         (err, result) => {
 
@@ -162,7 +173,7 @@ const updateBooking = (req, res) => {
                 return res.status(500).json({ success: false, message: err.message });
             }
 
-            if (!result.affectedRows) return res.status(404).json({ success: false, message: "Booking not found." });
+            if (!result.affectedRows) return res.status(409).json({ success: false, message: "Booking could not be changed. Resolve associated payment records before cancelling or rejecting a booking." });
 
             cache.clear("schedule:unavailable-slots");
 
@@ -197,14 +208,15 @@ const updateBooking = (req, res) => {
 const deleteBooking = (req, res) => {
 
     db.query(
-        "DELETE FROM bookings WHERE id=?",
+        "DELETE FROM bookings WHERE id=? AND NOT EXISTS (SELECT 1 FROM gcash_requests p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM quotations q WHERE q.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM project_messages m WHERE m.booking_id=bookings.id)",
         [req.params.id],
-        (err) => {
+        (err, result) => {
 
             if (err) {
                 return res.status(500).json(err);
             }
 
+            if(!result.affectedRows)return res.status(409).json({success:false,message:"Bookings with payment, quotation, or project-chat records cannot be deleted. Keep them for history."});
             cache.clear("schedule:unavailable-slots");
 
             res.json({

@@ -4,7 +4,7 @@ import { memo, useEffect, useMemo, useRef, useState, type RefObject } from 'reac
 import L from 'leaflet';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl } from '@/lib/api';
 
 export interface FleetMapProject {
   id: string;
@@ -13,6 +13,7 @@ export interface FleetMapProject {
   fullAddress?: string;
   landmark?: string;
   projectDetails?: string;
+  projectDescription?: string;
   status: string;
   progress: number;
 }
@@ -20,6 +21,8 @@ export interface FleetMapProject {
 interface Coordinates {
   lat: number;
   lng: number;
+  precision?: 'address' | 'area';
+  matchedAddress?: string;
 }
 
 interface FleetProjectMapProps {
@@ -87,15 +90,20 @@ function RecenterMap({ coordinates, allCoordinates, selectedProjectId, selection
   const lng = coordinates?.lng;
   const hasSelection = lat !== undefined && lng !== undefined;
   useEffect(() => {
+    map.closePopup();
     if (lat !== undefined && lng !== undefined) {
       map.invalidateSize({ pan: false });
+      map.stop();
       map.setView([lat, lng], 16, { animate: false });
-      if (selectedProjectId) markers.current[selectedProjectId]?.openPopup();
+      const frame = window.requestAnimationFrame(() => {
+        if (selectedProjectId) markers.current[selectedProjectId]?.openPopup();
+      });
+      return () => window.cancelAnimationFrame(frame);
     }
   }, [lat, lng, map, selectedProjectId, selectionRevision, markers]);
   useEffect(() => {
     if (!hasSelection && allCoordinates.length) {
-      map.fitBounds(allCoordinates.map(item => [item.lat, item.lng]), { padding: [40, 40], maxZoom: 14 });
+      map.fitBounds(allCoordinates.map(item => [item.lat, item.lng]), { padding: [40, 40], maxZoom: 14, animate: false });
     }
   }, [hasSelection, allCoordinates, map]);
 
@@ -106,6 +114,9 @@ function FleetProjectMap({ projects, selectedProjectId, selectionRevision = 0, o
   const markers = useRef<Record<string, L.Marker>>({});
   const [coordinatesById, setCoordinatesById] = useState<Record<string, Coordinates>>({});
   const [pendingLocations, setPendingLocations] = useState(0);
+  const [locationError, setLocationError] = useState('');
+  const [locationsLoading, setLocationsLoading] = useState(true);
+  const [unresolvedById, setUnresolvedById] = useState<Record<string, string>>({});
   const projectSignature = projects
     .map((project) => `${project.id}:${project.fullAddress || project.locationName}:${project.landmark || ''}`)
     .join('|');
@@ -116,20 +127,29 @@ function FleetProjectMap({ projects, selectedProjectId, selectionRevision = 0, o
 
     const loadCoordinates = async () => {
       try {
-        const response = await fetch(`${getApiUrl()}/booking/fleet-locations`, { signal: controller.signal, cache: 'no-store' });
-        const result: { success?: boolean; pending?: number; locations?: Array<{ booking_id: number; lat: number; lng: number }> } = await response.json();
-        if (!response.ok) throw new Error('Unable to load project locations.');
+        const response = await apiFetch(`${getApiUrl()}/booking/fleet-locations`, { signal: controller.signal, cache: 'no-store' });
+        const result: { success?: boolean; pending?: number; unresolved?: Array<{ booking_id: number; reason: string }>; locations?: Array<{ booking_id: number; lat: number; lng: number; precision?: 'address' | 'area'; matched_address?: string }> } = await response.json();
+        if (!response.ok || result.success === false) throw new Error('Unable to load project locations.');
         if (controller.signal.aborted) return;
         const nextCoordinates = Object.fromEntries(
-          (result.locations ?? []).map((location) => [String(location.booking_id), { lat: location.lat, lng: location.lng }])
+          (result.locations ?? [])
+            .filter(location => location.lat != null && location.lng != null && Number.isFinite(Number(location.lat)) && Number.isFinite(Number(location.lng)) && Math.abs(Number(location.lat)) <= 90 && Math.abs(Number(location.lng)) <= 180)
+            .map(location => [String(location.booking_id), { lat: Number(location.lat), lng: Number(location.lng), precision: location.precision, matchedAddress: location.matched_address }])
         );
         setPendingLocations(result.pending ?? 0);
+        setUnresolvedById(Object.fromEntries((result.unresolved ?? []).map(item => [String(item.booking_id), item.reason])));
+        setLocationsLoading(false);
+        setLocationError('');
         retryTimer = window.setTimeout(() => void loadCoordinates(), result.pending ? 2000 : 30000);
         setCoordinatesById((current) =>
           JSON.stringify(current) === JSON.stringify(nextCoordinates) ? current : nextCoordinates
         );
       } catch {
-        if (!controller.signal.aborted) retryTimer = window.setTimeout(() => void loadCoordinates(), 10000);
+        if (!controller.signal.aborted) {
+          setLocationsLoading(false);
+          setLocationError('Unable to load project locations. Retrying automatically.');
+          retryTimer = window.setTimeout(() => void loadCoordinates(), 10000);
+        }
       }
     };
 
@@ -142,7 +162,8 @@ function FleetProjectMap({ projects, selectedProjectId, selectionRevision = 0, o
   }, [projectSignature]);
 
   const selectedCoordinates = selectedProjectId ? coordinatesById[selectedProjectId] : undefined;
-  const allCoordinates = useMemo(() => Object.values(coordinatesById), [coordinatesById]);
+  const selectedProject = projects.find(project => project.id === selectedProjectId);
+  const allCoordinates = useMemo(() => projects.flatMap(project => coordinatesById[project.id] ? [coordinatesById[project.id]] : []), [projects, coordinatesById]);
   const locatedProjects = useMemo(
     () => projects.filter((project) => coordinatesById[project.id]),
     [projects, coordinatesById]
@@ -165,23 +186,32 @@ function FleetProjectMap({ projects, selectedProjectId, selectionRevision = 0, o
             ref={marker => { if (marker) markers.current[project.id] = marker; else delete markers.current[project.id]; }}
             position={[coordinates.lat, coordinates.lng]}
             icon={redPinIcon}
+            title={`Project #${project.id}: ${project.clientName}`}
             eventHandlers={{ click: () => onSelectProject(project.id) }}
           >
-            <Popup>
-              <div className="w-44 max-w-[60vw] space-y-1 break-words text-xs">
-                <p className="text-sm font-bold text-slate-900">{project.clientName}</p>
-                <p className="font-semibold text-red-600">{project.projectDetails || 'Client project'}</p>
-                <p><strong>Address:</strong> {project.locationName}</p>
-                {project.landmark && <p><strong>Landmark:</strong> {project.landmark}</p>}
-                <p><strong>Status:</strong> {project.status}</p>
-                <p><strong>Progress:</strong> {project.progress}%</p>
+            <Popup className="fleet-project-popup" minWidth={220} maxWidth={340} autoPanPadding={[24, 24]}>
+              <div className="fleet-project-details">
+                <p className="fleet-project-ref">Project #{project.id}</p>
+                <h2>{project.clientName}</h2>
+                <p className="fleet-project-service">{project.projectDetails || 'Client project'}</p>
+
+                {coordinates.precision === 'area' && <p className="fleet-location-accuracy">Approximate area location</p>}
+                <dl>
+
+
+                  <div><dt>Status</dt><dd>{project.status}</dd></div>
+                  <div><dt>Progress</dt><dd>{project.progress}% complete</dd></div>
+                </dl><button type="button" className="fleet-popup-details-button" aria-controls="fleet-selected-project-details" onClick={()=>{onSelectProject(project.id);document.getElementById('fleet-selected-project-details')?.scrollIntoView({behavior:'smooth',block:'start'});}}>View full project details</button>
               </div>
             </Popup>
           </Marker>
         );
       })}
     </MapContainer>
-    {pendingLocations > 0 && <p role="status" className="absolute bottom-7 left-3 z-[1000] rounded-lg bg-white/95 px-3 py-2 text-xs text-slate-600 shadow">Locating {pendingLocations} project {pendingLocations === 1 ? 'address' : 'addresses'}...</p>}
+    {locationError ? <p role="alert" className="fleet-location-notice">{locationError}</p> : selectedProject && !selectedCoordinates ? (
+      <p role="status" className="fleet-location-notice">{locationsLoading || pendingLocations > 0 ? 'Locating' : unresolvedById[selectedProject.id] === 'unavailable' ? 'Map lookup temporarily unavailable for' : 'Address needs map confirmation for'} {selectedProject.clientName}, project #{selectedProject.id}.{!locationsLoading && pendingLocations === 0 && ' The booking details are saved; an exact map match is not available yet.'}</p>
+    ) : pendingLocations > 0 ? <p role="status" className="fleet-location-notice">Locating {pendingLocations} more project {pendingLocations === 1 ? 'address' : 'addresses'}...</p> : null}
+
     </div>
   );
 }

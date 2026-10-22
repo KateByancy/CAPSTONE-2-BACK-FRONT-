@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Numans, Poller_One } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const numans = Numans({
+  variable: "--font-numans",
   subsets: ["latin"],
+  weight: "400",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const pollerOne = Poller_One({
+  variable: "--font-poller-one",
   subsets: ["latin"],
+  weight: "400",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -52,7 +56,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans h-full m-0 p-0 bg-slate-100 text-slate-800 antialiased`}>
+      <body className={`${numans.variable} ${pollerOne.variable} font-sans h-full m-0 p-0 bg-stone-100 text-stone-800 antialiased`}>
         {children}
       </body>
     </html>

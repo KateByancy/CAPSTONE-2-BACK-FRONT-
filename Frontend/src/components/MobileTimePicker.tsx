@@ -31,15 +31,15 @@ export default function MobileTimePicker({ value, onChange }: { value: string; o
         updateTime(event.target.value, period);
       }} onBlur={() => {
         if (/^(0?[1-9]|1[0-2]):[0-5][0-9]$/.test(time)) setTime(time.padStart(5, '0'));
-      }} className="block h-11 min-w-0 w-full max-w-full rounded-xl border border-slate-700 bg-[#121620] py-2.5 pl-3 pr-14 text-xs font-medium text-slate-200 shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-500" />
-      <button type="button" aria-label={`Choose AM or PM, currently ${period}`} aria-expanded={open} aria-controls={cardId} onClick={() => setOpen(!open)} className="absolute inset-y-0 right-2 flex w-11 items-center justify-center rounded-lg text-xs font-bold text-blue-300 hover:bg-slate-800">{period}</button>
+      }} className="block h-11 min-w-0 w-full max-w-full rounded-xl border border-stone-700 bg-stone-950 py-2.5 pl-3 pr-14 text-xs font-medium text-stone-200 shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-500" />
+      <button type="button" aria-label={`Choose AM or PM, currently ${period}`} aria-expanded={open} aria-controls={cardId} onClick={() => setOpen(!open)} className="absolute inset-y-0 right-2 flex w-11 items-center justify-center rounded-lg text-xs font-bold text-brand-300 hover:bg-stone-800">{period}</button>
     </div>
-    {open && <div id={cardId} role="group" aria-label="Choose AM or PM" className="absolute bottom-full right-0 z-30 mb-2 grid w-full max-w-40 grid-cols-2 gap-1 rounded-xl border border-slate-600 bg-slate-800 p-1 shadow-lg">
+    {open && <div id={cardId} role="group" aria-label="Choose AM or PM" className="absolute bottom-full right-0 z-30 mb-2 grid w-full max-w-40 grid-cols-2 gap-1 rounded-xl border border-stone-600 bg-stone-800 p-1 shadow-lg">
       {['AM', 'PM'].map(item => <button type="button" key={item} aria-pressed={period === item} onClick={() => {
         setPeriod(item);
         updateTime(time, item);
         setOpen(false);
-      }} className={`min-h-11 rounded-lg text-xs font-bold ${period === item ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>{item}</button>)}
+      }} className={`min-h-11 rounded-lg text-xs font-bold ${period === item ? 'bg-brand-600 text-white' : 'text-stone-300 hover:bg-stone-700'}`}>{item}</button>)}
     </div>}
   </div>;
 }

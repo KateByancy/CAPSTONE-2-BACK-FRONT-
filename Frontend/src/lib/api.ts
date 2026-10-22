@@ -63,3 +63,24 @@ export async function requestProfile(
   window.dispatchEvent(new Event('profile-updated'));
   return profile;
 }
+
+/** Send the current workspace token only to this application's API. */
+export function apiFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const target = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, window.location.origin);
+  const api = new URL(getApiUrl(), window.location.origin);
+  const headers = new Headers(input instanceof Request ? input.headers : undefined);
+  new Headers(init.headers).forEach((value,key)=>headers.set(key,value));
+  if (target.origin === api.origin && (target.pathname === api.pathname || target.pathname.startsWith(api.pathname + '/'))) {
+    const role = window.location.pathname.startsWith('/admin') ? 'admin' : 'client';
+    const token = localStorage.getItem(role + 'Token');
+    if (token && !headers.has('Authorization')) headers.set('Authorization','Bearer '+token);
+  }
+  return fetch(input,{...init,headers,cache:init.cache || 'no-store'}).then(response=>{
+    if(response.status===401 && headers.has('Authorization') && target.origin===api.origin){
+      const role=window.location.pathname.startsWith('/admin')?'admin':'client';
+      localStorage.removeItem(role+'Token');localStorage.removeItem(role+'Account');
+      window.dispatchEvent(new CustomEvent('session-expired',{detail:{role}}));
+    }
+    return response;
+  });
+}

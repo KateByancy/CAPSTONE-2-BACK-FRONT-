@@ -20,9 +20,13 @@ const verifyToken = async (req, res, next) => {
 
         const decoded = jwt.verify(
             token,
-            getJwtSecret()
+            getJwtSecret(),
+            { algorithms: ["HS256"] }
         );
 
+        if (!Number.isSafeInteger(Number(decoded.id)) || Number(decoded.id)<1 || !['admin','client'].includes(decoded.role) || !Number.isFinite(decoded.exp)) {
+            return res.status(401).json({success:false,code:'INVALID_TOKEN',message:'Please sign in again to renew your session.'});
+        }
         if (decoded.role === 'admin') {
             const users = await new Promise((resolve, reject) => db.query("SELECT password FROM users WHERE id = ? AND role = 'admin'", [decoded.id], (error, rows) => error ? reject(error) : resolve(rows)));
             const password = users[0]?.password;

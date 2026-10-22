@@ -1,0 +1,1 @@
+module.exports=async query=>{const columns=await query('SHOW COLUMNS FROM bookings');if(!columns.some(column=>column.Field==='design_snapshot')){try{await query('ALTER TABLE bookings ADD COLUMN design_snapshot JSON NULL');}catch(error){if(error.code!=='ER_DUP_FIELDNAME')throw error;}}};

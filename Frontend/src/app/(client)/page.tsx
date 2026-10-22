@@ -5,7 +5,7 @@ import { useNavigationSelection } from '@/lib/use-navigation-selection';
 
 // Import your existing pages and views
 import LandingPage from './landing/page';
-import LoginPage from './login/page';
+import LoginPage from '@/components/ClientLogin';
 import RegisterPage from './register/page';
 import HomeView from './home/page';
 import WorkView from './work/page';
@@ -13,9 +13,10 @@ import BookView from './book/page';
 import TrackView from './track/page';
 import ChatView from './chat/page';
 import ProfileView from './profile/page';
+import ProjectQuotes from '@/components/ProjectQuotes';
 import PaymentsView from './payments/page';
 import DashboardShell from './dashboardshell/page';
-import { formatClientName, getApiUrl, getClientSession } from '@/lib/api';
+import { apiFetch, formatClientName, getApiUrl, getClientSession } from '@/lib/api';
 
 interface ClientAccount {
   id: number;
@@ -28,10 +29,11 @@ interface ClientAccount {
 export default function ClientMasterController() {
   // Restore the requested screen after checking the existing client session.
   const [currentScreen, setCurrentScreen] = useNavigationSelection('screen', 'landing', ['landing', 'login', 'register', 'dashboard']);
-  const [activeTab, setActiveTab] = useNavigationSelection('tab', 'home', ['home', 'work', 'book', 'track', 'chat', 'profile', 'payments']);
+  const [activeTab, setActiveTab] = useNavigationSelection('tab', 'home', ['home', 'work', 'book', 'track', 'chat', 'profile', 'payments', 'customize', 'quotes']);
   const [isRestoring, setIsRestoring] = useState(true);
   const [userName, setUserName] = useState('Doe, John');
 
+  useEffect(()=>{const expired=()=>{setCurrentScreen('login');setActiveTab('home');};window.addEventListener('session-expired',expired);return()=>window.removeEventListener('session-expired',expired);},[setCurrentScreen,setActiveTab]);
   useEffect(() => {
     const refreshName = () => {
       const client = getClientSession();
@@ -70,7 +72,7 @@ export default function ClientMasterController() {
     const sendHeartbeat = () => {
       const token = localStorage.getItem('clientToken');
       if (!token) return;
-      void fetch(`${getApiUrl()}/auth/presence`, { method:'POST', headers:{ Authorization:`Bearer ${token}` } });
+      void apiFetch(`${getApiUrl()}/auth/presence`, { method:'POST', headers:{ Authorization:`Bearer ${token}` } });
     };
     sendHeartbeat();
     const timer = window.setInterval(sendHeartbeat, 20000);
@@ -78,7 +80,7 @@ export default function ClientMasterController() {
   }, [currentScreen]);
 
   if (isRestoring) {
-    return <div className="min-h-dvh bg-[#072448]" role="status" aria-label="Restoring your page" />;
+    return <div className="min-h-dvh bg-marc-canvas" role="status" aria-label="Restoring your page" />;
   }
 
   // 1. Landing Page: "Launch Client Workspace" button triggers login
@@ -124,8 +126,10 @@ export default function ClientMasterController() {
   // Helper to render dashboard subpages inside the Shell
   const renderActiveTabContent = () => {
     switch (activeTab) {
+      case 'customize':
+        return <HomeView key="customize" initialCustomize setActiveTab={setActiveTab} userName={userName} />;
       case 'home':
-        return <HomeView setActiveTab={setActiveTab} userName={userName} />;
+        return <HomeView key="home" setActiveTab={setActiveTab} userName={userName} />;
       case 'work':
         return <WorkView />;
       case 'book':
@@ -141,6 +145,8 @@ export default function ClientMasterController() {
             userName={userName} 
           />
         );
+      case 'quotes':
+        return <ProjectQuotes role="client"/>;
       case 'payments':
         return <PaymentsView onBack={() => setActiveTab('home')} />;
       default:

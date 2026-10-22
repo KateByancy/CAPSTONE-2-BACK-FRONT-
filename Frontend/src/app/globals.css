@@ -32,34 +32,59 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #272727;
+  color-scheme: light;
 }
 
+/* Shared MARC palette: beige canvas, warm neutral surfaces, gold accents, charcoal controls. */
 @theme inline {
+  --color-marc-canvas: #d3cbb5;
+  --color-marc-panel: #eeeadf;
+  --color-marc-charcoal: #272727;
+  --color-marc-charcoal-soft: #333333;
+  --color-brand-50: #f8f6ef;
+  --color-brand-100: #eeeadf;
+  --color-brand-200: #e2decd;
+  --color-brand-300: #d3cbb5;
+  --color-brand-400: #bbae82;
+  --color-brand-500: #967423;
+  --color-brand-600: #876400;
+  --color-brand-700: #72531c;
+  --color-brand-800: #594421;
+  --color-brand-900: #3d3324;
+  --color-brand-950: #27231d;
+  --color-stone-50: #faf9f6;
+  --color-stone-100: #f3f1eb;
+  --color-stone-200: #e2ded4;
+  --color-stone-300: #cbc6ba;
+  --color-stone-350: #bcb6a8;
+  --color-stone-400: #a49c8b;
+  --color-stone-500: #787163;
+  --color-stone-600: #5e594f;
+  --color-stone-700: #49453e;
+  --color-stone-800: #37342f;
+  --color-stone-900: #292724;
+  --color-stone-950: #1c1b19;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-numans), Arial, sans-serif;
+  --font-serif: var(--font-numans), Arial, sans-serif;
+  --font-mono: var(--font-numans), Arial, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-numans), Arial, sans-serif;
 }
 
 /* Keep native dropdown chevrons inset and reserve room for their text.
    Custom selects with a separate icon already use appearance-none. */
 select:not(.appearance-none):not([multiple]):not([size]) {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23787163' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 1rem 1rem;
@@ -81,3 +106,340 @@ select:not(.appearance-none):not([multiple]):not([size]) {
     max-width: 100%;
   }
 }
+/* MARC client experience. */
+.marc-landing,.marc-login-page,.marc-dashboard-shell{font-family:var(--font-numans),Arial,sans-serif;color:#222;background:#fff;font-weight:400}
+.marc-landing button,.marc-login-page button,.marc-dashboard-shell button{cursor:pointer}
+.marc-landing :focus-visible,.marc-login-page :focus-visible,.marc-dashboard-shell :focus-visible{outline:2px solid #967423;outline-offset:4px}
+/* Clip the supplied logo's transparent padding without modifying the original files. */
+.marc-brand{display:inline-block;position:relative;overflow:hidden;width:240px;max-width:100%;aspect-ratio:415/176;vertical-align:middle;flex-shrink:0}
+.marc-brand .marc-brand-image{position:absolute;width:118.08%;max-width:none;height:auto;left:-9.16%;top:-89.2%}
+.marc-header .marc-brand{width:155px}
+.marc-sidebar .marc-brand{width:190px}
+.marc-header{height:112px;display:flex;align-items:center;justify-content:space-between;padding:16px 6% 16px 28px}
+
+
+.marc-header nav{display:flex;gap:clamp(24px,5vw,80px);font-size:16px}.marc-header nav a:hover{color:#987521}
+.marc-hero{min-height:520px;height:43vw;max-height:760px;position:relative;background:linear-gradient(90deg,#0008,#0005),url('/designs/hero.webp') center/cover no-repeat;color:#fff;display:flex;align-items:center;padding:6% 3%}
+.marc-hero-copy>p:first-child{font-size:15px;margin-bottom:10px}.marc-hero h1{font-size:clamp(44px,5.5vw,80px);line-height:1.1;font-weight:400;letter-spacing:1px}.marc-hero h1 strong{font-weight:800}
+.marc-hero-description{font-size:18px;line-height:1.15;margin-top:8px}.marc-browse{display:inline-flex;gap:9px;align-items:center;background:#bbae82;color:white;border-radius:4px;padding:7px 10px;margin-top:24px;font-size:17px}.marc-browse:hover{background:#9c8b57}
+.marc-hero-caption{position:absolute;right:10px;bottom:4px;font-size:clamp(12px,1.9vw,18px);font-weight:200;text-align:right;opacity: 70%;}
+.marc-benefits{display:grid;grid-template-columns:repeat(3,1fr);padding:20px 5%;min-height:205px;align-items:stretch}
+.marc-benefits>div{display:flex;align-items:center;justify-content:center;gap:22px;padding:22px;border-right:1px solid #aaa}.marc-benefits>div:last-child{border:0}
+.marc-benefits svg{width:48px;height:48px;stroke-width:2.7;flex-shrink:0;color:#080808}.marc-benefits h2{font-size:19px;letter-spacing:.5px;color:#846000;font-weight:400}.marc-benefits p{font-size:12px;margin-top:5px}
+.marc-featured{padding:60px 6% 72px;scroll-margin-top:20px}.marc-featured>p:first-child{font-size:17px}.marc-featured>h2{font-size:25px;letter-spacing:.5px;color:#876400;margin:5px 0;font-weight:400}.marc-section-description{font-size:13px;margin-bottom:28px}
+.marc-design-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px 28px}
+.marc-design-card{border:1px solid #999;border-radius:4px;padding:6px;display:flex;flex-direction:column;min-width:0;background:#fff;color:#222}
+.marc-design-image{position:relative;aspect-ratio:1.9;overflow:hidden;border-radius:2px}.marc-design-image img{object-fit:cover;transition:transform .25s}.marc-design-card:hover img{transform:scale(1.03)}
+.marc-design-card h3{font-size:14px;color:#8a691c;line-height:1.15;margin-top:7px;letter-spacing:.2px;font-weight:400}.marc-design-card p{font-size:10px;line-height:1.3;max-width:95%;margin:4px 0 14px}
+.marc-detail-button{border:1px solid #b0aa96;border-radius:3px;background:#e2decd;padding:3px 15px;font-size:9px;align-self:flex-end;margin:auto 8px 16px}.marc-detail-button:hover{background:#d1c7a7}
+.marc-design-dialog{position:fixed;inset:0;margin:auto;width:calc(100% - 32px);max-width:700px;max-height:90dvh;border:1px solid #b5ab91;border-radius:8px;padding:0;color:#222;background:#fff;overflow:auto}.marc-design-dialog::backdrop{background:#000a}
+.marc-dialog-close{position:absolute;right:12px;top:12px;z-index:1;background:white;color:#222;padding:9px;border-radius:50%}.marc-dialog-image{position:relative;aspect-ratio:1.8}.marc-dialog-image img{object-fit:cover}.marc-dialog-body{padding:26px}.marc-dialog-body h2{font-family:var(--font-numans),Arial,sans-serif;font-size:28px;color:#876400}.marc-dialog-body p{font-size:14px;margin:10px 0;line-height:1.6}
+.marc-primary,.marc-secondary{display:inline-flex;align-items:center;justify-content:center;border-radius:4px;padding:10px 24px;font-size:13px}.marc-primary{color:#fff;background:#333;border:1px solid #333}.marc-primary:hover{background:#535047}.marc-primary:disabled{opacity:.6;cursor:wait}.marc-secondary{border:1px solid #999;color:#333;margin-left:12px}.marc-secondary:hover{background:#e4dfcf}
+.marc-about{padding:48px 8%;background:#eeeadf;scroll-margin-top:20px}.marc-about h2,.marc-contact h2{font:28px var(--font-numans),Arial,sans-serif;color:#846424}.marc-about p{max-width:750px;line-height:1.8;margin-top:14px;font-size:15px}.marc-contact{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:48px 8%}.marc-contact p{font-size:14px;margin:12px 0 20px}
+.marc-login-page{background:var(--color-marc-charcoal);min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:7vh 5%}
+.marc-login-panel{display:grid;grid-template-columns:1.25fr 1fr;width:100%;max-width:1080px;min-height:670px;background:#fff;border:1px solid #8c8572;border-radius:7px;overflow:hidden}
+.marc-login-form-panel{position:relative;padding:65px 44px 40px;display:flex;flex-direction:column;align-items:center}.marc-return{position:absolute;top:27px;left:42px;font-size:10px;color:#555}.marc-return:hover{text-decoration:underline}.marc-login-form-panel>.marc-brand{margin:0 0 50px}.marc-login-form-panel h1{font-size:26px;letter-spacing:1px;font-weight:400;margin-bottom:18px}.marc-login-form{width:100%;display:flex;flex-direction:column}.marc-login-form label{font-size:13px;margin-bottom:5px}.marc-login-form input{width:100%;height:38px;background:#e2e2e2;border:1px solid #ccc;border-top:3px solid #aaa;padding:5px 10px;color:#222;border-radius:0;margin-bottom:17px}.marc-password{position:relative}.marc-password input{padding-right:40px;margin-bottom:0}.marc-password button{position:absolute;right:12px;top:11px;color:#555}.marc-forgot{align-self:flex-end;font-size:12px;margin:8px 0 14px}.marc-forgot:hover{text-decoration:underline}.marc-login-submit{width:100%;margin-top:0}.marc-login-or{font-size:12px;margin:12px 0 7px}.marc-login-divider{position:relative;border-top:1px solid #999;width:100%;text-align:center;margin:10px 0 20px}.marc-login-divider span{position:relative;top:-10px;background:#fff;padding:0 16px;font-size:13px}.marc-google{min-height:44px;width:100%;display:flex;justify-content:center;overflow:hidden}.marc-register-link{font-size:11px;color:#666;margin-top:20px}.marc-register-link button{text-decoration:underline;color:#876400}.marc-form-error{font-size:12px;background:#fff0ed;color:#9d2c20;border:1px solid #e5ada3;padding:10px;margin-bottom:12px}.marc-login-photo{background:url('/designs/registration.webp') center/cover no-repeat}.marc-login-photo::after{content:'';display:block;height:100%;background:#0002}
+.marc-dashboard-shell{display:flex;min-height:100dvh}.marc-sidebar{width:245px;flex-shrink:0;background:#272727;color:#eee;position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;padding:34px 15px}
+.marc-sidebar-brand{align-self:center;margin:0 0 40px}.marc-sidebar nav{display:flex;flex-direction:column;gap:3px}.marc-sidebar nav button{display:flex;align-items:center;gap:9px;text-align:left;font-size:15px;padding:6px 12px;border-radius:6px;white-space:nowrap}.marc-sidebar nav button:hover{background:#444}.marc-sidebar nav button[aria-current=page]{background:#858585}.marc-sidebar-footer{margin-top:auto;padding:20px 8px 6px;display:flex;flex-direction:column;gap:22px}.marc-sidebar-footer button{display:flex;align-items:center;gap:7px;text-align:left;font-size:11px}.marc-sidebar-footer button:first-child{align-items:flex-start;flex-direction:column;gap:2px}.marc-sidebar-footer small{font-size:9px;color:#aaa}.marc-sidebar-footer span{text-transform:uppercase}
+.marc-dashboard-main{padding:65px 40px 40px;flex:1;min-width:0;background:#fff;max-width:1500px;margin:0 auto}.marc-mobile-nav{display:none}.marc-welcome{min-height:125px;border-radius:7px;background:linear-gradient(100deg,#333,#858585);padding:24px}.marc-welcome h2{font-size:25px;font-weight:400;letter-spacing:0}.marc-welcome p{color:#eee;font-size:12px}.marc-welcome>button{border:1px solid #aaa;border-radius:6px;background:#ffffff15;font-size:12px;text-transform:none;font-weight:400;letter-spacing:0}.marc-welcome>button>span:first-child{height:48px;width:48px}
+.marc-dashboard-columns{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(250px,1fr);gap:34px}.marc-dashboard-designs h2{font-size:25px;font-weight:400}.marc-dashboard-designs>p{font-size:12px;margin:0 0 6px}.marc-filters{display:flex;align-items:center;justify-content:space-between;gap:2px;border:1px solid #888;border-radius:7px;padding:7px;margin-bottom:26px}.marc-filters button{font-size:14px;padding:5px 8px;border:1px solid transparent;border-radius:4px;white-space:nowrap}.marc-filters button[aria-pressed=true]{border-color:#c2b998;color:#8a681c}.marc-filters button:hover{background:#eeeadf}.marc-gallery-compact .marc-design-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}.marc-gallery-compact .marc-design-card{padding:5px;min-height:200px}.marc-gallery-compact .marc-design-card h3{font-size:12px;margin-top:5px}.marc-gallery-compact .marc-design-card p{font-size:9px;margin:2px 0 8px}.marc-gallery-compact .marc-detail-button{font-size:8px;padding:1px 8px;margin: auto 0 0}.marc-gallery-compact .marc-design-image{aspect-ratio:1.8}.marc-empty{padding:35px 15px;background:#f4f1e9;text-align:center;font-size:13px}.marc-empty button{text-decoration:underline}
+.marc-dashboard-columns>div:last-child{padding-top:56px;justify-content:flex-start;gap:30px}.marc-dashboard-columns>div:last-child>div:first-child{min-height:230px;border:1px solid #aaa;border-radius:7px;box-shadow:none;flex:initial}.marc-dashboard-columns>div:last-child>div:first-child>p{font-family:var(--font-numans),Arial,sans-serif;font-size:11px}.marc-dashboard-columns>div:last-child>div:first-child>button{background:#333;border-radius:5px;font-size:12px;font-weight:400;letter-spacing:0;padding:10px 30px}.marc-dashboard-columns>div:last-child>.marc-dashboard-shortcuts{gap:28px}.marc-dashboard-columns>div:last-child>.marc-dashboard-shortcuts>button{min-height:150px;border:1px solid #aaa;border-radius:7px;box-shadow:none}.marc-dashboard-columns>div:last-child>.marc-dashboard-shortcuts h4{font-size:9px;font-weight:400;letter-spacing:0}.marc-dashboard-columns>div:last-child>.marc-dashboard-shortcuts p{font-size:7px;font-weight:400}.marc-dashboard-columns>div:last-child>.marc-dashboard-shortcuts>button>div:first-child{background:#eee;padding:7px;border-radius:7px}
+.marc-booking-alert{position:fixed;top:15px;left:50%;transform:translateX(-50%);z-index:200;display:flex;gap:15px;align-items:flex-start;background:#f5f1e5;border:1px solid #b3a377;padding:20px;max-width:500px;width:calc(100% - 32px);border-radius:8px;font-size:13px;box-shadow:0 8px 30px #0002}.marc-booking-alert>div{flex:1}.marc-booking-alert button{font-size:23px;line-height:1}.marc-chat-shell{height:100dvh;overflow:hidden}.marc-chat-main{height:100%;min-height:0;overflow:hidden}
+@media(min-width:1450px){.marc-dashboard-main{padding-top:80px}.marc-sidebar{width:270px}}
+@media(max-width:1100px){.marc-dashboard-main{padding:40px 25px}.marc-sidebar{width:210px;padding:30px 12px}.marc-sidebar nav button{font-size:13px}.marc-dashboard-columns{gap:22px;grid-template-columns:minmax(0,1.4fr) minmax(200px,1fr)}.marc-filters{flex-wrap:wrap;justify-content:flex-start;margin-bottom:18px}.marc-filters button{font-size:13px;padding:4px}.marc-welcome h2{font-size:22px}.marc-benefits>div{gap:12px;padding:15px}.marc-benefits h2{font-size:16px}.marc-benefits svg{width:35px;height:35px}}
+@media(max-width:850px){.marc-dashboard-columns{grid-template-columns:1fr}.marc-dashboard-columns>div:last-child{padding-top:0;display:grid;grid-template-columns:1fr 1fr;gap:16px}.marc-dashboard-columns>div:last-child>div:first-child{min-height:165px;padding:16px}.marc-dashboard-columns>div:last-child>.marc-dashboard-shortcuts{gap:12px}.marc-sidebar{width:200px}.marc-header{padding:15px 20px}.marc-header nav{gap:24px;font-size:14px}.marc-benefits{padding:10px;min-height:150px}.marc-benefits>div{flex-direction:column;gap:10px;text-align:center}.marc-benefits p{font-size:10px}.marc-design-grid{gap:20px}.marc-login-panel{min-height:620px}.marc-login-form-panel{padding:60px 28px 30px}.marc-return{left:28px}.marc-login-form-panel>.marc-brand{margin-bottom:35px}}
+@media(max-width:600px){.marc-header{height:auto;min-height:100px;flex-direction:column;gap:18px}.marc-header nav{gap:28px;font-size:13px}.marc-header .marc-brand{width:140px}.marc-hero{height:480px;min-height:0;padding:30px 22px}.marc-hero-copy>p:first-child{font-size:10px}.marc-hero h1{font-size:44px}.marc-hero-description{font-size:14px}.marc-browse{font-size:14px}.marc-hero-caption{font-size:11px;bottom:10px;left:10px}.marc-benefits{gap:0;padding:15px 3px;min-height:150px}.marc-benefits>div{padding:10px 7px}.marc-benefits h2{font-size:12px}.marc-benefits p{font-size:9px}.marc-benefits svg{width:28px;height:28px}.marc-featured{padding:35px 20px}.marc-featured>h2{font-size:23px}.marc-featured>p:first-child{font-size:14px}.marc-section-description{font-size:11px;line-height:1.5}.marc-design-grid{grid-template-columns:1fr;gap:20px}.marc-design-card h3{font-size:16px}.marc-design-card p{font-size:12px}.marc-detail-button{font-size:11px;margin-bottom:8px}.marc-about{padding:30px 22px}.marc-contact{padding:30px 22px;flex-direction:column;align-items:flex-start}.marc-about h2,.marc-contact h2{font-size:24px}.marc-login-page{padding:30px 18px}.marc-login-panel{display:block;min-height:640px;max-width:430px}.marc-login-photo{display:none}.marc-login-form-panel{padding:60px 26px 35px}.marc-login-form-panel>.marc-brand{margin-bottom:32px}.marc-return{left:26px;top:22px}.marc-login-form input{height:43px}.marc-sidebar{display:none}.marc-dashboard-main{padding:22px 16px 100px}.marc-mobile-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;z-index:50;background:#272727;color:#ddd;padding:12px 3px max(12px,env(safe-area-inset-bottom));gap:2px}.marc-mobile-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:40px;border-radius:4px;font-size:9px}.marc-mobile-nav button[aria-current=page]{background:#777;color:#fff}.marc-welcome{padding:18px 15px;min-height:110px}.marc-welcome h2{font-size:20px}.marc-welcome p{font-size:10px}.marc-welcome>button{padding:6px}.marc-welcome>button>span:first-child{height:32px;width:32px}.marc-dashboard-designs h2{font-size:23px}.marc-filters{flex-wrap:wrap;justify-content:flex-start;gap:4px;padding:5px}.marc-filters button{font-size:12px;padding:5px 6px}.marc-gallery-compact .marc-design-card{min-height:195px}.marc-gallery-compact .marc-design-grid{gap:10px}.marc-gallery-compact .marc-design-card p{font-size:9px}.marc-dashboard-columns>div:last-child{grid-template-columns:1fr;gap:16px}.marc-dashboard-columns>div:last-child>.marc-dashboard-shortcuts>button{min-height:120px}.marc-chat-main{padding-bottom:90px}}
+@media(prefers-reduced-motion:reduce){.marc-design-image img{transition:none}.marc-design-card:hover img{transform:none}}
+
+/* Registration shares the login shell, brand, inputs, and photo panel. */
+.marc-registration-panel{min-height:740px}
+.marc-registration-form-panel{padding-top:60px;padding-bottom:30px}
+.marc-registration-form-panel>.marc-brand{width:210px;margin-bottom:20px}
+.marc-registration-form-panel h1{margin-bottom:6px}
+.marc-registration-intro{font-size:12px;color:#666;margin-bottom:22px}
+.marc-registration-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 16px;min-width:0;margin:0;padding:0;border:0}
+.marc-registration-field{min-width:0;display:flex;flex-direction:column}
+.marc-registration-full{grid-column:1/-1}
+.marc-registration-form input{margin-bottom:0;font-size:14px}
+.marc-registration-form label{font-size:12px}
+.marc-field-help{font-size:10px;color:#666;line-height:1.4;margin-top:5px}
+.marc-registration-form input[aria-invalid=true]{border-color:#9d2c20}
+.marc-registration-form input[aria-invalid=true]~button{color:#9d2c20}
+.marc-registration-form .marc-login-submit{margin-top:22px}
+.marc-registration-fields:disabled{opacity:.65}
+@media(max-width:850px){.marc-registration-form-panel{padding:60px 24px 30px}.marc-registration-fields{gap:14px 12px}.marc-registration-form label{font-size:11px}}
+@media(max-width:600px){.marc-registration-panel{min-height:0}.marc-registration-form-panel{padding:60px 24px 30px}.marc-registration-form-panel>.marc-brand{width:200px;margin-bottom:20px}.marc-registration-form label{font-size:12px}.marc-registration-fields{grid-template-columns:1fr;gap:15px}.marc-registration-full{grid-column:auto}.marc-registration-intro{margin-bottom:20px}}
+
+/* Landing navigation stays visible; section anchors clear the sticky header. */
+.marc-header{position:sticky;top:0;z-index:60;background:#fff;box-shadow:0 1px 8px #0000000d}
+.marc-header nav{font-size:18.5px;font-weight:500}
+.marc-featured,.marc-about,.marc-contact{scroll-margin-top:135px}
+.marc-featured>p:first-child{font-size:26px}
+.marc-featured>h2{font-size:36px}
+.marc-section-description{font-size:18px;line-height:1.6}
+.marc-design-card h3{font-size:21px;line-height:1.35}
+.marc-design-card p{font-size:16px;line-height:1.6;margin-bottom:20px}
+.marc-detail-button{font-size:14px;padding:8px 18px}
+.marc-gallery-compact .marc-design-card h3{font-size:18px}
+.marc-gallery-compact .marc-design-card p{font-size:15px;line-height:1.5}
+.marc-gallery-compact .marc-detail-button{font-size:13px;padding:6px 12px}
+@media(max-width:850px){.marc-header nav{font-size:15.5px;gap:24px}}
+@media(max-width:600px){
+  .marc-header nav{font-size:14.5px;gap:20px;flex-wrap:wrap;justify-content:center}
+  .marc-featured,.marc-about,.marc-contact{scroll-margin-top:170px}
+  .marc-featured>p:first-child{font-size:23px}
+  .marc-featured>h2{font-size:31px}
+  .marc-section-description{font-size:16px}
+  .marc-design-card h3{font-size:20px}
+  .marc-design-card p{font-size:16px}
+  .marc-gallery-compact .marc-design-card h3{font-size:17px}
+  .marc-gallery-compact .marc-design-card p{font-size:14px}
+}
+.marc-google-error{max-width:100%;font-size:12px;color:#5e594f;text-align:center;line-height:1.5;margin-top:8px}.marc-google-error button{color:#876400;text-decoration:underline;margin-top:5px}
+
+/* Reference hero: Poller One wordmark with Numans supporting typography. */
+.marc-hero{height:clamp(520px,43vw,680px);min-height:520px;max-height:680px;padding:56px clamp(24px,6.5vw,64px);align-items:center}
+.marc-hero-copy{width:100%;max-width:680px;transform:translateY(-8px)}
+.marc-hero-copy>p:first-child{font-size:17px;line-height:1.3;font-weight:400;letter-spacing:0;margin:0 0 8px}
+.marc-hero h1{display:flex;align-items:baseline;gap:18px;font-size:90px;line-height:1.05;font-weight:400;letter-spacing:0;margin:0}
+.marc-hero h1 strong{font-family:var(--font-poller-one),serif;font-size:1em;font-weight:400;line-height:inherit}
+.marc-hero h1 span{font-family:var(--font-numans),Arial,sans-serif;font-weight:400}
+.marc-hero-description{max-width:540px;font-size:15px;line-height:1.15;font-weight:400;letter-spacing:.1px;margin:8px 0 0 5px}
+.marc-browse{gap:8px;font-size:20px;font-weight:400;padding:6px 8px;border-radius:3px}
+.marc-browse svg{width:22px;height:22px;stroke-width:3}
+@media(max-width:600px){
+  .marc-hero{height:480px;min-height:480px;padding:40px 24px}
+  .marc-hero-copy{transform:none}
+  .marc-hero-copy>p:first-child{font-size:12px;margin-bottom:14px}
+  .marc-hero h1{font-size:clamp(32px,8.4vw,49px);gap:12px}
+  .marc-hero-description{font-size:16px;line-height:1.35;margin-left:0;margin-top:12px;max-width:440px}
+  .marc-browse{font-size:18px;margin-left:0;margin-top:22px}
+}
+
+/* Plain, readable project details inside Leaflet's map popup. */
+.fleet-project-popup .leaflet-popup-content{margin:18px 20px;width:auto!important;min-width:220px;max-width:300px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#272727}
+.fleet-project-details,.fleet-project-details *{text-shadow:none;-webkit-text-stroke:0;font-family:Arial,Helvetica,sans-serif;letter-spacing:normal;font-synthesis:none}
+.fleet-project-details p{margin:0 0 10px;font-weight:400}
+.fleet-project-details .fleet-project-ref{font-size:12px;color:#666;margin-bottom:4px}
+.fleet-project-details h2{font-size:18px;line-height:1.35;font-weight:600;margin:0 0 8px;overflow-wrap:anywhere}
+.fleet-project-details .fleet-project-service{font-size:14px;font-weight:600;color:#49453e}
+.fleet-project-details .fleet-project-description{font-size:14px;line-height:1.5;color:#49453e}
+.fleet-project-details dl{display:grid;gap:10px;margin-top:14px}
+.fleet-project-details dl>div{display:grid;grid-template-columns:70px minmax(0,1fr);gap:10px}
+.fleet-project-details dt{font-size:13px;font-weight:600;color:#5e594f}
+.fleet-project-details dd{margin:0;font-size:14px;font-weight:400;color:#272727;overflow-wrap:anywhere}
+.fleet-location-notice{position:absolute;left:12px;bottom:28px;z-index:1000;max-width:calc(100% - 24px);padding:10px 14px;border:1px solid #cbc6ba;border-radius:8px;background:#fff;color:#37342f;font:14px/1.5 Arial,Helvetica,sans-serif;box-shadow:0 2px 8px #0002}
+@media(max-width:600px){.fleet-project-popup .leaflet-popup-content{min-width:180px;max-width:240px;margin:14px 16px}.fleet-project-details dl>div{grid-template-columns:60px minmax(0,1fr);gap:8px}}
+
+/* Image lightbox shared by landing and dashboard design cards. */
+.marc-image-trigger{display:block;width:100%;padding:0;border:0;background:#f3f1eb;cursor:zoom-in!important;text-align:left}
+.marc-image-hint{position:absolute;bottom:8px;right:8px;border-radius:4px;background:#272727d9;color:#fff;padding:5px 9px;font-size:12px;line-height:1.3;pointer-events:none}
+.marc-image-preview{position:fixed;inset:0;margin:auto;width:min(1200px,95vw);max-width:95vw;max-height:95dvh;padding:0;border:0;background:transparent;color:#fff;overflow:visible}
+.marc-image-preview::backdrop{background:#000e}
+.marc-image-preview-content{position:relative;background:#1c1b19;border-radius:8px;overflow:hidden}
+.marc-image-preview-photo{position:relative;width:100%;height:min(76dvh,760px)}
+.marc-image-preview-photo .marc-preview-photo{object-fit:contain;transform:none}
+.marc-preview-close{position:absolute;top:12px;right:12px;z-index:2;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid #ffffff50;border-radius:50%;background:#272727e6;color:#fff;cursor:pointer}
+.marc-preview-close:hover{background:#49453e}
+.marc-preview-caption{margin:0;padding:14px 20px;text-align:center;font-size:16px;line-height:1.5;color:#fff}
+body:has(.marc-image-preview[open]){overflow:hidden}
+@media(max-width:600px){.marc-image-preview{width:96vw;max-width:96vw}.marc-image-preview-photo{height:65dvh}.marc-preview-caption{font-size:14px;padding:12px 16px}.marc-image-hint{font-size:10px;padding:4px 7px}}
+
+/* Public contact information and direct inquiry actions. */
+.marc-contact-section{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);margin:64px 6%;border:1px solid var(--color-stone-200);border-radius:12px;overflow:hidden;scroll-margin-top:135px}
+.marc-contact-intro{padding:48px 40px;background:var(--color-marc-charcoal);color:#fff;display:flex;flex-direction:column;align-items:flex-start}
+.marc-contact-eyebrow{font-size:13px;letter-spacing:2px;color:var(--color-brand-300);margin:0 0 22px}
+.marc-contact-intro h2{font-size:clamp(30px,3vw,44px);line-height:1.25;font-weight:400;margin:0 0 20px}
+.marc-contact-intro>p:not(.marc-contact-eyebrow){font-size:15px;line-height:1.8;color:#e2ded4;max-width:390px}
+.marc-contact-call{display:inline-flex;align-items:center;gap:12px;padding:13px 20px;margin:30px 0 14px;border:1px solid var(--color-brand-300);border-radius:5px;background:var(--color-brand-200);color:var(--color-marc-charcoal);font-size:16px}
+.marc-contact-call:hover{background:#fff}
+.marc-contact-intro>.marc-contact-hours-note{font-size:12px!important;line-height:1.6!important;margin:0}
+.marc-contact-information{padding:40px;background:#fff}
+.marc-contact-info-header>span{font-size:12px;letter-spacing:1.8px;color:var(--color-brand-600)}
+.marc-contact-info-header>p{font-size:24px;line-height:1.4;margin:10px 0 30px;color:var(--color-marc-charcoal)}
+.marc-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 26px;margin:0}
+.marc-contact-item{position:relative;padding-left:34px;min-width:0}
+.marc-contact-item>svg{position:absolute;left:0;top:0;width:20px;height:20px;color:var(--color-brand-600);stroke-width:1.7}
+.marc-contact-item dt{font-size:12px;color:var(--color-stone-600);line-height:1.5;margin-bottom:7px}
+.marc-contact-item dd{font-size:15px;color:var(--color-marc-charcoal);line-height:1.65;margin:0;overflow-wrap:anywhere}
+.marc-contact-item dd>a:first-child:hover{text-decoration:underline}
+.marc-contact-small-link{display:flex;align-items:center;gap:4px;width:fit-content;font-size:12px;color:var(--color-brand-600);margin-top:8px;text-decoration:underline;text-underline-offset:3px}
+.marc-contact-secondary-text{display:block;font-size:12px;line-height:1.6;color:var(--color-stone-500);margin-top:5px}
+.marc-contact-social{grid-column:1/-1;padding-top:20px;border-top:1px solid var(--color-stone-200)}
+.marc-contact-social>svg{top:20px}
+.marc-site-footer{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:32px 6%;border-top:1px solid var(--color-stone-200);background:var(--color-brand-50)}
+.marc-site-footer>div>p{font-size:15px;margin:0 0 14px;color:var(--color-stone-600)}
+@media(max-width:850px){.marc-contact-section{grid-template-columns:1fr}.marc-contact-intro{padding:36px}.marc-contact-intro>p:not(.marc-contact-eyebrow){max-width:100%}.marc-contact-information{padding:36px}}
+@media(max-width:600px){.marc-contact-section{margin:36px 20px;scroll-margin-top:170px}.marc-contact-intro,.marc-contact-information{padding:28px 22px}.marc-contact-grid{grid-template-columns:1fr;gap:25px}.marc-contact-social{grid-column:auto}.marc-contact-info-header>p{font-size:22px}.marc-site-footer{flex-direction:column;align-items:flex-start;padding:28px 22px}.marc-site-footer .marc-primary,.marc-site-footer .marc-secondary{padding:10px 16px;font-size:12px}}
+
+/* Interior-design details: concept, consultation, features, and specifications. */
+.marc-interior-details{max-width:1120px;width:calc(100% - 40px);border-color:var(--color-stone-200);border-radius:14px;color:var(--color-marc-charcoal);background:#fff}
+.marc-details-close-form{position:sticky;top:0;z-index:3;height:0}
+.marc-details-close-form .marc-dialog-close{top:14px;right:14px;border:1px solid var(--color-stone-200);box-shadow:0 2px 8px #0001}
+.marc-interior-top{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:36px;padding:40px 36px 28px}
+.marc-interior-visual{min-width:0;padding-top:12px}
+.marc-interior-visual .marc-dialog-image{aspect-ratio:1.05;border-radius:8px;overflow:hidden}
+.marc-interior-visual>p{font-size:12px;line-height:1.6;color:var(--color-stone-500);margin:12px 0 0}
+.marc-interior-summary{min-width:0;padding-right:10px}
+.marc-interior-eyebrow{font-size:12px;line-height:1.5;letter-spacing:1.6px;color:var(--color-brand-600);margin:0 0 12px}
+.marc-interior-summary>h2{font-size:clamp(32px,3.3vw,48px);font-weight:400;letter-spacing:-1px;line-height:1.15;color:var(--color-marc-charcoal);margin:0 0 16px;overflow-wrap:anywhere}
+.marc-interior-subtitle{font-size:16px;line-height:1.65;color:var(--color-stone-600);margin:0 0 20px}
+.marc-interior-overview{font-size:14px;line-height:1.8;color:var(--color-stone-700);margin:0 0 26px}
+.marc-interior-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:26px}
+.marc-interior-facts>div{display:flex;gap:9px;align-items:flex-start;min-width:0}
+.marc-interior-facts svg{width:22px;height:22px;flex-shrink:0;color:var(--color-brand-600);margin-top:3px}
+.marc-interior-facts span{display:flex;flex-direction:column;gap:5px;font-size:11px;line-height:1.5;color:var(--color-stone-500)}
+.marc-interior-facts strong{font-size:12px;font-weight:400;line-height:1.5;color:var(--color-marc-charcoal)}
+.marc-interior-enquiry{display:grid;grid-template-columns:1fr;gap:20px;border:1px solid var(--color-brand-200);border-radius:8px;background:var(--color-brand-50);padding:22px}
+.marc-interior-enquiry>div:first-child>span{font-size:12px;color:var(--color-stone-500)}
+.marc-interior-enquiry h3{font-size:23px;font-weight:400;line-height:1.3;color:var(--color-brand-700);margin:8px 0}
+.marc-interior-enquiry p{font-size:12px;line-height:1.6;margin:0;color:var(--color-stone-600)}
+.marc-interior-actions{display:flex;flex-direction:column;gap:10px}
+.marc-interior-enquire{display:flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:12px 16px;border:1px solid var(--color-marc-charcoal);border-radius:5px;background:var(--color-marc-charcoal);color:#fff;font-size:14px}
+.marc-interior-enquire:hover{background:var(--color-stone-700)}
+.marc-interior-information{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:28px;padding:0 36px 36px;align-items:start}
+.marc-interior-information h3{font-size:20px;line-height:1.4;font-weight:400;margin:0 0 22px;color:var(--color-marc-charcoal)}
+.marc-interior-features{padding:26px;background:var(--color-brand-100);border-radius:8px}
+.marc-interior-features ul{display:grid;gap:18px;list-style:none;margin:0;padding:0}
+.marc-interior-features li{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.6;color:var(--color-stone-700)}
+.marc-interior-features li>svg{flex-shrink:0;border-radius:50%;background:var(--color-brand-200);padding:2px;color:var(--color-brand-700);width:21px;height:21px;margin-top:2px}
+.marc-interior-features>p{font-size:11px;line-height:1.65;color:var(--color-stone-600);margin-top:24px}
+.marc-interior-specs{padding:26px;border:1px solid var(--color-stone-200);border-radius:8px}
+.marc-interior-specs dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 20px;margin:0}
+.marc-interior-specs dl>div{position:relative;min-width:0;padding-left:32px}
+.marc-interior-specs svg{position:absolute;left:0;top:3px;width:21px;height:21px;color:var(--color-brand-600)}
+.marc-interior-specs dt{font-size:11px;line-height:1.5;color:var(--color-stone-500);margin-bottom:7px}
+.marc-interior-specs dd{font-size:13px;line-height:1.55;color:var(--color-marc-charcoal);margin:0;overflow-wrap:anywhere}
+body:has(.marc-interior-details[open]){overflow:hidden}
+@media(max-width:760px){.marc-interior-details{width:calc(100% - 24px);max-height:94dvh}.marc-interior-top{grid-template-columns:1fr;padding:24px 22px;gap:24px}.marc-interior-visual{padding:0}.marc-interior-visual .marc-dialog-image{aspect-ratio:1.8}.marc-interior-summary{padding-right:0}.marc-interior-summary>h2{font-size:34px}.marc-interior-information{grid-template-columns:1fr;padding:0 22px 24px;gap:20px}.marc-interior-specs,.marc-interior-features{padding:22px}.marc-interior-subtitle{font-size:15px}.marc-interior-facts{gap:10px}.marc-interior-facts>div{flex-direction:column;gap:7px}}
+@media(max-width:390px){.marc-interior-specs dl{grid-template-columns:1fr}.marc-interior-summary>h2{font-size:30px}}
+
+
+/* Interior consultation booking uses the same charcoal, cream and gold palette. */
+.marc-booking-form { gap: 18px 16px; }
+.marc-booking-intro { padding: 4px 0 8px; }
+.marc-booking-intro > p { color: #c7b782; font-size: 10px; letter-spacing: .12em; }
+.marc-booking-intro h4 { color: white; font-size: 23px; margin: 7px 0; }
+.marc-booking-intro > span { display: block; color: #c9c6bf; font-size: 12px; line-height: 1.65; }
+.marc-booking-field { display: grid; gap: 8px; color: #dedad0; font-size: 12px; }
+.marc-booking-field select { width: 100%; min-height: 44px; border: 1px solid #645f50; background: #1f1e1b; color: white; border-radius: 10px; padding: 10px; font: inherit; color-scheme: dark; }
+.marc-booking-field select:focus-visible { outline: 2px solid #c7b782; outline-offset: 2px; }
+.marc-booking-field select:disabled { opacity: .6; }
+.marc-booking-selection { display: flex; gap: 16px; padding: 14px; border: 1px solid #645f50; border-radius: 12px; background: #302f2a; }
+.marc-booking-thumbnail { position: relative; flex: 0 0 106px; min-height: 90px; overflow: hidden; border-radius: 7px; }
+.marc-booking-thumbnail img { object-fit: cover; }
+.marc-booking-selection span { color: #c7b782; font-size: 11px; }
+.marc-booking-selection h4 { font-size: 16px; color: white; margin: 4px 0 6px; }
+.marc-booking-selection p { color: #dedad0; font-size: 11px; line-height: 1.6; }
+.marc-booking-form input, .marc-booking-form textarea { font-size: 13px; }
+@media (max-width: 480px) { .marc-booking-selection { flex-direction: column; } .marc-booking-thumbnail { flex-basis: auto; height: 125px; } }
+
+/* Interior inspiration panel beneath the client dashboard shortcuts. */
+.marc-dashboard-promo { position: relative; height: 300px; min-height: 300px; max-height: 300px; flex: 0 0 300px; overflow: hidden; border-radius: 9px; background: #272727; isolation: isolate; }
+.marc-dashboard-promo > img { object-fit: cover; }
+.marc-dashboard-promo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 15%, rgba(20,19,16,.35) 48%, rgba(20,19,16,.92) 100%); z-index: 1; }
+.marc-dashboard-promo-copy { position: absolute; inset: auto 0 0; padding: 28px; z-index: 2; color: #fff; }
+.marc-dashboard-promo-copy p { color: #e1d5b1; font-size: 10px; letter-spacing: .12em; margin-bottom: 10px; }
+.marc-dashboard-promo-copy h3 { font-size: clamp(23px,2vw,32px); line-height: 1.3; margin-bottom: 10px; max-width: 340px; }
+.marc-dashboard-promo-copy span { display: block; font-size: 12px; line-height: 1.6; color: #eeeae0; max-width: 310px; }
+@media(max-width:850px) { .marc-dashboard-promo { grid-column: 1 / -1; height: 280px; min-height: 280px; max-height: 280px; flex-basis: 280px; } }
+@media(max-width:600px) { .marc-dashboard-promo-copy { padding: 22px; } }
+
+/* Guided interior customization. */
+.marc-customizer { color:#272727; } .marc-custom-back { display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:16px;color:#74603b;cursor:pointer; }
+.marc-customizer h2 {font-size:26px;} .marc-custom-subtitle {font-size:13px;margin:5px 0 24px;color:#68645d;}
+.marc-custom-layout {display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:28px;align-items:start;}
+.marc-custom-steps {display:flex;justify-content:space-between;gap:8px;margin-bottom:30px;}
+.marc-custom-steps button {position:relative;display:flex;flex:1;flex-direction:column;align-items:center;gap:9px;font-size:10px;cursor:pointer;}
+.marc-custom-steps button span {display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#e5dfce;color:#272727;}
+.marc-custom-steps button[aria-current=step] span {background:#272727;color:#fff;} .marc-custom-steps button:disabled {opacity:.55;cursor:default;}
+.marc-custom-options {border:1px solid #dfdace;border-radius:12px;padding:26px;background:#fff;}
+.marc-custom-eyebrow {font-size:10px;letter-spacing:.12em;color:#8a681c;margin-bottom:10px;}.marc-custom-options h3 {font-size:21px;margin-bottom:22px;}
+.marc-custom-design {display:grid;gap:9px;font-size:13px;margin:20px 0;}.marc-custom-design select,.marc-custom-design textarea {padding:12px;border:1px solid #c9c2af;border-radius:8px;width:100%;background:#fff;font:inherit;}
+.marc-custom-choice-grid {display:grid;grid-template-columns:1fr 1fr;gap:12px;}.marc-custom-choice-grid button {display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;min-height:76px;padding:16px;border:1px solid #d7d0bf;border-radius:9px;font-size:13px;cursor:pointer;}
+.marc-custom-choice-grid button[aria-pressed=true] {border-color:#8a681c;background:#eeeadf;}.marc-custom-controls {display:flex;justify-content:space-between;gap:12px;border-top:1px solid #eeeadf;padding-top:22px;margin-top:28px;}
+.marc-custom-controls button,.marc-custom-launch {display:flex;align-items:center;justify-content:center;gap:9px;font-size:12px;cursor:pointer;}.marc-custom-controls button:last-child {background:#272727;color:#fff;padding:12px 18px;border-radius:7px;}.marc-custom-controls button:disabled {opacity:.45;cursor:default;}
+.marc-dashboard-columns>div:last-child>div:first-child>.marc-custom-launch {background:transparent;color:#806225;padding:7px;border:0;margin-top:8px;}
+.marc-custom-summary {border:1px solid #d7d0bf;border-radius:10px;overflow:hidden;}.marc-custom-summary-heading {background:#272727;color:#e1d5b1;font-size:10px;letter-spacing:.08em;padding:20px;}.marc-custom-photo {position:relative;aspect-ratio:1.4;}.marc-custom-photo img {object-fit:cover;}.marc-custom-summary-copy {padding:20px;}.marc-custom-summary-copy>span {color:#8a681c;font-size:11px;}.marc-custom-summary-copy h3 {font-size:19px;margin:8px 0;}.marc-custom-summary-copy p {font-size:12px;line-height:1.7;color:#69645b;}.marc-custom-summary-copy hr {border:0;border-top:1px solid #e6e0d3;margin:20px 0;}.marc-custom-summary-copy h4 {font-size:13px;margin-bottom:12px;}.marc-custom-summary-copy li {font-size:12px;margin:10px 0;}.marc-custom-summary-copy li span {display:block;font-size:10px;color:#8a681c;margin-bottom:4px;}.marc-custom-disclaimer {font-size:11px!important;line-height:1.7;color:#777166;margin-top:18px;}.marc-custom-review>div {padding:13px 0;border-bottom:1px solid #eeeadf;}.marc-custom-review dt {font-size:11px;color:#8a681c;margin-bottom:7px;}.marc-custom-review dd {font-size:13px;}.marc-custom-review button {float:right;text-decoration:underline;color:#806225;cursor:pointer;}
+@media(max-width:1100px){.marc-custom-layout {grid-template-columns:minmax(0,1fr) 240px;gap:18px;}}
+@media(max-width:850px){.marc-custom-layout {grid-template-columns:1fr;}.marc-custom-summary {max-width:100%;}.marc-custom-photo {aspect-ratio:2;}}
+@media(max-width:480px){.marc-custom-options {padding:18px;}.marc-custom-choice-grid {grid-template-columns:1fr;}.marc-custom-steps {gap:3px;}.marc-custom-steps button {font-size:8px;}.marc-custom-steps button span {width:26px;height:26px;}}
+
+
+.marc-design-card .marc-design-price { color: #806225; font-size: 14px; margin: 5px 0; font-weight: 600; }
+.marc-gallery-compact .marc-design-card .marc-design-price { font-size: 13px; }
+
+/* Clear project and payment stages in the existing MARC palette. */
+.marc-project-flow {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+.marc-project-flow button {display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;align-items:center;text-align:left;border:1px solid #ded8c8;border-radius:9px;padding:15px;background:#fff;cursor:pointer;}
+.marc-project-flow button:hover {background:#f5f2e9;border-color:#a99154;}.marc-project-flow button:focus-visible{outline:2px solid #8a681c;outline-offset:3px;}
+.marc-project-flow span {grid-row:1/3;color:#95773e;font-size:17px;}.marc-project-flow strong {font-size:12px;font-weight:400;color:#272727;}.marc-project-flow small {font-size:10px;line-height:1.6;color:#777166;margin-top:4px;}
+.marc-payment-steps {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0;padding:14px;background:#f5f2e9;border-radius:10px;}
+.marc-payment-steps li {display:flex;align-items:center;gap:8px;font-size:11px;color:#777166;}.marc-payment-steps span {display:flex;align-items:center;justify-content:center;flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#e0dacc;color:#625c50;}.marc-payment-steps li[data-complete=true] {color:#272727;}.marc-payment-steps li[data-complete=true] span {background:#272727;color:#fff;}
+@media(max-width:1100px){.marc-project-flow{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:480px){.marc-project-flow{gap:8px;}.marc-project-flow button{padding:12px;column-gap:8px;}.marc-payment-steps{gap:6px;padding:10px;}.marc-payment-steps li{flex-direction:column;text-align:center;font-size:10px;}}
+
+/* Serve the payment QR at original quality; never crop or recompress its pattern. */
+.marc-payment-qr {margin:16px auto 0;max-width:520px;}
+.marc-payment-qr-trigger {display:block;width:100%;overflow:hidden;border:1px solid #ddd6c4;border-radius:10px;background:#fff;cursor:zoom-in;}
+.marc-payment-qr-image {display:block;width:100%;height:auto;object-fit:contain;}
+.marc-payment-qr-trigger>span {display:block;padding:10px;color:#806225;font-size:12px;}
+.marc-payment-qr-dialog {position:fixed;inset:0;margin:auto;width:min(1264px,96vw);max-width:96vw;max-height:94dvh;overflow:auto;border:0;border-radius:12px;background:#fff;padding:12px;color:#272727;}
+.marc-payment-qr-dialog::backdrop {background:rgba(0,0,0,.8);}
+.marc-payment-qr-dialog form {display:flex;justify-content:flex-end;margin-bottom:10px;}
+.marc-payment-qr-full {display:block;width:100%;height:auto;object-fit:contain;}
+
+/* More compact authentication cards, with natural scrolling on short screens. */
+.marc-login-page { padding: 24px 5%; }
+.marc-login-panel { max-width: 960px; min-height: 560px; }
+.marc-login-form-panel { padding: 52px 34px 26px; }
+.marc-login-form-panel > .marc-brand { width: 200px; margin-bottom: 28px; }
+.marc-login-form-panel .marc-return { top: 20px; left: 34px; }
+.marc-registration-panel { min-height: 620px; }
+.marc-registration-form-panel { padding-top: 46px; padding-bottom: 24px; }
+.marc-registration-form-panel > .marc-brand { width: 180px; margin-bottom: 12px; }
+.marc-registration-intro { margin-bottom: 15px; }
+.marc-registration-fields { gap: 10px 14px; }
+.marc-registration-form .marc-login-submit { margin-top: 16px; }
+@media (max-width: 850px) {
+ .marc-login-form-panel { padding-left: 24px; padding-right: 24px; }
+ .marc-login-form-panel .marc-return { left: 24px; }
+}
+@media (max-width: 600px) {
+ .marc-login-page { padding: 18px 14px; }
+ .marc-login-panel { max-width: 400px; min-height: 0; }
+ .marc-login-form-panel { padding: 50px 22px 26px; }
+ .marc-login-form-panel .marc-return { left: 22px; }
+ .marc-login-form-panel > .marc-brand { width: 180px; margin-bottom: 20px; }
+ .marc-registration-fields { gap: 12px; }
+}
+
+/* Keep the shortcuts and promotion together as the gallery grows. */
+.marc-dashboard-columns > div:last-child { align-self: start; }
+
+/* Brief gallery summaries with direct customization actions. */
+.marc-design-card .marc-card-description {display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.55;}
+.marc-card-actions {display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:10px;align-items:center;}
+.marc-card-actions .marc-detail-button,.marc-card-customize {margin:0;padding:8px 12px;font-size:12px;min-height:38px;}
+.marc-card-customize {border:1px solid #272727;border-radius:4px;background:#272727;color:#fff;cursor:pointer;}
+.marc-card-customize:hover {background:#45433d;}
+/* A narrow hover target reveals the client menu without shifting the page. */
+@media(min-width:601px){
+ .marc-dashboard-shell {padding-left:40px;}
+ .marc-sidebar {position:fixed;left:0;top:0;bottom:0;width:245px;height:100dvh;z-index:80;transform:translateX(-205px);transition:transform .22s ease;overflow-y:auto;padding:54px 15px 24px;box-shadow:3px 0 14px #0001;}
+ .marc-sidebar[data-expanded=true],.marc-sidebar:has(:focus-visible) {transform:translateX(0);}
+ .marc-sidebar-handle {position:absolute;right:0;top:12px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:#e5d7ad;border-radius:5px;}
+ .marc-sidebar-brand,.marc-sidebar>nav,.marc-sidebar-footer {opacity:0;pointer-events:none;transition:opacity .15s ease;}
+ .marc-sidebar[data-expanded=true] .marc-sidebar-brand,.marc-sidebar[data-expanded=true]>nav,.marc-sidebar[data-expanded=true] .marc-sidebar-footer,.marc-sidebar:has(:focus-visible) .marc-sidebar-brand,.marc-sidebar:has(:focus-visible)>nav,.marc-sidebar:has(:focus-visible) .marc-sidebar-footer {opacity:1;pointer-events:auto;}
+ .marc-sidebar nav {display:flex;flex-direction:column;gap:7px;}
+ .marc-sidebar nav button {min-height:42px;font-size:13px;}
+}
+@media(max-width:600px){.marc-sidebar-handle {display:none;}.marc-card-actions {gap:6px;}.marc-card-actions button {flex:1;font-size:11px!important;padding:8px!important;}}
+@media(prefers-reduced-motion:reduce){.marc-sidebar,.marc-sidebar-brand,.marc-sidebar>nav,.marc-sidebar-footer {transition:none;}}
+
+.marc-quotes{color:#272727;max-width:1250px;margin:auto}.marc-quotes header{padding:24px;background:#272727;color:#fff;border-radius:12px;margin-bottom:22px}.marc-quotes h1{font-size:25px}.marc-quotes header p{font-size:12px;margin-top:8px;color:#e3d9bf}.marc-quotes label{display:grid;gap:7px;font-size:12px;margin:14px 0}.marc-quotes input,.marc-quotes select,.marc-quotes textarea{width:100%;min-width:0;border:1px solid #ccc4b0;border-radius:7px;padding:10px;background:white;font:inherit}.marc-quote-picker{max-width:650px}.marc-quote-columns{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,1fr);gap:22px;align-items:start}.marc-quote-panel{border:1px solid #ddd6c4;border-radius:12px;padding:22px;margin-bottom:18px;background:#fff;min-width:0}.marc-quote-panel h2,.marc-quote-panel h3{font-size:18px;margin-bottom:12px}.marc-quote-panel p{font-size:12px;line-height:1.7}.marc-quote-muted{color:#7b7465;font-size:11px!important;margin:10px 0}.marc-quote-request{white-space:pre-wrap;overflow-wrap:anywhere;margin:14px 0}.marc-quote-design{width:100%;height:200px;object-fit:cover;border-radius:8px;margin:15px 0}.marc-quotes button{background:#272727;color:white;padding:11px 15px;border-radius:7px;font-size:12px;cursor:pointer}.marc-quotes button:disabled{opacity:.45;cursor:default}.marc-quotes .marc-quote-secondary{background:#eeeadf;color:#6e5422}.marc-quote-item{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(90px,1fr) auto;align-items:center;gap:10px}.marc-quote-item button{padding:9px;font-size:10px}.marc-quotes table{width:100%;font-size:12px;border-collapse:collapse}.marc-quotes td,.marc-quotes th{padding:12px 5px;border-bottom:1px solid #eeeadf;text-align:left;overflow-wrap:anywhere}.marc-quotes td:last-child,.marc-quotes th:last-child{text-align:right}.marc-quote-total{font-size:17px!important;font-weight:bold;margin:16px 0}.marc-quote-status{display:inline-block;background:#eeeadf;color:#806225;padding:5px 8px;border-radius:6px;font-size:11px}.marc-quote-error{padding:12px;background:#fff0ed;color:#9d2c20;margin-bottom:15px}.marc-quote-notice{padding:12px;background:#eeeadf;color:#4e492e;margin-bottom:15px}.marc-quote-response{border-top:1px solid #ddd6c4;margin-top:18px;padding-top:14px}.marc-project-chat-feed{max-height:400px;overflow:auto;background:#f6f4ee;border-radius:8px;padding:12px}.marc-project-chat-feed>div{padding:12px;margin:10px 0;background:white;border-radius:8px;overflow-wrap:anywhere}.marc-project-chat-feed strong{font-size:10px;color:#8a681c}.marc-project-chat-feed p{white-space:pre-wrap}.marc-project-chat-feed .marc-chat-own{background:#e7e0cb}.marc-quotes summary{cursor:pointer;font-size:12px;color:#806225}
+@media(max-width:850px){.marc-quote-columns{grid-template-columns:1fr}.marc-quote-item{grid-template-columns:minmax(0,1fr) minmax(80px,1fr)}.marc-quote-item button{grid-column:1/-1;justify-self:end}.marc-quote-panel{padding:17px}}
+
+.fleet-popup-details-button{margin-top:14px;padding:9px 12px;background:#272727;color:#fff;border-radius:6px;font-size:12px;cursor:pointer;width:100%;}.fleet-project-popup .fleet-project-service{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}.fleet-selected-details{overflow-wrap:anywhere;}
+
+.marc-quote-invoice{margin-top:14px;border-top:1px solid #e6dfcf;padding-top:14px}.marc-admin-bell{position:relative;z-index:60;font-size:12px}.marc-admin-bell>summary{display:flex;align-items:center;gap:9px;cursor:pointer;list-style:none;border:1px solid #d5ceba;padding:11px 15px;border-radius:10px;background:#fff;color:#272727}.marc-admin-bell>summary::-webkit-details-marker{display:none}.marc-admin-bell b{background:#806225;color:#fff;border-radius:20px;padding:2px 6px;font-size:10px}.marc-admin-bell>section{position:absolute;right:0;top:calc(100% + 8px);width:min(380px,calc(100vw - 32px));background:#fff;border:1px solid #ded7c7;border-radius:12px;box-shadow:0 12px 35px #0002;overflow:hidden}.marc-admin-bell-heading{display:flex;justify-content:space-between;align-items:center;padding:16px;background:#272727;color:#fff}.marc-admin-bell button{font-size:11px;text-decoration:underline;cursor:pointer}.marc-admin-bell ul{max-height:420px;overflow:auto}.marc-admin-bell li{border-bottom:1px solid #eee9de}.marc-admin-bell li[data-unread=true]{background:#f3efdf}.marc-admin-bell li a{display:grid;gap:5px;padding:14px 16px}.marc-admin-bell li span{color:#6b6458}.marc-admin-bell time{font-size:10px;color:#847b6a}.marc-admin-bell>section>p{padding:16px}

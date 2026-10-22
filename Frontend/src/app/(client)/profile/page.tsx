@@ -70,12 +70,12 @@ export default function AccountProfile({ userName = 'John Doe', onLogout }: Acco
     <div className="w-full p-4 sm:p-6 md:p-8 space-y-6 animate-fadeIn pb-24 md:pb-12">
       
       {/* Top Header */}
-      <div className="bg-[#0070c0] text-white rounded-3xl p-4 sm:p-8 shadow-md flex items-center justify-between gap-3">
+      <div className="bg-marc-charcoal text-white rounded-3xl p-4 sm:p-8 shadow-md flex items-center justify-between gap-3">
         <div className="min-w-0 space-y-1">
         <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight">
           Profile Settings
         </h1>
-        <p className="text-xs sm:text-sm font-semibold tracking-wider text-blue-100 uppercase font-serif">
+        <p className="text-xs sm:text-sm font-semibold tracking-wider text-brand-100 uppercase font-serif">
           Personal Identity
         </p>
         </div>
@@ -97,10 +97,10 @@ export default function AccountProfile({ userName = 'John Doe', onLogout }: Acco
         {/* Avatar Section */}
         <div className="flex flex-col items-center justify-center pt-2">
           <ProfileAvatar role="client" name={fullName} />
-          <h2 className="mt-3 text-base sm:text-lg font-serif font-bold text-slate-900">
+          <h2 className="mt-3 text-base sm:text-lg font-serif font-bold text-stone-900">
             {fullName || 'John Doe'}
           </h2>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-0.5">
             Client
           </span>
         </div>
@@ -117,10 +117,10 @@ export default function AccountProfile({ userName = 'John Doe', onLogout }: Acco
         {/* Form Container */}
         <form onSubmit={handleSaveChanges} className="space-y-6">
           <fieldset disabled={loading || saving} className="space-y-6">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-5">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-stone-200/80 space-y-5">
             
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <label className="text-[10px] font-black uppercase tracking-widest text-stone-400">
                 Full Name
               </label>
               <input 
@@ -130,12 +130,12 @@ export default function AccountProfile({ userName = 'John Doe', onLogout }: Acco
                 maxLength={150}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your full name"
-                className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#0070c0] transition"
+                className="w-full bg-stone-50/50 border border-stone-200 rounded-2xl px-4 py-3 text-xs font-bold text-stone-800 focus:outline-none focus:border-brand-600 transition"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <label className="text-[10px] font-black uppercase tracking-widest text-stone-400">
                 Phone Number
               </label>
               <input 
@@ -144,12 +144,12 @@ export default function AccountProfile({ userName = 'John Doe', onLogout }: Acco
                 maxLength={30}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="Enter your phone number"
-                className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#0070c0] transition"
+                className="w-full bg-stone-50/50 border border-stone-200 rounded-2xl px-4 py-3 text-xs font-bold text-stone-800 focus:outline-none focus:border-brand-600 transition"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <label className="text-[10px] font-black uppercase tracking-widest text-stone-400">
                 Primary Address
               </label>
               <input 
@@ -157,12 +157,12 @@ export default function AccountProfile({ userName = 'John Doe', onLogout }: Acco
                 value={primaryAddress}
                 onChange={(e) => setPrimaryAddress(e.target.value)}
                 placeholder="Enter your primary address"
-                className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#0070c0] transition"
+                className="w-full bg-stone-50/50 border border-stone-200 rounded-2xl px-4 py-3 text-xs font-bold text-stone-800 focus:outline-none focus:border-brand-600 transition"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <label className="text-[10px] font-black uppercase tracking-widest text-stone-400">
                 Nearest Landmark
               </label>
               <input
@@ -171,7 +171,7 @@ export default function AccountProfile({ userName = 'John Doe', onLogout }: Acco
                 maxLength={255}
                 onChange={(e) => setLandmark(e.target.value)}
                 placeholder="e.g. Beside the barangay hall"
-                className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#0070c0] transition"
+                className="w-full bg-stone-50/50 border border-stone-200 rounded-2xl px-4 py-3 text-xs font-bold text-stone-800 focus:outline-none focus:border-brand-600 transition"
               />
             </div>
 
@@ -180,7 +180,7 @@ export default function AccountProfile({ userName = 'John Doe', onLogout }: Acco
           {/* Save Changes Button */}
           <button 
             type="submit"
-            className="w-full bg-[#111c3a] hover:bg-[#1b2a54] text-white text-xs font-black uppercase tracking-widest py-4 rounded-2xl shadow-md transition cursor-pointer border-none"
+            className="w-full bg-marc-charcoal hover:bg-stone-700 text-white text-xs font-black uppercase tracking-widest py-4 rounded-2xl shadow-md transition cursor-pointer border-none"
           >
             {loading ? 'Loading...' : saving ? 'Saving...' : 'Save Changes'}
           </button>

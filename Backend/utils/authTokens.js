@@ -10,8 +10,8 @@ const getJwtSecret = () => {
 
 const issueAccessToken = (user) => {
     const role = user.role || "client";
-    // Both roles receive non-expiring access tokens.
-    const options = {};
+    // Limit the window in which a stolen access token can be used.
+    const options = { expiresIn: role === 'admin' ? '8h' : '24h', algorithm: 'HS256' };
 
     return jwt.sign(
         { id: user.id, role, ...(role === 'admin' && user.password ? { passwordVersion: createHash('sha256').update(user.password).digest('hex') } : {}) },

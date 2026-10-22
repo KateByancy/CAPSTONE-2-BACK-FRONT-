@@ -1,11 +1,13 @@
 const db = require('../config/db');
+const audit = require('../utils/paymentAudit');
+const { createHash } = require('node:crypto');
 const paymongo = require('../services/paymongoCheckout');
 const latestPaymentFirst = require('../utils/paymentOrder');
 const query = (sql, values = []) => new Promise((resolve, reject) => db.query(sql, values, (error, rows) => error ? reject(error) : resolve(rows)));
 const wrap = handler => async (req, res) => {
     try { await handler(req, res); }
     catch (error) {
-        if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ message: 'This reference is already used, or this booking already has an open payment request. Refresh and check your entries.' });
+        if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ message: 'This reference or receipt is already used, or this booking already has an open payment request. Refresh and check your entries.' });
         console.error('GCash payment error:', error.code || 'UNKNOWN', error.message);
         if (['ER_NO_SUCH_TABLE', 'ER_BAD_FIELD_ERROR'].includes(error.code)) return res.status(503).json({ message: 'Payment database setup is incomplete. Redeploy the updated backend to initialize GCash storage.' });
         res.status(error.statusCode || 500).json({ message: error.statusCode ? error.message : 'Unable to save or load payments. Please try again.' });
@@ -21,20 +23,20 @@ const imageType = buffer => {
 };
 exports.getSettings = wrap(async (_req, res) => {
     const rows = await query('SELECT account_name, account_number, qr_image FROM gcash_settings WHERE id=1');
-    res.json({ settings: rows[0] || null, provider: 'Manual', configured: Boolean(rows[0]?.qr_image) });
+    res.json({ settings: rows[0] || null, provider: 'Manual', configured: Boolean(rows[0]?.qr_image && rows[0]?.account_name && /^09\d{9}$/.test(rows[0]?.account_number || '')) });
 });
 exports.saveSettings = wrap(async (req, res) => {
     const name = typeof req.body.account_name === 'string' ? req.body.account_name.trim() : '';
     const number = typeof req.body.account_number === 'string' ? req.body.account_number.trim() : '';
     if (!name || name.length > 100 || !/^09\d{9}$/.test(number)) return res.status(400).json({ message: 'Enter the GCash account name and an 11-digit mobile number starting with 09.' });
     const qr = req.body.qr_image || null;
-    if (qr && (typeof qr !== 'string' || !/^\/api\/portfolio\/images\/[a-zA-Z0-9_.-]+$/.test(qr))) return res.status(400).json({ message: 'Upload a GCash QR image first.' });
-    await query('INSERT INTO gcash_settings (id, account_name, account_number, qr_image) VALUES (1,?,?,?) ON DUPLICATE KEY UPDATE account_name=VALUES(account_name), account_number=VALUES(account_number), qr_image=VALUES(qr_image)', [name, number, qr]);
+    if (qr && (typeof qr !== 'string' || (qr !== '/designs/gcash qr.jpg' && !/^\/api\/portfolio\/images\/[a-zA-Z0-9_.-]+$/.test(qr)))) return res.status(400).json({ message: 'Upload a GCash QR image first.' });
+    await audit(req, 'account_updated', 'INSERT INTO gcash_settings (id, account_name, account_number, qr_image) VALUES (1,?,?,?) ON DUPLICATE KEY UPDATE account_name=VALUES(account_name), account_number=VALUES(account_number), qr_image=VALUES(qr_image)', [name, number, qr], {account_name:name, account_number:number, qr_image:qr});
     res.json({ success: true });
 });
 exports.list = wrap(async (req, res) => {
     const admin = req.user.role === 'admin';
-    const payments = await query(`SELECT p.id, p.booking_id, p.amount, p.description, p.account_name, p.account_number, p.status,
+    const payments = await query(`SELECT p.id, p.booking_id, p.quote_id, p.amount, p.description, p.account_name, p.account_number, p.status,
         p.reference_number, p.review_note, p.created_at, p.submitted_at, p.reviewed_at,
         p.payment_provider, p.checkout_session_id, p.checkout_creating, p.qr_image,
         p.proof IS NOT NULL AS has_proof, b.service_type, b.status AS booking_status, u.fullname AS client_name
@@ -58,30 +60,24 @@ exports.list = wrap(async (req, res) => {
     for (const row of estimates) {
         if (typeof row.estimate === 'string') { try { row.estimate = JSON.parse(row.estimate); } catch { row.estimate = null; } }
     }
+    res.set('Cache-Control','no-store');
     res.json({ payments, bookings, legacy, estimates, syncWarning });
 });
-exports.create = wrap(async (req, res) => {
-    const { booking_id, amount, description } = req.body;
-    if (!Number.isSafeInteger(Number(booking_id)) || Number(booking_id) < 1 || !/^[0-9]+(?:\.[0-9]{1,2})?$/.test(String(amount)) || Number(amount) < 100 || Number(amount) > 99999999.99 || typeof description !== 'string' || !description.trim() || description.trim().length > 200) {
-        return res.status(400).json({ message: 'Select an accepted booking, enter at least PHP 100 with up to two decimal places, and a description (up to 200 characters).' });
-    }
-    if (req.body.payment_provider && req.body.payment_provider !== 'Manual') return res.status(400).json({ message: 'Payments use the admin GCash QR only.' });
-    const settings = (await query('SELECT account_name, account_number, qr_image FROM gcash_settings WHERE id=1'))[0];
-    if (!settings?.qr_image) return res.status(409).json({ message: 'Save the admin GCash account and QR image first.' });
-    const result = await query(`INSERT INTO gcash_requests (booking_id, amount, description, account_name, account_number, payment_provider, qr_image)
-        SELECT b.id, ?, ?, ?, ?, ?, ? FROM bookings b
-        WHERE b.id=? AND ${accepted}`, [amount, description.trim(), settings.account_name, settings.account_number, 'Manual', settings.qr_image, booking_id]);
-    if (!result.affectedRows) return res.status(409).json({ message: 'Select an accepted booking first.' });
-    res.status(201).json({ success: true });
+exports.create = wrap(async(req,res)=>{
+ try{if(req.body.payment_provider && req.body.payment_provider!=='Manual')return res.status(400).json({message:'Use manual GCash payments.'});res.status(201).json(await require('../utils/quotation').requestPayment(req));}
+ catch(error){if(error.status)return res.status(error.status).json({message:error.message});throw error;}
 });
 exports.submit = wrap(async (req, res) => {
     const reference = typeof req.body.reference_number === 'string' ? req.body.reference_number.trim() : '';
     const type = imageType(req.file?.buffer);
     if (!/^\d{10,30}$/.test(reference) || !type) return res.status(400).json({ message: 'Enter the numeric GCash reference (10–30 digits) and upload a PNG, JPEG or WebP receipt, up to 5 MB.' });
-    const result = await query(`UPDATE gcash_requests p JOIN bookings b ON b.id=p.booking_id
-        SET p.reference_number=?, p.proof=?, p.proof_type=?, p.status='For verification', p.submitted_at=NOW(), p.reviewed_by=NULL, p.reviewed_at=NULL
+    const hash=createHash('sha256').update(req.file.buffer).digest('hex');
+    const duplicate=await query('SELECT id FROM gcash_requests WHERE id<>? AND (proof_hash=? OR (proof_hash IS NULL AND SHA2(proof,256)=?)) LIMIT 1',[req.params.id,hash,hash]);
+    if(duplicate.length)return res.status(409).json({message:'This receipt has already been submitted for another payment. Upload the receipt for this request.'});
+    const result = await audit(req, 'receipt_submitted', `UPDATE gcash_requests p JOIN bookings b ON b.id=p.booking_id
+        SET p.reference_number=?, p.proof=?, p.proof_type=?, p.proof_hash=?, p.review_note=NULL, p.status='For verification', p.submitted_at=NOW(), p.reviewed_by=NULL, p.reviewed_at=NULL
         WHERE p.id=? AND b.user_id=? AND p.payment_provider='Manual' AND p.status IN ('Awaiting payment','Returned') AND ${accepted}`,
-        [reference, req.file.buffer, type, req.params.id, req.user.id]);
+        [reference, req.file.buffer, type, hash, req.params.id, req.user.id], {reference_number:reference,receipt_sha256:hash});
     if (!result.affectedRows) return res.status(409).json({ message: 'This request cannot accept a receipt. Refresh to check its status and booking.' });
     res.json({ success: true });
 });
@@ -94,16 +90,16 @@ exports.proof = wrap(async (req, res) => {
 exports.review = wrap(async (req, res) => {
     const { decision, note, confirmed } = req.body;
     if (!['Paid','Returned'].includes(decision) || (decision === 'Paid' && confirmed !== true) || (decision === 'Returned' && (typeof note !== 'string' || !note.trim() || note.trim().length > 500))) return res.status(400).json({ message: 'Confirm receipt of funds before marking paid, or give a return reason (up to 500 characters).' });
-    const result = await query(`UPDATE gcash_requests SET status=?, review_note=?, reviewed_by=?, reviewed_at=NOW()
-        WHERE id=? AND payment_provider='Manual' AND status='For verification' AND proof IS NOT NULL`, [decision, decision === 'Returned' ? note.trim() : null, req.user.id, req.params.id]);
+    const result = await audit(req, decision === 'Paid' ? 'payment_confirmed' : 'receipt_returned', `UPDATE gcash_requests p JOIN bookings b ON b.id=p.booking_id SET p.status=?, p.review_note=?, p.reviewed_by=?, p.reviewed_at=NOW()
+        WHERE p.id=? AND p.payment_provider='Manual' AND p.status='For verification' AND p.proof IS NOT NULL AND ${accepted}`, [decision, decision === 'Returned' ? note.trim() : null, req.user.id, req.params.id], {decision,note:decision==='Returned'?note.trim():null});
     if (!result.affectedRows) return res.status(409).json({ message: 'Only payments awaiting verification can be reviewed. Refresh and try again.' });
     res.json({ success: true });
 });
 exports.cancel = wrap(async (req, res) => {
     const note = typeof req.body.note === 'string' ? req.body.note.trim() : '';
     if (!note || note.length > 500) return res.status(400).json({ message: 'Give a cancellation reason (up to 500 characters).' });
-    const result = await query(`UPDATE gcash_requests SET status='Cancelled', review_note=?, reviewed_by=?, reviewed_at=NOW()
-        WHERE id=? AND status='Awaiting payment' AND proof IS NULL AND checkout_session_id IS NULL AND checkout_creating=FALSE`, [note, req.user.id, req.params.id]);
+    const result = await audit(req, 'request_cancelled', `UPDATE gcash_requests SET status='Cancelled', review_note=?, reviewed_by=?, reviewed_at=NOW()
+        WHERE id=? AND status='Awaiting payment' AND proof IS NULL AND checkout_session_id IS NULL AND checkout_creating=FALSE`, [note, req.user.id, req.params.id], {note});
     if (!result.affectedRows) return res.status(409).json({ message: 'Only requests without a submitted receipt can be cancelled. Refresh and check the payment.' });
     res.json({ success: true });
 });
@@ -119,3 +115,10 @@ async function syncPayment(payment) {
     return session;
 }
 exports.checkout = (_req, res) => res.status(410).json({ message: 'PayMongo checkout is disabled. Contact the admin for a GCash QR payment request.' });
+
+exports.history = wrap(async(req,res)=>{
+ const allowed=await query('SELECT p.id FROM gcash_requests p JOIN bookings b ON b.id=p.booking_id WHERE p.id=?'+(req.user.role==='admin'?'':' AND b.user_id=?'),req.user.role==='admin'?[req.params.id]:[req.params.id,req.user.id]);
+ if(!allowed.length)return res.status(404).json({message:'Payment not found.'});
+ const history=await query('SELECT event,created_at,details FROM payment_audit WHERE payment_id=? ORDER BY id',[req.params.id]);
+ res.set('Cache-Control','no-store').json({history});
+});

@@ -15,7 +15,7 @@ function request(limiter, { path = '/home', method = 'GET', ip = '192.0.2.1' } =
 test('each policy allows normal traffic and blocks the first excessive request', () => {
     const paths = { api: '/home', writes: '/settings', login: '/auth/login', register: '/auth/register',
         recovery: '/auth/forgot-password/code', submissions: '/booking', inquiries: '/inquiries',
-        chat: '/chat', checkout: '/payment/1/checkout' };
+        chat: '/chat', checkout: '/payment/1/checkout', payments:'/payment/1/proof' };
     for (const [scope, policy] of Object.entries(LIMITS)) {
         let time = 1000;
         const limiter = createRequestProtection({ now: () => time });

@@ -30,8 +30,10 @@ test('booking API: Other persistence, concurrency, status handling and estimate 
     await query(`CREATE DATABASE \`${testDatabase}\``);
     await query(`USE \`${testDatabase}\``);
     db.config.database = testDatabase;
-    await query('CREATE TABLE users (id INT PRIMARY KEY, fullname VARCHAR(100), email VARCHAR(150), address VARCHAR(255), landmark VARCHAR(255))');
+    await query('CREATE TABLE users (id INT PRIMARY KEY, fullname VARCHAR(100), email VARCHAR(150), address VARCHAR(255), landmark VARCHAR(255), role VARCHAR(20), password VARCHAR(255))');
     await query("CREATE TABLE bookings (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, service_type VARCHAR(100), project_description TEXT, project_address VARCHAR(255), project_landmark VARCHAR(255), preferred_date DATE NOT NULL, preferred_time TIME NOT NULL, location TEXT NOT NULL, status VARCHAR(50) DEFAULT 'Pending', accepted_at DATETIME, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+    await require('../migrations/bookingDesignSnapshot')(query);
+    await require('../migrations/designCatalog')(query);
     await query(require('../migrations/bookingEstimate'));
     await query(require('../migrations/bookingEstimate'));
     await query("CREATE TABLE schedules (id INT AUTO_INCREMENT PRIMARY KEY, booking_id INT, visit_date DATE, date DATE, time_start TIME, time_end TIME NOT NULL, reschedule_count INT DEFAULT 0, status VARCHAR(30) DEFAULT 'Pending')");
@@ -39,12 +41,14 @@ test('booking API: Other persistence, concurrency, status handling and estimate 
       for (const sql of require('../migrations/scheduleEndTime')) await query(sql);
     }
     await query('CREATE TABLE pricing_options (option_type VARCHAR(30), name VARCHAR(100), value DECIMAL(10,2), is_active BOOLEAN DEFAULT TRUE)');
-    await query("INSERT INTO users VALUES (1,'Test Client','fixture@example.invalid','',''),(2,'Second Client','fixture2@example.invalid','','')");
+    await query("INSERT INTO users (id,fullname,email,address,landmark) VALUES (1,'Test Client','fixture@example.invalid','',''),(2,'Second Client','fixture2@example.invalid','','')");
     for (const row of pricing) await query('INSERT INTO pricing_options SET ?', row);
+    await query("INSERT INTO users (id,fullname,role,password) VALUES (9,'Fixture Admin','admin','ADMIN_ENV_AUTH')");
+    const requestToken=require('../utils/authTokens').issueAccessToken({id:9,role:'admin'});
     const app = express(); app.use(express.json()); app.use('/booking', require('../routes/bookingRoutes')); app.use('/schedule', require('../routes/scheduleRoutes')); app.get('/unavailable', require('../controllers/scheduleController').getUnavailableSlots);
     server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
     const base = `http://127.0.0.1:${server.address().port}`;
-    const call = async (path, body) => { const response = await fetch(base + path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined); return { status: response.status, data: await response.json() }; };
+    const call = async (path, body) => { const response = await fetch(base + path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization:'Bearer '+requestToken }, body: JSON.stringify(body) } : {headers:{Authorization:'Bearer '+requestToken}}); return { status: response.status, data: await response.json() }; };
     const body = { user_id: 1, service_type: 'Other', other_service: '  Custom reading nook  ', project_description: 'Test project', project_address: 'Test address', project_landmark: 'Test landmark', preferred_start_date: '2030-01-01', preferred_start_time: '09:00', estimate: { ...estimateInput, min: 1, max: 2 } };
     assert.equal((await call('/booking', { ...body, estimate: undefined, other_service: ' ' })).status, 400);
     assert.equal((await call('/booking', { ...body, estimate: { ...estimateInput, unit: 'yards' } })).status, 400);
@@ -78,11 +82,55 @@ test('booking API: Other persistence, concurrency, status handling and estimate 
     assert.equal(manualBooking.data.booking.service_type, 'Custom reading nook');
     assert.equal(manualBooking.data.booking.estimate, null);
     assert.equal((await call('/booking', { ...body, preferred_start_date: '2030-01-02' })).status, 201);
+    const noAuth=await fetch(base+'/booking');assert.equal(noAuth.status,401);
+    const clientToken=require('../utils/authTokens').issueAccessToken({id:1,role:'client'});
+    const clientCall=async(path,method='GET',body)=>{const response=await fetch(base+path,{method,headers:{Authorization:'Bearer '+clientToken,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});return {status:response.status,data:await response.json()};};
+    assert.equal((await clientCall('/booking/'+manualBooking.data.booking.id,'PUT',{status:'Approved'})).status,403);
+    assert.equal((await clientCall('/booking/fleet-locations')).status,403);
+    assert.ok((await clientCall('/booking?user_id=2')).data.bookings.every(row=>row.user_id===1));
+    assert.equal((await clientCall('/schedule/'+9999)).status,404);
+    // Catalogue publishing, pricing, authorization and deletion use an isolated fixture database.
+
+
+    app.use('/catalog',require('../routes/catalogRoutes'));
+    const adminToken=require('jsonwebtoken').sign({id:9,role:'admin'},require('../utils/authTokens').getJwtSecret(),{expiresIn:'1h'});
+    const adminCall=async(path,method,body)=>{const response=await fetch(base+path,{method,headers:{'Content-Type':'application/json',Authorization:'Bearer '+adminToken},body:body?JSON.stringify(body):undefined});return {status:response.status,data:await response.json()};};
+    assert.equal((await call('/catalog')).data.length,9);
+    assert.equal((await fetch(base+'/catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'unauthorized'})})).status,401);
+    const catalogBody={title:'Fixture Design',category:'Kitchen',description:'Fixture description',image:'/designs/test.jpg',price:60000,published:false};
+    assert.equal((await adminCall('/catalog','POST',catalogBody)).status,200);
+    assert.equal((await call('/catalog')).data.length,9);
+    const draft=(await adminCall('/catalog/manage','GET')).data.find(row=>row.title==='Fixture Design');
+    assert.ok(draft);
+    assert.equal((await adminCall('/catalog/'+draft.id,'PUT',{...catalogBody,price:-1})).status,400);
+    assert.equal((await adminCall('/catalog/'+draft.id,'PUT',{...catalogBody,published:true})).status,200);
+    assert.equal((await call('/catalog')).data.length,10);
+    const custom={Styles:'Modern',Materials:'Marble-inspired finishes',Furnishing:'New furniture throughout',Layout:'Explore a new layout',Decor:'Bold statement accents'};
+    const customized=await call('/booking',{...body,estimate:undefined,design_id:draft.id,service_type:'Kitchen',customization:custom,preferred_start_date:'2030-03-01'});
+    assert.equal(customized.status,201);
+    assert.ok(customized.data.booking.project_description.includes('Preliminary estimated price: PHP 97800.00'));
+    assert.equal((await adminCall('/catalog/'+draft.id,'DELETE')).status,200);
+    assert.equal((await call('/catalog')).data.length,9);
+    assert.equal((await call('/booking',{...body,estimate:undefined,design_id:draft.id,service_type:'Kitchen',preferred_start_date:'2030-03-02'})).status,400);
+    assert.ok((await call('/booking')).data.bookings.find(row=>row.id===customized.data.bookingId).project_description.includes('Fixture Design'));
+    const designRequest = { ...body, estimate: undefined, design_id: 'silver-kitchen', service_type: 'Kitchen', project_description: 'More storage', preferred_start_date: '2030-02-01' };
+    assert.equal((await call('/booking', { ...designRequest, service_type: 'Office' })).status, 400);
+    const designBooking = await call('/booking', designRequest);
+    assert.equal(designBooking.status, 201);
+    for (const path of ['/booking?user_id=1', '/booking']) {
+      const saved = (await call(path)).data.bookings.find(row => row.id === designBooking.data.bookingId);
+      assert.equal(saved.service_type, 'Kitchen');
+      const snapshot=typeof saved.design_snapshot==='string'?JSON.parse(saved.design_snapshot):saved.design_snapshot;
+      assert.equal(snapshot.image,'/designs/silver kitchen.jpg');
+      assert.ok(saved.project_description.includes('Selected design: Silver Kitchen'));
+      assert.ok(saved.project_description.includes('Interior category: Kitchen'));
+      assert.ok(saved.project_description.includes('Client requirements: More storage'));
+    }
     // Schedule creation, edits, and client rescheduling must obey the same daily limit.
     const [manualSchedule] = await query('SELECT id FROM schedules WHERE booking_id = ?', [manualBooking.data.booking.id]);
     assert.equal((await call('/schedule', { booking_id: manualBooking.data.booking.id, visit_date: '2030-01-02' })).status, 409);
     const put = async (path, body) => {
-      const response = await fetch(base + path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const response = await fetch(base + path, { method: 'PUT', headers: { 'Content-Type': 'application/json',Authorization:'Bearer '+requestToken }, body: JSON.stringify(body) });
       return { status: response.status, data: await response.json() };
     };
     assert.equal((await put(`/schedule/${manualSchedule.id}`, { booking_id: manualBooking.data.booking.id, visit_date: '2030-01-02' })).status, 409);

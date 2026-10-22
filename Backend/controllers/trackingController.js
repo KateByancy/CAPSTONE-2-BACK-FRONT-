@@ -10,8 +10,9 @@ const getTracking = (req, res) => {
            FROM tracking
            JOIN bookings ON bookings.id = tracking.booking_id
            JOIN users ON users.id = bookings.user_id
+           ${req.user?.role === 'client' ? 'WHERE bookings.user_id = ?' : ''}
            ORDER BY tracking.updated_at DESC`;
-    const params = req.params.id ? [req.params.id] : [];
+    const params = req.params.id ? [req.params.id] : req.user?.role === 'client' ? [req.user.id] : [];
     db.query(query, params, (err, result) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
         res.json({ success: true, tracking: result });
@@ -20,7 +21,7 @@ const getTracking = (req, res) => {
 
 const createTracking = (req, res) => {
     const { booking_id, progress = 0, current_stage, remarks } = req.body;
-    if (!booking_id || !current_stage) {
+    if (!Number.isSafeInteger(Number(booking_id)) || Number(booking_id)<1 || typeof current_stage!=='string' || !current_stage.trim() || current_stage.length>100 || !Number.isFinite(Number(progress)) || Number(progress)<0 || Number(progress)>100) {
         return res.status(400).json({ success: false, message: "booking_id and current_stage are required." });
     }
     db.query("INSERT INTO tracking (booking_id, progress, current_stage, remarks) VALUES (?, ?, ?, ?)", [booking_id, progress, current_stage, remarks || null], (err, result) => {
@@ -32,7 +33,7 @@ const createTracking = (req, res) => {
 // Update tracking
 const updateTracking = (req, res) => {
     const { progress, current_stage, remarks } = req.body;
-    if (progress === undefined || !current_stage) {
+    if (progress === undefined || typeof current_stage!=='string' || !current_stage.trim() || current_stage.length>100 || !Number.isFinite(Number(progress)) || Number(progress)<0 || Number(progress)>100) {
         return res.status(400).json({ success: false, message: "progress and current_stage are required." });
     }
     db.query("UPDATE tracking SET progress = ?, current_stage = ?, remarks = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [progress, current_stage, remarks || null, req.params.id], (err, result) => {

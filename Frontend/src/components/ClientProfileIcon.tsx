@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { User } from 'lucide-react';
-import { getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl } from '@/lib/api';
 
 export default function ClientProfileIcon() {
   const [photo, setPhoto] = useState('');
@@ -15,7 +15,7 @@ export default function ClientProfileIcon() {
     const load = async () => {
       const request = ++revision;
       try {
-        const response = await fetch(`${getApiUrl()}/profile/me/avatar`, {
+        const response = await apiFetch(`${getApiUrl()}/profile/me/avatar`, {
           cache: 'no-store',
           headers: { Authorization: `Bearer ${localStorage.getItem('clientToken') || ''}` },
           signal: controller.signal,

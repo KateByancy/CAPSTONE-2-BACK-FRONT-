@@ -3,7 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { ArrowLeft, KeyRound, Loader2, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl } from '@/lib/api';
 
 interface ForgotPasswordResponse {
   success: boolean;
@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${getApiUrl()}/auth/forgot-password/code`, {
+      const response = await apiFetch(`${getApiUrl()}/auth/forgot-password/code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),
@@ -61,7 +61,7 @@ export default function ForgotPasswordPage() {
     if (new TextEncoder().encode(password).length > 72) { setError('Password is too long. Use fewer characters.'); return; }
     setIsLoading(true);
     try {
-      const response = await fetch(`${getApiUrl()}/auth/reset-password/code`, {
+      const response = await apiFetch(`${getApiUrl()}/auth/reset-password/code`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ challenge, code, password }),
       });
@@ -76,18 +76,18 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#072448] px-4 py-10 text-slate-100 flex items-center justify-center">
-      <section className="w-full max-w-md rounded-[32px] border border-white/10 bg-gradient-to-b from-[#00529b] to-[#002d62] p-7 shadow-2xl md:p-9">
-        <button type="button" onClick={() => router.push('/login')} className="mb-8 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-white cursor-pointer">
+    <main className="min-h-screen bg-marc-canvas px-4 py-10 text-stone-100 flex items-center justify-center">
+      <section className="w-full max-w-md rounded-[32px] border border-white/10 bg-gradient-to-b from-marc-charcoal-soft to-marc-charcoal p-7 shadow-2xl md:p-9">
+        <button type="button" onClick={() => router.push('/login')} className="mb-8 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-300 hover:text-white cursor-pointer">
           <ArrowLeft className="h-4 w-4" /> Back to sign in
         </button>
 
         <div className="mb-8">
-          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-[#102243]">
+          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-marc-charcoal">
             <KeyRound className="h-7 w-7" />
           </div>
           <h1 className="text-2xl font-bold">Forgot your password?</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-300">Enter the email you used to register. We will send a 6-digit code to that inbox so you can reset your password.</p>
+          <p className="mt-2 text-sm leading-6 text-stone-300">Enter the email you used to register. We will send a 6-digit code to that inbox so you can reset your password.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -96,35 +96,36 @@ export default function ForgotPasswordPage() {
 
           {!done && <fieldset disabled={isLoading} className="space-y-5 disabled:opacity-60">
           <div>
-            <label htmlFor="reset-email" className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-200">Email address</label>
+            <label htmlFor="reset-email" className="mb-2 block text-xs font-bold uppercase tracking-wider text-stone-200">Email address</label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input id="reset-email" type="email" required maxLength={254} readOnly={Boolean(challenge)} autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="w-full rounded-xl border border-transparent bg-white py-3 pl-11 pr-4 text-sm text-slate-900 outline-none focus:border-sky-400" />
+              <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+              <input id="reset-email" type="email" required maxLength={254} readOnly={Boolean(challenge)} autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="w-full rounded-xl border border-transparent bg-white py-3 pl-11 pr-4 text-sm text-stone-900 outline-none focus:border-brand-400" />
             </div>
           </div>
 
           {challenge && <>
             <label htmlFor="email-code" className="block text-sm">Verification code
-              <input id="email-code" type="text" inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" minLength={6} maxLength={6} value={code} onChange={event => setCode(event.target.value.replace(/\D/g, ''))} className="mt-2 w-full rounded-xl bg-white px-4 py-3 text-slate-900" />
+              <input id="email-code" type="text" inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" minLength={6} maxLength={6} value={code} onChange={event => setCode(event.target.value.replace(/\D/g, ''))} className="mt-2 w-full rounded-xl bg-white px-4 py-3 text-stone-900" />
             </label>
-            <p className="text-xs text-slate-300">Check your inbox and spam folder. Use the newest code within 10 minutes.</p>
+            <p className="text-xs text-stone-300">Check your inbox and spam folder. Use the newest code within 10 minutes.</p>
             <label htmlFor="new-password" className="block text-sm">New password
-              <input id="new-password" type="password" autoComplete="new-password" required minLength={8} maxLength={72} value={password} onChange={event => setPassword(event.target.value)} className="mt-2 w-full rounded-xl bg-white px-4 py-3 text-slate-900" />
+              <input id="new-password" type="password" autoComplete="new-password" required minLength={8} maxLength={72} value={password} onChange={event => setPassword(event.target.value)} className="mt-2 w-full rounded-xl bg-white px-4 py-3 text-stone-900" />
             </label>
             <label htmlFor="confirm-password" className="block text-sm">Confirm new password
-              <input id="confirm-password" type="password" autoComplete="new-password" required minLength={8} maxLength={72} value={confirmation} onChange={event => setConfirmation(event.target.value)} className="mt-2 w-full rounded-xl bg-white px-4 py-3 text-slate-900" />
+              <input id="confirm-password" type="password" autoComplete="new-password" required minLength={8} maxLength={72} value={confirmation} onChange={event => setConfirmation(event.target.value)} className="mt-2 w-full rounded-xl bg-white px-4 py-3 text-stone-900" />
             </label>
           </>}
 
-          <button type="submit" disabled={isLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#161f38] py-3.5 text-sm font-bold uppercase tracking-wider text-white transition hover:bg-[#10172a] disabled:opacity-60 cursor-pointer">
+          <button type="submit" disabled={isLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-marc-charcoal py-3.5 text-sm font-bold uppercase tracking-wider text-white transition hover:bg-stone-950 disabled:opacity-60 cursor-pointer">
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             {isLoading ? 'Please wait...' : challenge ? 'Verify code and reset password' : 'Send verification code'}
           </button>
-          {challenge && <div className="flex justify-between gap-3 text-sm text-sky-200">
+          {challenge && <div className="flex justify-between gap-3 text-sm text-brand-200">
             <button type="button" onClick={() => void requestCode()} className="cursor-pointer hover:underline">Resend code</button>
             <button type="button" onClick={() => { setChallenge(''); setCode(''); setPassword(''); setConfirmation(''); setMessage(''); setError(''); }} className="cursor-pointer hover:underline">Change email</button>
           </div>}
           </fieldset>}
+          {done && <button type="button" onClick={() => router.push('/login')} className="w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700">Sign in with your new password</button>}
         </form>
       </section>
     </main>

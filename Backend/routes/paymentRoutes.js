@@ -5,6 +5,7 @@ const controller = require('../controllers/gcashController');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 1 } }).single('proof');
 router.use(auth, authorizeRoles('admin', 'client'));
+router.use((_req,res,next)=>{res.set('Cache-Control','no-store');next();});
 router.get('/', controller.list);
 router.get('/settings', controller.getSettings);
 router.put('/settings', authorizeRoles('admin'), controller.saveSettings);
@@ -16,6 +17,7 @@ router.post('/:id/proof', authorizeRoles('client'), (req, res) => {
         return controller.submit(req, res);
     });
 });
+router.get('/:id/history', controller.history);
 router.get('/:id/proof', controller.proof);
 router.put('/:id/review', authorizeRoles('admin'), controller.review);
 router.put('/:id/cancel', authorizeRoles('admin'), controller.cancel);

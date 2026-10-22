@@ -58,7 +58,9 @@ app.post('/api/payment/webhook', express.raw({ type: 'application/json', limit: 
         configuration: require('./services/paymentConfig').configuration,
     }));
 app.use('/api', require('./middeware/requestProtection').createRequestProtection());
-app.use(express.json());
+app.disable("x-powered-by");
+app.use((_req,res,next)=>{res.set({"X-Content-Type-Options":"nosniff","Referrer-Policy":"same-origin"});next();});
+app.use(express.json({ limit: "256kb" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/home", homeRoutes);
@@ -67,12 +69,16 @@ app.use("/api/portfolio", portfolioRoutes); // ✅ Correct path
 app.use("/api/booking", bookingRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/project-messages", require("./routes/projectMessageRoutes"));
+app.use("/api/admin-notifications", require("./routes/adminNotificationRoutes"));
+app.use("/api/quotations", require("./routes/quotationRoutes"));
 app.use("/api/tracking", trackingRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/designs", designRoutes);
+app.use("/api/design-catalog", require("./routes/catalogRoutes"));
 app.use("/api/inquiries", inquiryRoutes);
 app.use("/api/client-home", clientHomeRoutes);
 
@@ -139,6 +145,11 @@ const startServer = async () => {
         throw new Error(`Design concept storage migration failed (${error.code || 'unknown'}). ${error.message}`, { cause: error });
     }
 
+    await require('./migrations/paymentSecurity')((sql, values=[]) => new Promise((resolve,reject)=>db.query(sql,values,(error,rows)=>error?reject(error):resolve(rows))));
+    await require('./migrations/projectMessaging')((sql,values=[])=>new Promise((resolve,reject)=>db.query(sql,values,(error,rows)=>error?reject(error):resolve(rows))));
+    await require('./migrations/quotations')((sql, values=[]) => new Promise((resolve,reject)=>db.query(sql,values,(error,rows)=>error?reject(error):resolve(rows))));
+    await require('./migrations/bookingDesignSnapshot')((sql, values=[]) => new Promise((resolve,reject)=>db.query(sql,values,(error,rows)=>error?reject(error):resolve(rows))));
+    await require('./migrations/designCatalog')((sql, values=[]) => new Promise((resolve,reject)=>db.query(sql,values,(error,rows)=>error?reject(error):resolve(rows))));
     return new Promise((resolve, reject) => {
         const server = app.listen(PORT);
 

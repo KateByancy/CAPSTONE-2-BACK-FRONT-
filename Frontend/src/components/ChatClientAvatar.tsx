@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl } from '@/lib/api';
 
 export default function ChatClientAvatar({ clientId, initial, name }: { clientId: string; initial: string; name: string }) {
   const [photo, setPhoto] = useState('');
@@ -15,7 +15,7 @@ export default function ChatClientAvatar({ clientId, initial, name }: { clientId
       if (loading) return;
       loading = true;
       try {
-        const response = await fetch(`${getApiUrl()}/profile/chat/client-avatar/${encodeURIComponent(clientId)}`, {
+        const response = await apiFetch(`${getApiUrl()}/profile/chat/client-avatar/${encodeURIComponent(clientId)}`, {
           cache: 'no-store',
           headers: { Authorization: `Bearer ${localStorage.getItem('adminToken') || ''}` },
           signal: controller.signal,

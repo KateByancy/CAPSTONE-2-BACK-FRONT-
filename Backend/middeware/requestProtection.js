@@ -11,6 +11,7 @@ const LIMITS = Object.freeze({
     inquiries: { max: 10, windowMs: 15 * MINUTE },
     chat: { max: 60, windowMs: MINUTE },
     checkout: { max: 20, windowMs: MINUTE },
+    payments: { max: 30, windowMs: 15 * MINUTE },
 });
 
 // Group IPv6 privacy addresses by /64; IPv4-mapped addresses share the IPv4 bucket.
@@ -36,6 +37,9 @@ function clientKey(ip) {
 }
 
 function sensitiveScope(method, path) {
+    if(method==='POST' && /^\/project-messages\/[^/]+$/.test(path))return 'chat';
+    if(['POST','PUT'].includes(method) && /^\/quotations(?:$|\/payment$|\/[^/]+\/respond$)/.test(path))return 'payments';
+    if (['POST','PUT'].includes(method) && /^\/payment(?:$|\/settings$|\/[^/]+\/(?:proof|review|cancel)$)/.test(path)) return 'payments';
     if (method === 'POST') {
         if (/^\/auth\/(login|admin-login|google)$/.test(path)) return 'login';
         if (path === '/auth/register') return 'register';

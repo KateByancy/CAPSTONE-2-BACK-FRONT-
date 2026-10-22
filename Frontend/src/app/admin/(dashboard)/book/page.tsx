@@ -1,10 +1,11 @@
 "use client";
+import Link from 'next/link';
 
 import BookingEstimate, { type EstimateSnapshot } from '@/components/BookingEstimate';
 import React, { useEffect, useState } from 'react';
 import { Check, X, Clock, CheckCircle2, XCircle, Calendar, User, ShieldCheck, Trash2 } from 'lucide-react';
 import { useNavigationSelection } from '@/lib/use-navigation-selection';
-import { getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl } from '@/lib/api';
 
 interface BookingRequest {
   id: string;
@@ -26,7 +27,7 @@ export default function BookingsManagement() {
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
 
   const loadBookings = async () => {
-    const response = await fetch(`${getApiUrl()}/booking`);
+    const response = await apiFetch(`${getApiUrl()}/booking`);
     const result: { success: boolean; bookings?: Array<{ id: number; estimate?: EstimateSnapshot | string | null; client_name?: string; client_landmark?: string; service_type: string; project_description: string; created_at: string; status: string; accepted_at?: string | null }> } = await response.json();
     if (!response.ok || !result.success) throw new Error('Unable to load bookings.');
     setBookings((result.bookings ?? []).map((booking): BookingRequest => {
@@ -53,7 +54,7 @@ export default function BookingsManagement() {
 
   // Handle confirmation action
   const updateBookingStatus = async (id: string, status: 'Confirmed' | 'Rejected') => {
-    const response = await fetch(`${getApiUrl()}/booking/${id}`, {
+    const response = await apiFetch(`${getApiUrl()}/booking/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
@@ -94,7 +95,7 @@ export default function BookingsManagement() {
 
   // Permanently delete a booking entry
   const handleDelete = async (id: string) => {
-    const response = await fetch(`${getApiUrl()}/booking/${id}`, { method: 'DELETE' });
+    const response = await apiFetch(`${getApiUrl()}/booking/${id}`, { method: 'DELETE' });
     if (response.ok) setBookings(prev => prev.filter(b => b.id !== id));
   };
 
@@ -112,15 +113,15 @@ export default function BookingsManagement() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50/50 w-full p-0 sm:p-6 md:p-8 space-y-6">
+    <div className="min-h-screen bg-stone-50/50 w-full p-0 sm:p-6 md:p-8 space-y-6">
       
       {/* 1. TOP HEADER & INTERACTIVE FILTER BADGES */}
-      <div className="bg-[#0070c0] text-white rounded-3xl p-4 sm:p-8 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-marc-charcoal text-white rounded-3xl p-4 sm:p-8 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight">
             Booking Requests
           </h1>
-          <p className="text-xs sm:text-sm font-semibold tracking-wider text-blue-100 uppercase">
+          <p className="text-xs sm:text-sm font-semibold tracking-wider text-brand-100 uppercase">
             Manage Bookings
           </p>
         </div>
@@ -133,7 +134,7 @@ export default function BookingsManagement() {
             onClick={() => setActiveTab('pending')}
             className={`inline-flex min-w-0 items-center justify-center gap-0.5 sm:gap-1 px-1 sm:px-2.5 py-1.5 rounded-lg whitespace-nowrap text-[9px] sm:text-xs font-bold transition border-none cursor-pointer ${
               activeTab === 'pending'
-                ? 'bg-white text-[#0070c0] shadow-sm'
+                ? 'bg-white text-brand-600 shadow-sm'
                 : 'bg-white/10 text-white hover:bg-white/20'
             }`}
           >
@@ -173,7 +174,7 @@ export default function BookingsManagement() {
       {/* 2. MAIN CONTENT DISPLAY GRID */}
       <div className="w-full max-w-7xl mx-auto">
         {visibleBookings.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center text-slate-400">
+          <div className="bg-white rounded-3xl border border-stone-200 p-12 text-center text-stone-400">
             <p className="font-semibold text-sm">No {activeTab} booking records found.</p>
           </div>
         ) : (
@@ -186,38 +187,38 @@ export default function BookingsManagement() {
               return (
                 <div 
                   key={booking.id}
-                  className="bg-[#f0f6fc] border border-blue-100 rounded-3xl p-6 sm:p-7 shadow-sm transition-all duration-300 hover:shadow-md flex flex-col justify-between relative group"
+                  className="bg-marc-panel border border-brand-100 rounded-3xl p-6 sm:p-7 shadow-sm transition-all duration-300 hover:shadow-md flex flex-col justify-between relative group"
                 >
                   {/* CASE A: PENDING ACTIVE FORM VIEW */}
                   {booking.status === 'pending' && (
                     <div className="space-y-5 flex-1 flex flex-col justify-between">
                       <div className="space-y-1.5">
                         <div className="flex justify-between items-start">
-                          <h2 className="text-xl font-bold font-serif text-slate-900 tracking-tight">
+                          <h2 className="text-xl font-bold font-serif text-stone-900 tracking-tight">
                             {booking.name}
                           </h2>
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-blue-100 text-[#0070c0] rounded-full">
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-brand-100 text-brand-600 rounded-full">
                             {booking.id}
                           </span>
                         </div>
 
-                        <p className="text-sm font-serif text-slate-700 font-semibold">
+                        <p className="text-sm font-serif text-stone-700 font-semibold">
                           {booking.scope}
                         </p>
-                        <p className="text-xs text-slate-400 font-serif">
+                        <p className="text-xs text-stone-400 font-serif">
                           {booking.date}
                         </p>
 
                         {booking.note && (
-                          <p className="text-xs text-slate-500 font-serif italic pt-2">
+                          <p className="whitespace-pre-line text-xs text-stone-600 pt-2">
                             {booking.note}
                           </p>
                         )}
-                        <BookingEstimate estimate={booking.estimate} />
+                        <BookingEstimate estimate={booking.estimate} /><Link className="mt-3 inline-flex rounded-lg bg-marc-charcoal px-3 py-2 text-xs text-white" href={'/admin/quotes?booking='+booking.id}>Quotation &amp; chat with client</Link>
                         {booking.landmark && <p className="text-xs font-semibold text-red-600">Landmark: {booking.landmark}</p>}
                       </div>
 
-                      <div className="border-t border-slate-200/60 pt-5 grid grid-cols-2 gap-3">
+                      <div className="border-t border-stone-200/60 pt-5 grid grid-cols-2 gap-3">
                         {/* CONFIRM BUTTON */}
                         <button
                           onClick={() => handleConfirm(booking.id)}
@@ -229,7 +230,7 @@ export default function BookingsManagement() {
                         {/* REJECT BUTTON */}
                         <button
                           onClick={() => handleReject(booking.id)}
-                          className="w-full py-3 px-4 bg-white hover:bg-rose-50/50 active:scale-[0.98] text-[#e03131] border-2 border-slate-200 font-bold text-xs tracking-wider uppercase rounded-2xl transition cursor-pointer flex items-center justify-center"
+                          className="w-full py-3 px-4 bg-white hover:bg-rose-50/50 active:scale-[0.98] text-[#e03131] border-2 border-stone-200 font-bold text-xs tracking-wider uppercase rounded-2xl transition cursor-pointer flex items-center justify-center"
                         >
                           Reject
                         </button>
@@ -243,7 +244,7 @@ export default function BookingsManagement() {
                       <div className="w-16 h-16 bg-[#51ce38] rounded-full flex items-center justify-center shadow-md">
                         <Check className="w-8 h-8 text-white stroke-[3]" />
                       </div>
-                      <p className="text-base font-bold font-serif tracking-wider uppercase text-slate-800">
+                      <p className="text-base font-bold font-serif tracking-wider uppercase text-stone-800">
                         Saved!
                       </p>
                     </div>
@@ -255,7 +256,7 @@ export default function BookingsManagement() {
                       <div className="w-16 h-16 bg-[#e03131] rounded-full flex items-center justify-center shadow-md">
                         <X className="w-8 h-8 text-white stroke-[3]" />
                       </div>
-                      <p className="text-base font-bold font-serif tracking-wider uppercase text-slate-800">
+                      <p className="text-base font-bold font-serif tracking-wider uppercase text-stone-800">
                         Rejected!
                       </p>
                     </div>
@@ -265,8 +266,8 @@ export default function BookingsManagement() {
                   {booking.status !== 'pending' && activeTab !== 'pending' && (
                     <div className="space-y-4 animate-in fade-in duration-200">
                       
-                      <div className="flex justify-between items-center border-b border-slate-200/80 pb-3 pr-7">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-slate-200/70 text-slate-700 rounded-md">
+                      <div className="flex justify-between items-center border-b border-stone-200/80 pb-3 pr-7">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-stone-200/70 text-stone-700 rounded-md">
                           {booking.id}
                         </span>
                         
@@ -288,7 +289,7 @@ export default function BookingsManagement() {
                       {/* DELETE ICON BUTTON */}
                       <button
                         onClick={() => handleDelete(booking.id)}
-                        className="absolute top-5 right-5 p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border-none bg-transparent cursor-pointer"
+                        className="absolute top-5 right-5 p-1.5 rounded-xl text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition border-none bg-transparent cursor-pointer"
                         title="Delete record"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -296,29 +297,29 @@ export default function BookingsManagement() {
 
                       {/* Client & Project Information */}
                       <div className="space-y-2">
-                        <div className="flex items-center space-x-2 text-slate-900">
-                          <User className="w-4 h-4 text-[#0070c0]" />
+                        <div className="flex items-center space-x-2 text-stone-900">
+                          <User className="w-4 h-4 text-brand-600" />
                           <h3 className="text-lg font-bold font-serif">{booking.name}</h3>
                         </div>
 
-                        <div className="flex items-start space-x-2 text-slate-700 text-xs font-semibold">
-                          <ShieldCheck className="w-4 h-4 text-slate-400 mt-0.5" />
+                        <div className="flex items-start space-x-2 text-stone-700 text-xs font-semibold">
+                          <ShieldCheck className="w-4 h-4 text-stone-400 mt-0.5" />
                           <div>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase">Project Scope Focus</p>
-                            <p className="text-slate-800">{booking.scope}</p>
+                            <p className="text-[10px] text-stone-400 font-bold uppercase">Project Scope Focus</p>
+                            <p className="text-stone-800">{booking.scope}</p>
                           </div>
                         </div>
 
-                        <div className="flex items-start space-x-2 text-slate-700 text-xs font-semibold">
-                          <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
+                        <div className="flex items-start space-x-2 text-stone-700 text-xs font-semibold">
+                          <Calendar className="w-4 h-4 text-stone-400 mt-0.5" />
                           <div>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase">Scheduled Target Date</p>
-                            <p className="text-slate-800">{booking.date}</p>
+                            <p className="text-[10px] text-stone-400 font-bold uppercase">Scheduled Target Date</p>
+                            <p className="text-stone-800">{booking.date}</p>
                           </div>
                         </div>
 
                         {booking.note && (
-                          <p className="text-xs text-slate-500 font-serif italic bg-white/60 p-2.5 rounded-xl border border-blue-100/50 mt-1">
+                          <p className="whitespace-pre-line text-xs text-stone-600 bg-white/60 p-2.5 rounded-xl border border-brand-100/50 mt-1">
                             {booking.note}
                           </p>
                         )}

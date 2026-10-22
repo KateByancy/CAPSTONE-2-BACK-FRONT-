@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { LogOut } from 'lucide-react';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import ChangePassword from '@/components/ChangePassword';
-import { getApiUrl, requestProfile } from '@/lib/api';
+import { apiFetch, getApiUrl, requestProfile } from '@/lib/api';
 
 export default function ProfileSettings() {
   // --- FORM STATES ---
@@ -49,15 +49,15 @@ export default function ProfileSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 w-full p-4 sm:p-6 md:p-8 space-y-6">
+    <div className="min-h-screen bg-stone-50/50 w-full p-4 sm:p-6 md:p-8 space-y-6">
       
       {/* 1. TOP HEADER BANNER */}
-      <div className="bg-[#0070c0] text-white rounded-3xl p-4 sm:p-8 shadow-md flex items-center justify-between gap-3">
+      <div className="bg-marc-charcoal text-white rounded-3xl p-4 sm:p-8 shadow-md flex items-center justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight">
             Profile Settings
           </h1>
-          <p className="text-xs sm:text-sm font-semibold tracking-wider text-blue-100 uppercase font-serif">
+          <p className="text-xs sm:text-sm font-semibold tracking-wider text-brand-100 uppercase font-serif">
             Personal Identity
           </p>
         </div>
@@ -66,7 +66,7 @@ export default function ProfileSettings() {
           onClick={() => {
             const token = localStorage.getItem('adminToken');
             if (token) {
-              void fetch(`${getApiUrl()}/auth/presence/offline`, {
+              void apiFetch(`${getApiUrl()}/auth/presence/offline`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 keepalive: true,
@@ -85,17 +85,17 @@ export default function ProfileSettings() {
 
       {/* 2. MAIN SETTINGS CARD CONTAINER */}
       <div className="w-full max-w-2xl mx-auto space-y-6">
-        {message && <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{message}</p>}
+        {message && <p className="rounded-xl bg-brand-50 p-3 text-sm text-brand-700">{message}</p>}
         
         {/* AVATAR SECTION */}
         <div className="flex flex-col items-center justify-center space-y-2 pt-2">
           <ProfileAvatar role="admin" name={formData.fullName} />
 
           <div className="text-center">
-            <h2 className="text-xl font-bold font-serif text-slate-900">
+            <h2 className="text-xl font-bold font-serif text-stone-900">
               {formData.fullName || 'User'}
             </h2>
-            <p className="text-[11px] font-bold font-mono text-slate-400 uppercase tracking-widest">
+            <p className="text-[11px] font-bold font-mono text-stone-400 uppercase tracking-widest">
               ADMIN
             </p>
           </div>
@@ -107,11 +107,11 @@ export default function ProfileSettings() {
           {/* MAIN PROFILE INPUT FORM */}
           <form onSubmit={handleSaveProfile} className="space-y-5">
             <fieldset disabled={loading || saving || !adminId} className="space-y-5">
-            <div className="bg-[#f0f6fc] border border-blue-100/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+            <div className="bg-marc-panel border border-brand-100/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
               
               {/* FULL NAME */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold font-serif text-slate-500 uppercase tracking-wider block">
+                <label className="text-[10px] font-bold font-serif text-stone-500 uppercase tracking-wider block">
                   Full Name
                 </label>
                 <input
@@ -120,14 +120,14 @@ export default function ProfileSettings() {
                   required
                   maxLength={150}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0070c0]/30 shadow-inner"
+                  className="w-full px-4 py-3 bg-white border border-stone-200 rounded-2xl text-sm font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-brand-600/30 shadow-inner"
                   placeholder="Enter full name"
                 />
               </div>
 
               {/* PHONE NUMBER */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold font-serif text-slate-500 uppercase tracking-wider block">
+                <label className="text-[10px] font-bold font-serif text-stone-500 uppercase tracking-wider block">
                   Phone Number
                 </label>
                 <input
@@ -135,23 +135,23 @@ export default function ProfileSettings() {
                   value={formData.phoneNumber}
                   maxLength={30}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0070c0]/30 shadow-inner"
+                  className="w-full px-4 py-3 bg-white border border-stone-200 rounded-2xl text-sm font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-brand-600/30 shadow-inner"
                   placeholder="09XXXXXXXXX or +639XXXXXXXXX"
                   aria-describedby="admin-phone-help"
                 />
-                <p id="admin-phone-help" className="mt-2 text-xs text-slate-500">Keep this contact number up to date. Admin password recovery uses your registered email address.</p>
+                <p id="admin-phone-help" className="mt-2 text-xs text-stone-500">Keep this contact number up to date. Admin password recovery uses your registered email address.</p>
               </div>
 
               {/* PRIMARY ADDRESS */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold font-serif text-slate-500 uppercase tracking-wider block">
+                <label className="text-[10px] font-bold font-serif text-stone-500 uppercase tracking-wider block">
                   Primary Address
                 </label>
                 <input
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0070c0]/30 shadow-inner"
+                  className="w-full px-4 py-3 bg-white border border-stone-200 rounded-2xl text-sm font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-brand-600/30 shadow-inner"
                   placeholder="Enter primary address"
                 />
               </div>
@@ -161,7 +161,7 @@ export default function ProfileSettings() {
             {/* SAVE CHANGES BUTTON */}
             <button
               type="submit"
-              className="w-full py-4 bg-[#111827] hover:bg-[#1f2937] active:scale-[0.99] text-white font-serif font-bold text-xs tracking-widest uppercase rounded-2xl transition shadow-md border-none cursor-pointer"
+              className="w-full py-4 bg-stone-900 hover:bg-stone-800 active:scale-[0.99] text-white font-serif font-bold text-xs tracking-widest uppercase rounded-2xl transition shadow-md border-none cursor-pointer"
             >
               {loading ? 'Loading...' : saving ? 'Saving...' : 'Save Changes'}
             </button>

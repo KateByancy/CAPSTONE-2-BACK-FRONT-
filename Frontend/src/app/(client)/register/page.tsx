@@ -2,8 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Home, ChevronLeft, Loader2, ShieldCheck, Layers, Eye, EyeOff } from 'lucide-react';
-import { getApiUrl } from '@/lib/api';
+import { Eye, EyeOff } from 'lucide-react';
+import MarcBrand from '@/components/MarcBrand';
+import { apiFetch, getApiUrl } from '@/lib/api';
 
 interface ClientAccount {
   id: number;
@@ -111,7 +112,12 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     setError('');
+    if ([fullName, phoneNumber, projectAddress, landmark, email, password, confirmPassword].some(value => !value.trim())) {
+      setError('Please fill in every field. Blank spaces are not accepted.');
+      return;
+    }
     setIsLoading(true);
 
     if (password.length < 8) {
@@ -127,15 +133,15 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
     }
 
     try {
-      const response = await fetch(`${getApiUrl()}/auth/register`, {
+      const response = await apiFetch(`${getApiUrl()}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullname: fullName,
-          phone: phoneNumber,
-          address: projectAddress,
-          landmark,
-          email,
+          fullname: fullName.trim(),
+          phone: phoneNumber.trim(),
+          address: projectAddress.trim(),
+          landmark: landmark.trim(),
+          email: email.trim(),
           password,
         }),
       });
@@ -156,32 +162,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
       setIsLoading(false);
     }
 
-    /*
-    // Simulated API Call
-    setTimeout(() => {
-      if (password.length < 6) {
-        setError('Password must be at least 6 characters long.');
-        setIsLoading(false);
-        return;
-      }
 
-      setIsLoading(false);
-      
-      // 💾 SAVE TO LOCALSTORAGE: Stash user details temporarily so the login view can find them!
-      localStorage.setItem('mockRegisteredUser', JSON.stringify({
-        fullName: fullName.trim(),
-        email: email.trim().toLowerCase()
-      }));
-      
-      // If a success listener is wired to a top-level wrapper component, pass the real name up
-      if (onRegisterSuccess) {
-        onRegisterSuccess(fullName);
-      } else {
-        // Fallback or development redirect strategy
-        router.push('/');
-      }
-    }, 1500);
-    */
   };
 
   const handleReturnToMain = (e: React.MouseEvent) => {
@@ -221,211 +202,60 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
   }, [projectAddress]);
 
   return (
-    <div className="min-h-dvh w-full bg-[#031525] flex justify-center items-center px-3 py-[0.5in] sm:px-4 text-slate-100 font-sans">
-      
-      {/* Main Split Layout Container */}
-      <div className="w-full max-w-xl md:max-w-5xl min-h-[min(560px,calc(100dvh-1in))] bg-[#051a30] rounded-[24px] overflow-hidden shadow-2xl flex flex-col md:flex-row border border-white/5 relative">
-        
-        {/* ================= LEFT SIDE: BRAND PANEL ================= */}
-        <div className="hidden md:flex md:w-[45%] bg-gradient-to-b from-[#004b8d] to-[#012a52] p-6 lg:p-8 flex-col justify-between relative border-r border-white/5">
-          <div>
-            <button 
-              type="button"
-              onClick={handleReturnToMain}
-              className="inline-flex items-center space-x-2 text-[10px] font-black tracking-widest text-white/80 hover:text-white uppercase transition bg-transparent border-none cursor-pointer p-0"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Return to main</span>
-            </button>
-          </div>
-
-          <div className="my-auto space-y-6">
-            <div className="w-16 h-16 bg-[#031930] rounded-2xl flex items-center justify-center border border-white/10 shadow-inner">
-              <Home className="w-8 h-8 text-slate-100" />
-            </div>
-            
-            <div className="space-y-3">
-              <h1 className="text-4xl font-bold font-serif tracking-wide text-white">MARC</h1>
-              <p className="text-[10px] uppercase tracking-widest text-slate-200 font-bold">
-                Custom Interior Design Portal
-              </p>
-            </div>
-
-            <p className="text-xs text-slate-200/80 leading-relaxed max-w-xs font-light">
-              Create your account to manage your custom structural requests, track real-time design timelines, and collaborate directly with our team.
-            </p>
-          </div>
-
-          <div className="space-y-3 border-t border-white/10 pt-6">
-            <div className="flex items-center space-x-3 text-xs text-slate-200/90">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Secure Client Workspace</span>
-            </div>
-            <div className="flex items-center space-x-3 text-xs text-slate-200/90">
-              <Layers className="w-4 h-4 text-sky-400" />
-              <span>Interactive Concept Mapping</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ================= RIGHT SIDE: FORM PANEL ================= */}
-        <div className="flex-1 bg-[#051a30] p-4 sm:p-6 lg:p-8 flex flex-col justify-center">
-          
-          <div className="flex justify-between items-center w-full md:hidden pb-3">
-            <button 
-              type="button"
-              onClick={handleReturnToMain}
-              aria-label="Return to main"
-              className="p-2 bg-white/10 hover:bg-white/15 rounded-xl transition text-white border-none cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="text-[10px] opacity-40 font-mono tracking-widest">MARC DESIGN</span>
-          </div>
-
-          <div className="space-y-1.5 mb-3">
-            <h2 className="text-2xl font-bold tracking-tight text-white">Create Account</h2>
-            <p className="text-xs text-slate-400 font-light">Please fill out your details to sign up with us.</p>
-          </div>
-
-          <form onSubmit={handleRegister} className="space-y-3 flex flex-col">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl text-center font-medium">
-                {error}
+    <div className="marc-login-page marc-registration-page">
+      <div className="marc-login-panel marc-registration-panel">
+        <section className="marc-login-form-panel marc-registration-form-panel">
+          <button type="button" className="marc-return" onClick={handleReturnToMain}>Return Main</button>
+          <MarcBrand />
+          <h1>Create Account</h1>
+          <p className="marc-registration-intro">All fields are required.</p>
+          <form onSubmit={handleRegister} className="marc-login-form marc-registration-form" aria-label="Create your client account">
+            {error && <p role="alert" className="marc-form-error">{error}</p>}
+            <fieldset disabled={isLoading} className="marc-registration-fields">
+              <div className="marc-registration-field">
+                <label htmlFor="register-name">Full Name</label>
+                <input id="register-name" name="fullname" type="text" autoComplete="name" value={fullName} onChange={e => setFullName(e.target.value)} required />
               </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Full Name</label>
-                <input 
-                  type="text" 
-                  value={fullName}
-                  placeholder="Enter your full name"
-                  onChange={(e) => setFullName(e.target.value)}
-                  required 
-                  className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
-                />
+              <div className="marc-registration-field">
+                <label htmlFor="register-phone">Phone Number</label>
+                <input id="register-phone" name="phone" type="tel" autoComplete="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} required />
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Phone Number</label>
-                <input 
-                  type="tel" 
-                  value={phoneNumber}
-                  placeholder="09XXXXXXXXX"
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  required 
-                  className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
-                />
+              <div className="marc-registration-field marc-registration-full">
+                <label htmlFor="register-address">Project Address</label>
+                <input id="register-address" name="address" type="text" autoComplete="street-address" list="project-address-suggestions" value={projectAddress} onChange={e => setProjectAddress(e.target.value)} placeholder="Barangay, city, or province" aria-describedby="register-address-help" required />
+                <datalist id="project-address-suggestions">{addressSuggestions.map(suggestion => <option key={suggestion} value={suggestion} />)}</datalist>
+                <p id="register-address-help" className="marc-field-help" role="status">{addressLookupLoading ? 'Loading address suggestions...' : 'Include your house or building number and street.'}</p>
               </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Project Address</label>
-              <input 
-                type="text" 
-                list="project-address-suggestions"
-                value={projectAddress}
-                onChange={(e) => setProjectAddress(e.target.value)}
-                placeholder={addressLookupLoading ? 'Loading Visayas barangays...' : 'Start typing barangay, city, or province'}
-                required
-                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
-              />
-              <datalist id="project-address-suggestions">
-                {addressSuggestions.map((suggestion) => (
-                  <option key={suggestion} value={suggestion} />
-                ))}
-              </datalist>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Email Address</label>
-              <input 
-                type="email" 
-                value={email}
-                placeholder="e.g. name@example.com"
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Nearest Landmark</label>
-              <input
-                type="text"
-                value={landmark}
-                onChange={(e) => setLandmark(e.target.value)}
-                placeholder="e.g. Beside the barangay hall"
-                required
-                className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl px-3 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition font-medium"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    placeholder="At least 8 characters"
-                    onChange={(e) => setPassword(e.target.value)}
-                    minLength={8}
-                    required
-                    className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl pl-3 pr-10 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition tracking-widest"
-                  />
-                  {password && (
-                    <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 hover:text-white bg-transparent border-none cursor-pointer">
-                      {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    </button>
-                  )}
+              <div className="marc-registration-field marc-registration-full">
+                <label htmlFor="register-landmark">Nearest Landmark</label>
+                <input id="register-landmark" name="landmark" type="text" value={landmark} onChange={e => setLandmark(e.target.value)} required />
+              </div>
+              <div className="marc-registration-field marc-registration-full">
+                <label htmlFor="register-email">Email</label>
+                <input id="register-email" name="email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
+              </div>
+              <div className="marc-registration-field">
+                <label htmlFor="register-password">Password</label>
+                <div className="marc-password">
+                  <input id="register-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} minLength={8} aria-describedby="register-password-help" required />
+                  <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
                 </div>
-                <p className="px-1 text-[9px] text-slate-500">Use at least 8 characters.</p>
+                <p id="register-password-help" className="marc-field-help">Use at least 8 characters.</p>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block px-1">Confirm Password</label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    placeholder="Re-enter your password"
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    minLength={8}
-                    required
-                    className="w-full bg-[#09223c] border border-white/5 text-white placeholder-slate-500 rounded-xl pl-3 pr-10 py-2.5 text-xs outline-none focus:border-sky-500/50 focus:bg-[#0b2848] transition tracking-widest"
-                  />
-                  {confirmPassword && (
-                    <button type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 hover:text-white bg-transparent border-none cursor-pointer">
-                      {showConfirmPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    </button>
-                  )}
+              <div className="marc-registration-field">
+                <label htmlFor="register-confirm">Confirm Password</label>
+                <div className="marc-password">
+                  <input id="register-confirm" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} minLength={8} aria-describedby="register-confirm-help" aria-invalid={Boolean(confirmPassword && password !== confirmPassword)} required />
+                  <button type="button" aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
                 </div>
-                {confirmPassword && password !== confirmPassword && <p className="px-1 text-[9px] text-red-400">Passwords do not match.</p>}
+                <p id="register-confirm-help" className="marc-field-help">{confirmPassword && password !== confirmPassword ? 'Passwords do not match.' : 'Re-enter your password.'}</p>
               </div>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full bg-[#102542] hover:bg-[#16335a] active:bg-[#0d1d33] disabled:opacity-75 text-white font-bold text-xs py-3 rounded-xl transition uppercase tracking-widest shadow-lg mt-2 flex items-center justify-center space-x-2 border border-white/10 cursor-pointer"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span>Creating Account...</span>
-                </>
-              ) : (
-                <span>Register Now</span>
-              )}
-            </button>
+            </fieldset>
+            <button type="submit" className="marc-primary marc-login-submit" disabled={isLoading}>{isLoading ? 'Creating account...' : 'Create Account'}</button>
           </form>
-
-
-        </div>
-
+          <p className="marc-register-link">Already have an account? <button type="button" onClick={() => router.push('/?screen=login')}>Sign in</button></p>
+        </section>
+        <div className="marc-login-photo" role="img" aria-label="Interior design inspiration" />
       </div>
     </div>
   );

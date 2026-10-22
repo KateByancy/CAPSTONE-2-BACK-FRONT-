@@ -1,239 +1,38 @@
-"use client";
-import React, { useRef, useState } from 'react';
-import Image from 'next/image';
-import { Home, LayoutGrid, Calendar, MessageSquare, ChevronLeft, ChevronRight, Eye, X } from 'lucide-react';
-
-interface LandingProps {
-  onNavigateToLogin: () => void;
-  onNavigateToRegister: () => void;
-}
-
+﻿"use client";
+import { Home, Ruler, PanelsTopLeft, Search, Phone, MapPin, Clock, UserRound, ArrowUpRight } from 'lucide-react';
+import MarcBrand from '@/components/MarcBrand';
+import DesignGallery from '@/components/DesignGallery';
+interface LandingProps { onNavigateToLogin?: () => void; onNavigateToRegister?: () => void }
 export default function Landing({ onNavigateToLogin, onNavigateToRegister }: LandingProps) {
-  // Gallery Slider State Data
-  const galleryImages = [
-    { src: '/1.jpg', alt: 'MARC interior showcase project 1' },
-    { src: '/3.jpg', alt: 'MARC interior showcase project 2' },
-    { src: '/4.jpg', alt: 'MARC interior showcase project 3' },
-    { src: '/5.jpg', alt: 'Aesthetica Hub Reception with a custom counter and woven seating' },
-    { src: '/6.jpg', alt: 'China Bank Savings APDS Loan Center reception counter' },
-    { src: '/7.jpg', alt: 'Office workspace with timber wall panels, visitor seating, and a glass partition' },
-    { src: '/8.jpg', alt: 'Mousehole lounge and bar with orange seating, chandeliers, and colorful lighting' },
-    { src: '/9.jpg', alt: 'Monochrome cafe with green-accented chairs and geometric pendant lights' },
-  ];
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const previewRef = useRef<HTMLDialogElement>(null);
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => Math.min(prev + 1, galleryImages.length - 1));
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => Math.max(prev - 1, 0));
-  };
-
-  return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-[#005c9e] via-[#004b84] to-[#0a192f] text-white font-sans flex justify-center">
-      <dialog
-        ref={previewRef}
-        aria-label="Curated Works full image preview"
-        className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-5xl max-h-[90dvh] rounded-2xl border border-white/20 bg-slate-950 p-4 text-white shadow-2xl backdrop:bg-slate-950/85"
-      >
-        <div className="mb-3 flex items-center justify-between gap-4">
-          <p className="text-sm font-semibold">Curated Works — {currentSlide + 1} / {galleryImages.length}</p>
-          <form method="dialog">
-            <button
-              type="submit"
-              aria-label="Close image preview"
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </form>
-        </div>
-        <div className="relative h-[65dvh] w-full">
-          <Image
-            src={galleryImages[currentSlide].src}
-            alt={galleryImages[currentSlide].alt}
-            fill
-            sizes="(min-width: 1024px) 992px, calc(100vw - 64px)"
-            className="object-contain"
-          />
-        </div>
-      </dialog>
-      
-      {/* MASTER RESPONSIVE CONTAINER */}
-      <div className="w-full max-w-md md:max-w-4xl bg-gradient-to-b from-[#0070c0] to-[#051329] min-h-screen flex flex-col justify-between shadow-2xl relative overflow-x-hidden">
-        
-        <div>
-          {/* 1. TOP HERO AREA WITH BACKGROUND IMAGE CONTAINER */}
-          <div 
-            className="relative flex h-[280px] w-full flex-col items-center justify-end bg-[#0d2541] bg-top bg-no-repeat p-5 md:h-[360px] md:pb-6"
-            style={{ 
-              backgroundImage: 'linear-gradient(to top, rgba(5, 19, 41, 0.85), transparent 45%), url("/marc-interior-design.png")',
-              backgroundSize: '100% 100%, auto calc(100% - 80px)',
-            }}
-          >
-            <div className="mb-4 space-y-1 text-center">
-              <p className="text-white font-serif font-black text-[11px]">READY TO BEGIN?</p>
-              <p className="text-[9px] text-blue-100 font-sans font-bold uppercase">Launch Client Workspace</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4 w-full max-w-xs pb-2">
-              <button 
-                onClick={onNavigateToLogin}
-                className="bg-[#0056b3] hover:bg-[#004494] text-white text-[10px] font-bold tracking-widest py-2 rounded-lg border border-blue-400/20 shadow transition uppercase cursor-pointer"
-              >
-                Log in
-              </button>
-              <button 
-                onClick={onNavigateToRegister}
-                className="bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-bold tracking-widest py-2 rounded-lg shadow transition uppercase cursor-pointer"
-              >
-                Register
-              </button>
-            </div>
-          </div>
-
-          {/* 2. THE MARC SIGNATURE INTRO */}
-          <div className="px-6 py-8 text-center space-y-4 flex flex-col items-center">
-            <div className="w-12 h-12 bg-white text-[#0070c0] rounded-full flex items-center justify-center shadow-lg">
-              <Home className="w-5 h-5 stroke-[2]" />
-            </div>
-            
-            <div className="space-y-2">
-              <h2 className="text-base font-serif italic font-bold tracking-wide text-white">
-                The Marc Signature
-              </h2>
-              <p className="text-[11px] text-blue-100/80 leading-relaxed font-light max-w-xs mx-auto">
-                Where binary precision meets artistic intuition. We believe every corner should tell a story of intentionality, balance, and quiet luxury.
-              </p>
-            </div>
-          </div>
-
-          {/* 3. CURATED WORKS / VISUAL GALLERY SLIDER */}
-          <div className="px-6 py-2 space-y-3">
-            <div className="space-y-0.5">
-              <p className="text-[9px] tracking-widest font-black text-blue-300 uppercase">Curated Works</p>
-              <h3 className="text-lg font-serif font-bold text-white tracking-wide">Visual</h3>
-            </div>
-
-            <div className="relative w-full h-60 bg-slate-800 rounded-2xl overflow-hidden shadow-xl border border-white/10 group">
-              <Image
-                key={galleryImages[currentSlide].src}
-                src={galleryImages[currentSlide].src}
-                alt={galleryImages[currentSlide].alt}
-                fill
-                priority={currentSlide === 0}
-                sizes="(min-width: 768px) 848px, calc(100vw - 48px)"
-                className="object-cover transition-opacity duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
-              <button
-                type="button"
-                onClick={() => previewRef.current?.showModal()}
-                aria-label="View entire Curated Works image"
-                aria-haspopup="dialog"
-                title="View full image"
-                className="absolute right-3 top-3 z-20 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-slate-950/65 text-white shadow-md backdrop-blur-sm transition hover:bg-slate-950/90 focus-visible:outline-2 focus-visible:outline-white"
-              >
-                <Eye className="h-3.5 w-3.5" />
-              </button>
-
-              <div className="absolute bottom-3 left-3 z-20 rounded-md bg-slate-950/55 px-2 py-1 text-[9px] font-bold tracking-widest text-white backdrop-blur-sm">
-                {currentSlide + 1} / {galleryImages.length}
-              </div>
-              
-              <div className="absolute bottom-3 right-3 flex space-x-1.5 z-20">
-                <button 
-                  type="button"
-                  onClick={prevSlide}
-                  disabled={currentSlide === 0}
-                  aria-label="Show previous interior image"
-                  className="p-1 bg-white hover:bg-slate-100 active:bg-blue-600 text-slate-800 active:text-white rounded-md transition shadow-md flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-default"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
-                <button 
-                  type="button"
-                  onClick={nextSlide}
-                  disabled={currentSlide === galleryImages.length - 1}
-                  aria-label="Show next interior image"
-                  className="p-1 bg-white hover:bg-slate-100 active:bg-blue-600 text-slate-800 active:text-white rounded-md transition shadow-md flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-default"
-                >
-                  <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
-                </button>
-              </div>
-            </div>
-
-            <p className="text-center text-[9px] tracking-widest font-black text-blue-200/70 uppercase pt-1">
-              Service Excellence
-            </p>
-          </div>
-
-          {/* 4. SERVICE MATRIX GRID */}
-          <div className="px-6 py-4 grid grid-cols-2 gap-4">
-            <div 
-              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md"
-            >
-              <div className="p-2 bg-blue-50 text-[#0070c0] rounded-xl border border-blue-100">
-                <Home className="w-5 h-5 stroke-[2]" />
-              </div>
-              <span className="text-[9px] font-black tracking-widest text-slate-700 uppercase">Residential</span>
-            </div>
-
-            <div 
-              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md"
-            >
-              <div className="p-2 bg-blue-50 text-[#0070c0] rounded-xl border border-blue-100">
-                <LayoutGrid className="w-5 h-5 stroke-[2]" />
-              </div>
-              <span className="text-[9px] font-black tracking-widest text-slate-700 uppercase">Commercial</span>
-            </div>
-
-            <div
-              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md"
-            >
-              <div className="p-2 bg-blue-50 text-[#0070c0] rounded-xl border border-blue-100">
-                <Calendar className="w-5 h-5 stroke-[2]" />
-              </div>
-              <span className="text-[9px] font-black tracking-widest text-slate-700 uppercase">Book</span>
-            </div>
-
-            <div
-              className="bg-white/95 rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-2 shadow-md"
-            >
-              <div className="p-2 bg-blue-50 text-[#0070c0] rounded-xl border border-blue-100">
-                <MessageSquare className="w-5 h-5 stroke-[2]" />
-              </div>
-              <span className="text-[9px] font-black tracking-widest text-slate-700 uppercase">Contact</span>
-            </div>
-          </div>
-
-        </div>
-
-        {/* 6. SOCIAL MEDIAS AND SYSTEM COPYRIGHTS */}
-        <div className="w-full p-6 text-center space-y-4 border-t border-blue-900/20 bg-[#051021]/30">
-          <div className="flex justify-center items-center space-x-6 text-blue-200/70">
-            <a href="https://www.instagram.com/marclecciones" target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center justify-center" aria-label="Instagram">
-              <svg className="w-4 h-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-              </svg>
-            </a>
-            
-            <a href="https://www.facebook.com/cram.lessor" target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center justify-center" aria-label="Facebook">
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-              </svg>
-            </a>
-          </div>
-
-          <p className="text-[8px] tracking-[0.15em] text-blue-200/40 uppercase font-semibold">
-            © 2026 MARC CUSTOM DESIGNS
-          </p>
-        </div>
-
+  const login = () => onNavigateToLogin ? onNavigateToLogin() : window.location.assign('/?screen=login');
+  const register = () => onNavigateToRegister ? onNavigateToRegister() : window.location.assign('/?screen=register');
+  return <div className="marc-landing" id="home">
+    <header className="marc-header"><a href="#home" aria-label="Marc Interior Design home"><MarcBrand /></a><nav aria-label="Main navigation"><a href="#home">Home</a><a href="#featured">Featured</a><a href="#about">About</a><a href="#contact">Contact Us</a></nav></header>
+    <section className="marc-hero" aria-label="MARC Interiors"><div className="marc-hero-copy"><p>INSPIRED INTERIORS. ELEVATED HOMES.</p><h1><strong>MARC</strong><span>Interiors</span></h1><p className="marc-hero-description">Step into a world of refined elegance,<br />where every detail is meticulously curated to elevate your lifestyle.</p><a href="#featured" className="marc-browse"><Search size={20} /> Browse Designs</a></div><p className="marc-hero-caption">TRANSFORMING VOIDS INTO INSPIRED SPACES.</p></section>
+    <section className="marc-benefits" aria-label="Our specialties">{[
+      { title: 'Best Designer', text: 'Custom interiors shaped around you', Icon: Home },
+      { title: 'Best Space Planner', text: 'Reimagine the room you love', Icon: Ruler },
+      { title: 'Quality Furnishings', text: 'Care in every detail, from start to finish', Icon: PanelsTopLeft },
+    ].map(({ title, text, Icon }) => <div key={title}><Icon aria-hidden="true" /><div><h2>{title}</h2><p>{text}</p></div></div>)}</section>
+    <section id="featured" className="marc-featured"><p>Featured Designs</p><h2>Interiors for Every Lifestyle</h2><p className="marc-section-description">From private homes to corporate headquarters and commercial retail spaces, explore how we transform interiors into functional works of art.</p><DesignGallery onChoose={design => { sessionStorage.setItem('marcSelectedDesign', design.id); login(); }} /></section>
+    <section id="about" className="marc-about"><h2>Inspired Living. Timeless Design.</h2><p>At Marc Interior Design, we shape spaces around the people who use them. Explore our designs and work with our team to bring your vision to life.</p></section>
+    <section id="contact" className="marc-contact-section" aria-labelledby="marc-contact-title">
+      <div className="marc-contact-intro">
+        <p className="marc-contact-eyebrow">CONTACT US</p>
+        <h2 id="marc-contact-title">Let&apos;s talk about<br />your space.</h2>
+        <p>Have a project in mind? Get in touch to discuss your ideas, ask a question, or plan your next interior project.</p>
+        <p className="marc-contact-hours-note">Available 8:00 AM &ndash; 5:00 PM, Philippine time.</p>
       </div>
-    </div>
-  );
+      <div className="marc-contact-information">
+        <div className="marc-contact-info-header"><span>GET IN TOUCH</span><p>We&apos;d love to hear from you.</p></div>
+        <dl className="marc-contact-grid">
+          <div className="marc-contact-item"><UserRound aria-hidden="true" /><dt>Contact person</dt><dd>Marc Rossel P. Lecciones</dd></div>
+          <div className="marc-contact-item"><Phone aria-hidden="true" /><dt>Contact number</dt><dd><a href="tel:+639925280374">0992 528 0374</a><a className="marc-contact-small-link" href="sms:+639925280374">Send a text message<ArrowUpRight size={14} aria-hidden="true" /></a></dd></div>
+          <div className="marc-contact-item"><MapPin aria-hidden="true" /><dt>Location</dt><dd>Ibabao Basak,<br />Lapu-Lapu City<a className="marc-contact-small-link" href="https://www.google.com/maps/search/?api=1&query=Ibabao%20Basak%2C%20Lapu-Lapu%20City%2C%20Philippines" target="_blank" rel="noopener noreferrer">View area on map<ArrowUpRight size={14} aria-hidden="true" /></a></dd></div>
+          <div className="marc-contact-item"><Clock aria-hidden="true" /><dt>Working hours</dt><dd>8:00 AM &ndash; 5:00 PM<span className="marc-contact-secondary-text">Philippine time</span></dd></div>
+        </dl>
+      </div>
+    </section>
+    <footer className="marc-site-footer"><MarcBrand /><div><p>Your project, in one place.</p><button type="button" className="marc-primary" onClick={login}>Log in</button><button type="button" className="marc-secondary" onClick={register}>Create an account</button></div></footer>
+  </div>;
 }

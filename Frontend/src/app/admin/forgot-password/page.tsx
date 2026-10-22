@@ -8,5 +8,5 @@ export const metadata = {
 };
 
 export default function AdminForgotPassword() {
-  return <Suspense fallback={<main className="min-h-dvh bg-slate-950" />}><AdminEmailRecovery /></Suspense>;
+  return <Suspense fallback={<main className="min-h-dvh bg-marc-canvas" />}><AdminEmailRecovery /></Suspense>;
 }

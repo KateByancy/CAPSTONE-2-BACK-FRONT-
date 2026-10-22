@@ -63,13 +63,17 @@ test('Google recovery requires a verified Google identity and keeps admin accoun
     const controller = require('../controllers/authController');
     const db = require('../config/db');
     const originalQuery = db.query;
-    const originalFetch = global.fetch;
-    process.env.GOOGLE_CLIENT_ID = 'google-client-fixture';
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerify = OAuth2Client.prototype.verifyIdToken;
+    process.env.GOOGLE_CLIENT_ID = '1234567890-recoveryfixture.apps.googleusercontent.com';
     process.env.JWT_SECRET = 'google-recovery-test-only';
     let verified = true;
     let role = 'client';
     let queries = 0;
-    global.fetch = async () => Response.json({ aud: 'google-client-fixture', email: 'google@example.test', email_verified: verified });
+    OAuth2Client.prototype.verifyIdToken = async options => {
+        assert.equal(options.audience, process.env.GOOGLE_CLIENT_ID);
+        return { getPayload: () => ({ sub: 'google-recovery-fixture', email: 'google@example.test', email_verified: verified }) };
+    };
     db.query = (_sql, values, callback) => {
         queries++;
         assert.deepEqual(values, ['google@example.test']);
@@ -92,7 +96,7 @@ test('Google recovery requires a verified Google identity and keeps admin accoun
         verified = true; role = 'admin';
         assert.equal((await call()).statusCode, 403);
     } finally {
-        global.fetch = originalFetch;
+        OAuth2Client.prototype.verifyIdToken = originalVerify;
         db.query = originalQuery;
     }
 });

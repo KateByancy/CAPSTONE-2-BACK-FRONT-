@@ -1,0 +1,119 @@
+[
+  {
+    "id": "standard-living",
+    "name": "Bronze Living Room",
+    "category": "Living Room",
+    "image": "/designs/bronze living room.jpg",
+    "description": "An airy neutral living room with textured cream sofas, timber-framed lounge chairs, and a low oval coffee table. Soft curtains and a woven rug bring warmth to a relaxed conversation layout.",
+    "price": 35000,
+    "features": [
+      "Textured cream sofas and timber lounge chairs",
+      "Low oval coffee table and woven rug",
+      "Soft curtains with generous natural light"
+    ]
+  },
+  {
+    "id": "standard-kitchen",
+    "name": "Bronze Kitchen",
+    "category": "Kitchen",
+    "image": "/designs/bronze kitchen.jpg",
+    "description": "A bright L-shaped kitchen with pale shaker-style cabinetry, marble-look worktops, and a freestanding range. A window-side sink, tall storage, and understated brass-tone hardware keep the space practical and calm.",
+    "price": 55000,
+    "features": [
+      "L-shaped worktop with window-side sink",
+      "Shaker-style cabinets and tall pantry storage",
+      "Pale marble-look surfaces and brass-tone hardware"
+    ]
+  },
+  {
+    "id": "silver-office-suite",
+    "name": "Bronze Office",
+    "category": "Office",
+    "image": "/designs/bronze office.jpg",
+    "description": "A minimalist workspace centered on a sculptural stone-look desk and a comfortable swivel chair. Full-height curtains, neutral artwork, and a timber slat accent create a quiet setting for focused work.",
+    "price": 30000,
+    "features": [
+      "Sculptural stone-look desk",
+      "Neutral artwork and timber slat accent",
+      "Comfortable swivel seating and soft daylight"
+    ]
+  },
+  {
+    "id": "deluxe-living",
+    "name": "Silver Living Room",
+    "category": "Living Room",
+    "image": "/designs/silver living room.jpg",
+    "description": "A softly layered lounge with curved cream seating, a round stone-look coffee table, and a sculpted feature wall with concealed lighting. Full-height drapery and a textured rug create a warm, balanced space.",
+    "price": 75000,
+    "features": [
+      "Curved cream sofas and accent seating",
+      "Backlit sculpted feature wall",
+      "Round coffee table and layered neutral textiles"
+    ]
+  },
+  {
+    "id": "silver-kitchen",
+    "name": "Silver Kitchen",
+    "category": "Kitchen",
+    "image": "/designs/silver kitchen.jpg",
+    "description": "A contemporary kitchen pairing warm wood cabinetry with dramatic marble-look surfaces. A waterfall island, integrated oven cabinetry, and a mix of pendant and track lighting define distinct preparation and gathering zones.",
+    "price": 85000,
+    "features": [
+      "Waterfall island with marble-look finish",
+      "Wood cabinetry with integrated appliance storage",
+      "Pendant and track lighting over work zones"
+    ]
+  },
+  {
+    "id": "silver-office",
+    "name": "Silver Office",
+    "category": "Office",
+    "image": "/designs/silver office.jpg",
+    "description": "An executive-inspired office with a broad stone-look desk and a full-height timber bookcase. Illuminated shelves, soft curtains, and a leafy accent bring depth and warmth to an organized workspace.",
+    "price": 45000,
+    "features": [
+      "Full-height timber shelving with accent lighting",
+      "Broad desk with a clean, organized work surface",
+      "Soft curtains and a natural greenery accent"
+    ]
+  },
+  {
+    "id": "silver-bedroom",
+    "name": "Silver Bedroom",
+    "category": "Bed Room",
+    "image": "/designs/silver bedroom.jpg",
+    "description": "A restful bedroom with an upholstered bed, layered neutral bedding, and timber wardrobes. Bedside lighting, full-height curtains, and a lounge chair provide separate spaces for rest and quiet reading.",
+    "price": 65000,
+    "features": [
+      "Upholstered bed with layered neutral bedding",
+      "Timber wardrobes and coordinated bedside storage",
+      "Reading chair, bedside lamps, and soft drapery"
+    ]
+  },
+  {
+    "id": "gold-kitchen",
+    "name": "Gold Kitchen",
+    "category": "Kitchen",
+    "image": "/designs/gold kitchen.jpg",
+    "description": "A statement kitchen with full-height wood cabinetry, a broad marble-look island, and a dramatic veined splashback. Twin appliance towers, warm under-cabinet lighting, and breakfast seating complete the tailored composition.",
+    "price": 125000,
+    "features": [
+      "Large island with breakfast seating",
+      "Full-height wood cabinetry and twin appliance towers",
+      "Veined splashback and warm task lighting"
+    ]
+  },
+  {
+    "id": "gold-living",
+    "name": "Gold Living Room",
+    "category": "Living Room",
+    "image": "/designs/gold living room.jpg",
+    "description": "A refined media lounge arranged around a full-wall timber entertainment unit with illuminated display niches. A generous sectional, timber accent chairs, and a round stone-look table bring comfort to an elegant gathering space.",
+    "price": 110000,
+    "features": [
+      "Full-wall media cabinetry with illuminated niches",
+      "Generous sectional and timber-framed accent chairs",
+      "Round coffee table with coordinated neutral finishes"
+    ]
+  }
+]

@@ -1,0 +1,30 @@
+{
+  "Styles": {
+    "Modern": 0,
+    "Contemporary": 5,
+    "Minimalist": 0,
+    "Classic": 10
+  },
+  "Materials": {
+    "Warm wood and stone": 5,
+    "Marble-inspired finishes": 15,
+    "Natural textures": 8,
+    "Discuss with designer": 0
+  },
+  "Furnishing": {
+    "Retain existing furniture": 0,
+    "Mix existing and new furniture": 12,
+    "New furniture throughout": 25
+  },
+  "Layout": {
+    "Keep the current layout": 0,
+    "Improve storage and circulation": 8,
+    "Explore a new layout": 15
+  },
+  "Decor": {
+    "Warm neutral accents": 3,
+    "Soft natural accents": 3,
+    "Bold statement accents": 8,
+    "Designer recommendations": 0
+  }
+}

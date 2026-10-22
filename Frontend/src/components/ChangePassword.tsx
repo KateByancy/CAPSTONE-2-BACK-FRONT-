@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useId, useRef, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl } from '@/lib/api';
 
 export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,7 +40,7 @@ export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
     if (!token) { setError('Please sign in again to change your password.'); return; }
     setSaving(true);
     try {
-      const response = await fetch(`${getApiUrl()}/auth/change-password`, {
+      const response = await apiFetch(`${getApiUrl()}/auth/change-password`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ currentPassword, newPassword }),
       });
@@ -55,18 +55,18 @@ export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
   }
 
   return <div className="space-y-4">
-    <button type="button" aria-expanded={isOpen} aria-controls={formId} disabled={saving} onClick={() => { if (isOpen) closeForm(); else setIsOpen(true); }} className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800 hover:bg-slate-50 disabled:opacity-50">
+    <button type="button" aria-expanded={isOpen} aria-controls={formId} disabled={saving} onClick={() => { if (isOpen) closeForm(); else setIsOpen(true); }} className="w-full rounded-2xl border border-stone-200 bg-white p-4 text-sm font-bold text-stone-800 hover:bg-stone-50 disabled:opacity-50">
       Change Password
     </button>
-    {isOpen && <form ref={formRef} id={formId} onSubmit={submit} className="min-w-0 scroll-mt-4 rounded-3xl border border-slate-200 bg-white p-4 sm:p-8 space-y-4">
-    <h2 className="text-lg font-bold text-slate-900">Change Password</h2>
+    {isOpen && <form ref={formRef} id={formId} onSubmit={submit} className="min-w-0 scroll-mt-4 rounded-3xl border border-stone-200 bg-white p-4 sm:p-8 space-y-4">
+    <h2 className="text-lg font-bold text-stone-900">Change Password</h2>
     <fieldset disabled={saving} className="space-y-4">
       {([
         { key: 'current', label: 'Current password', value: currentPassword, setValue: setCurrentPassword },
         { key: 'new', label: 'New password', value: newPassword, setValue: setNewPassword },
         { key: 'confirmation', label: 'Confirm new password', value: confirmation, setValue: setConfirmation },
       ] as const).map(field => <div key={field.key}>
-        <label htmlFor={`${formId}-${field.key}`} className="block text-xs font-bold text-slate-600">{field.label}</label>
+        <label htmlFor={`${formId}-${field.key}`} className="block text-xs font-bold text-stone-600">{field.label}</label>
         <div className="relative mt-2">
           <input
             id={`${formId}-${field.key}`}
@@ -82,7 +82,7 @@ export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
               field.setValue(event.target.value);
               if (!event.target.value) setVisiblePasswords(current => ({ ...current, [field.key]: false }));
             }}
-            className="min-w-0 w-full rounded-xl border border-slate-200 p-3 pr-12 text-base md:text-sm text-slate-900"
+            className="min-w-0 w-full rounded-xl border border-stone-200 p-3 pr-12 text-base md:text-sm text-stone-900"
           />
           {field.value.length > 0 && <button
             type="button"
@@ -90,15 +90,15 @@ export default function ChangePassword({ role }: { role: 'client' | 'admin' }) {
             aria-pressed={visiblePasswords[field.key]}
             aria-controls={`${formId}-${field.key}`}
             onClick={() => setVisiblePasswords(current => ({ ...current, [field.key]: !current[field.key] }))}
-            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-slate-500 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-500"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-stone-500 hover:text-stone-900 focus-visible:outline-2 focus-visible:outline-brand-500"
           >
             {visiblePasswords[field.key] ? <Eye aria-hidden="true" className="h-4 w-4" /> : <EyeOff aria-hidden="true" className="h-4 w-4" />}
           </button>}
         </div>
-        {field.key === 'new' && <p className="mt-2 text-xs text-slate-500">Use at least 8 characters and a different password from your current one.</p>}
+        {field.key === 'new' && <p className="mt-2 text-xs text-stone-500">Use at least 8 characters and a different password from your current one.</p>}
       </div>)}
-      <button type="submit" className="w-full rounded-xl bg-[#111c3a] p-3 text-sm font-bold text-white disabled:opacity-50">{saving ? 'Changing password...' : 'Change Password'}</button>
-      <button type="button" onClick={closeForm} className="w-full rounded-xl border border-slate-200 p-3 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
+      <button type="submit" className="w-full rounded-xl bg-marc-charcoal p-3 text-sm font-bold text-white disabled:opacity-50">{saving ? 'Changing password...' : 'Change Password'}</button>
+      <button type="button" onClick={closeForm} className="w-full rounded-xl border border-stone-200 p-3 text-sm font-bold text-stone-600 hover:bg-stone-50">Cancel</button>
     </fieldset>
     {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
     {message && <p role="status" className="text-sm text-emerald-700">{message}</p>}

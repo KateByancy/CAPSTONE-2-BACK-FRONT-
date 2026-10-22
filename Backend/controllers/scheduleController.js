@@ -57,7 +57,7 @@ const ensureDayAvailable = async (connection, bookingId, visitDate) => {
 const scheduleVisit = (req, res) => {
   const bookingId = Number(req.body.booking_id);
   const visitDate = String(req.body.visit_date || '').trim();
-  if (!Number.isInteger(bookingId) || bookingId <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(visitDate)) {
+  if (!Number.isInteger(bookingId) || bookingId <= 0 || !require('../utils/projectDate')(visitDate)) {
     return res.status(400).json({ success: false, message: 'A valid booking and visit date are required.' });
   }
   return writeSchedule(res, async connection => {
@@ -101,7 +101,7 @@ const reschedulePendingVisit = (req, res) => {
   const scheduleId = Number(req.params.id);
   const userId = Number(req.body.user_id);
   const visitDate = String(req.body.visit_date || '').trim();
-  if (!scheduleId || !userId || !/^\d{4}-\d{2}-\d{2}$/.test(visitDate)) {
+  if (!scheduleId || !userId || !require('../utils/projectDate')(visitDate)) {
     return res.status(400).json({ success: false, message: 'A valid schedule, client, and date are required.' });
   }
   return writeSchedule(res, async connection => {
@@ -150,7 +150,7 @@ const updateSchedule = (req, res) => {
   const bookingId = Number(req.body.booking_id);
   const visitDate = String(req.body.visit_date || '').trim();
   const status = req.body.status || 'Pending';
-  if (!Number.isInteger(bookingId) || bookingId <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(visitDate) || typeof status !== 'string') {
+  if (!Number.isInteger(bookingId) || bookingId <= 0 || !require('../utils/projectDate')(visitDate) || typeof status !== 'string') {
     return res.status(400).json({ success: false, message: 'A valid booking, visit date, and status are required.' });
   }
   return writeSchedule(res, async connection => {

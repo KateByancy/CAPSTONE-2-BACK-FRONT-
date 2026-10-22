@@ -1,6 +1,7 @@
 const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
+const { getGoogleClientId, verifyGoogleCredential } = require("../utils/googleIdentity");
 const { issueAccessToken } = require("../utils/authTokens");
 
 const query = (sql, values = []) => new Promise((resolve, reject) => {
@@ -224,58 +225,36 @@ exports.adminLogin = async (req, res) => {
 };
 
 exports.googleLogin = async (req, res) => {
-  const credential = req.body.credential;
-  const googleClientId = process.env.GOOGLE_CLIENT_ID;
-  if (!credential) return res.status(400).json({ success: false, message: "Google credential is required." });
-  if (!googleClientId) return res.status(503).json({ success: false, message: "Google sign-in has not been configured." });
-
   try {
-    const tokenResponse = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
-    const profile = await tokenResponse.json();
-    if (!tokenResponse.ok || profile.aud !== googleClientId || !profile.email) {
-      return res.status(401).json({ success: false, message: "Google sign-in could not be verified." });
-    }
-
-    const emailVerified = profile.email_verified === true || profile.email_verified === "true";
-    if (!emailVerified) {
-      return res.status(403).json({
-        success: false,
-        message: "Please verify your email address in your Google account before signing in.",
-      });
-    }
-
-    const googleEmail = String(profile.email).trim().toLowerCase();
-
-    db.query("SELECT id, fullname, phone, address, landmark, email, role FROM users WHERE email = ?", [googleEmail], async (err, users) => {
-      if (err) return res.status(500).json({ success: false, message: "Unable to sign in." });
-      const issueToken = (user) => issueAccessToken({ ...user, role: "client" });
-      if (users.length) {
-        const user = users[0];
-        if (user.role !== 'client') return res.status(403).json({ success: false, message: 'Use the admin sign-in page for this account.' });
-        return res.json({ success: true, message: "Google sign-in successful.", token: issueToken(user), user });
+    const profile = await verifyGoogleCredential(req.body.credential);
+    const email = profile.email.trim().toLowerCase();
+    const lookup = () => query('SELECT id, fullname, phone, address, landmark, email, role FROM users WHERE email = ? LIMIT 1', [email]);
+    let [user] = await lookup();
+    let created = false;
+    if (!user) {
+      try {
+        const fullname = profile.name || email.split('@')[0];
+        const result = await query("INSERT INTO users (fullname, phone, address, landmark, email, password, role) VALUES (?, '', '', '', ?, 'GOOGLE_AUTH', 'client')", [fullname, email]);
+        user = { id: result.insertId, fullname, phone: '', address: '', landmark: '', email, role: 'client' };
+        created = true;
+      } catch (error) {
+        if (error.code !== 'ER_DUP_ENTRY') throw error;
+        [user] = await lookup();
+        if (!user) throw error;
       }
-
-      const fullname = profile.name || googleEmail.split("@")[0];
-      db.query(
-        "INSERT INTO users (fullname, phone, address, email, password, role) VALUES (?, ?, ?, ?, ?, 'client')",
-        [fullname, "", "", googleEmail, "GOOGLE_AUTH"],
-        (insertError, result) => {
-          if (insertError) return res.status(500).json({ success: false, message: insertError.message });
-          const user = { id: result.insertId, fullname, phone: "", address: "", landmark: "", email: googleEmail };
-          return res.status(201).json({ success: true, message: "Google account created.", token: issueToken(user), user });
-        }
-      );
-    });
-  } catch {
-    return res.status(502).json({ success: false, message: "Unable to verify Google sign-in." });
+    }
+    if (user.role !== 'client') return res.status(403).json({ success: false, message: 'Use the admin sign-in page for this account.' });
+    const token = issueAccessToken(user);
+    return res.status(created ? 201 : 200).json({ success: true, message: created ? 'Google account created.' : 'Google sign-in successful.', token, user });
+  } catch (error) {
+    return res.status(error.status || 500).json({ success: false, message: error.status ? error.message : 'Unable to sign in with Google. Please retry.' });
   }
 };
 
 exports.getGoogleConfig = (req, res) => {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  if (!clientId || clientId.includes("your-google-oauth")) {
-    return res.status(503).json({ enabled: false, message: "Google sign-in has not been configured." });
-  }
+  res.set('Cache-Control', 'no-store');
+  const clientId = getGoogleClientId();
+  if (!clientId) return res.status(503).json({ enabled: false, message: 'Google sign-in has not been configured.' });
   return res.json({ enabled: true, clientId });
 };
 

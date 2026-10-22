@@ -8,32 +8,19 @@ require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
         try { callback(null, queryHandler(sql, values)); } catch (error) { callback(error); }
     },
 } };
+// Controller-level fixture. Real transaction/audit rollback is covered by gcash.test.js.
+const auditPath=require.resolve('../utils/paymentAudit');
+require.cache[auditPath]={id:auditPath,filename:auditPath,loaded:true,exports:async(_req,_event,sql,values)=>queryHandler(sql,values)};
 const payments = require('../controllers/gcashController');
 const mail = require('../services/adminRecoveryMail');
 const chat = require('../controllers/chatController');
 function response() {
-    return { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
+    return { statusCode: 200, set(){return this;}, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
 }
 
-test('manual billing snapshots the saved GCash account and QR without PayMongo configuration', async () => {
-    delete process.env.PAYMONGO_SECRET_KEY;
-    const settings = { account_name: 'MARC', account_number: '09123456789', qr_image: '/api/portfolio/images/fixture.png' };
-    let inserted;
-    queryHandler = (sql, values) => {
-        if (sql.startsWith('SELECT account_name')) return [settings];
-        assert.match(sql, /INSERT INTO gcash_requests/);
-        assert.match(sql, /accepted_at/);
-        inserted = values;
-        return { affectedRows: 1 };
-    };
-    const res = response();
-    await payments.create({ body: { booking_id: 5, amount: '100.50', description: 'Deposit' } }, res);
-    assert.equal(res.statusCode, 201);
-    assert.deepEqual(inserted, ['100.50', 'Deposit', 'MARC', '09123456789', 'Manual', settings.qr_image, 5]);
-    queryHandler = () => [{ ...settings, qr_image: null }];
-    const missing = response();
-    await payments.create({ body: { booking_id: 5, amount: '100.50', description: 'Deposit', payment_provider: 'Manual' } }, missing);
-    assert.equal(missing.statusCode, 409);
+test('manual billing delegates amount authorization to accepted quotation service',async()=>{
+ const service=require('../utils/quotation');const original=service.requestPayment;let submitted;
+ try{service.requestPayment=async req=>{submitted=req.body;return {success:true,paymentId:10,amount:100.5};};const res=response();await payments.create({body:{booking_id:5,quote_id:8}},res);assert.equal(res.statusCode,201);assert.equal(res.body.amount,100.5);assert.equal(submitted.quote_id,8);}finally{service.requestPayment=original;}
 });
 
 test('new PayMongo requests and checkout are disabled without querying billing records', async () => {

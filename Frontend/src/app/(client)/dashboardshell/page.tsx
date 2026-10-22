@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Home, Grid, Calendar, Compass, MessageSquare, LogOut, AlertCircle } from 'lucide-react';
-import { getApiUrl, getClientSession } from '@/lib/api';
+import { Home, Calendar, Compass, MessageSquare, LogOut, AlertCircle, SlidersHorizontal, Wallet, UserRound, Menu } from 'lucide-react';
+import MarcBrand from '@/components/MarcBrand';
+import { apiFetch, getApiUrl, getClientSession } from '@/lib/api';
 
 interface ShellProps {
   children?: React.ReactNode;
@@ -18,8 +19,8 @@ export default function DashboardShell({
   userName = 'Doe, John',
   onLogout
 }: ShellProps) {
+  const [sidebarExpanded,setSidebarExpanded]=useState(false);
   const [internalTab, setInternalTab] = useState('home');
-  const [isCollapsed, setIsCollapsed] = useState(true);
   const [bookingAlert, setBookingAlert] = useState<{ id: number; title: string; message: string } | null>(null);
   const dismissedAlertIds = useRef(new Set<number>());
 
@@ -28,11 +29,14 @@ export default function DashboardShell({
   const setActiveTab = externalSetActiveTab || setInternalTab;
 
   const tabs = [
-    { id: 'home', label: 'HOME', icon: Home, desktopLabel: 'Dashboard Home' },
-    { id: 'work', label: 'PORTFOLIO', icon: Grid, desktopLabel: 'Inspirations Portfolio' },
-    { id: 'book', label: 'PENDING BOOKINGS', icon: Calendar, desktopLabel: 'Pending Bookings' },
-    { id: 'track', label: 'TRACK', icon: Compass, desktopLabel: 'Live Build Tracking' },
-    { id: 'chat', label: 'CHAT', icon: MessageSquare, desktopLabel: 'Design Concierge' },
+    { id: 'home', label: 'Browse Designs', icon: Home },
+    { id: 'customize', label: 'Customize Design', icon: SlidersHorizontal },
+    { id: 'quotes', label: 'Quotations', icon: MessageSquare },
+    { id: 'payments', label: 'Payments', icon: Wallet },
+    { id: 'profile', label: 'Account Profile', icon: UserRound },
+    { id: 'book', label: 'Pending Bookings', icon: Calendar },
+    { id: 'track', label: 'Live Build Tracking', icon: Compass },
+    { id: 'chat', label: 'Chat Support', icon: MessageSquare },
   ];
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export default function DashboardShell({
       if (!client) return;
       loading = true;
       try {
-      const response = await fetch(`${getApiUrl()}/notifications?user_id=${client.id}`, { signal: controller.signal });
+      const response = await apiFetch(`${getApiUrl()}/notifications?user_id=${client.id}`, { signal: controller.signal });
       if (!response.ok) return;
       const result: { success?: boolean; notifications?: Array<{ id: number; title: string; message: string; is_read: boolean | number }> } = await response.json();
       if (controller.signal.aborted || result?.success === false || !Array.isArray(result?.notifications)) return;
@@ -70,7 +74,7 @@ export default function DashboardShell({
   const dismissRejectionAlert = useCallback(async (notificationId: number) => {
     dismissedAlertIds.current.add(notificationId);
     setBookingAlert(current => current?.id === notificationId ? null : current);
-    await fetch(`${getApiUrl()}/notifications/${notificationId}/read`, { method: 'PUT' }).catch(() => undefined);
+    await apiFetch(`${getApiUrl()}/notifications/${notificationId}/read`, { method: 'PUT' }).catch(() => undefined);
   }, []);
 
   const bookingAlertId = bookingAlert?.id;
@@ -88,128 +92,17 @@ export default function DashboardShell({
     }
   };
 
-  return (
-    <div className={`w-full ${activeTab === 'chat' ? 'h-dvh overflow-hidden' : 'min-h-screen'} bg-slate-100 flex flex-col md:flex-row font-sans text-slate-800`}>
-      {bookingAlert && (
-        <div role="alert" className={`fixed left-1/2 top-4 z-[100] flex w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 items-start gap-3 rounded-2xl border p-4 shadow-xl ${bookingAlert.title === 'Booking Accepted' ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-current" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-black uppercase tracking-wider">{bookingAlert.title}</p>
-            <p className="mt-1 text-xs leading-relaxed">{bookingAlert.message}</p>
-          </div>
-        </div>
-      )}
-      
-      {/* 1. DESKTOP SIDEBAR NAVIGATION */}
-      <aside 
-        onMouseEnter={() => setIsCollapsed(false)}
-        onMouseLeave={() => setIsCollapsed(true)}
-        className={`hidden md:flex sticky top-0 h-dvh self-start overflow-hidden bg-[#0070c0] text-white flex-col justify-between p-4 shadow-xl shrink-0 z-40 transition-all duration-300 ease-in-out ${
-          isCollapsed ? 'w-20' : 'w-64'
-        }`}
-      >
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden space-y-8 pb-4">
-          <div className={`flex items-center space-x-3 py-4 border-b border-blue-600/30 transition-all duration-200 ${isCollapsed ? 'justify-center px-0' : 'px-2'}`}>
-            <div className="w-9 h-9 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center font-serif font-black border border-white/20 shrink-0">
-              M
-            </div>
-            {!isCollapsed && (
-              <div className="animate-in fade-in zoom-in-95 duration-200 object-contain overflow-hidden whitespace-nowrap">
-                <h1 className="text-sm font-serif font-black tracking-widest">MARC CUSTOM</h1>
-                <p className="text-[9px] uppercase tracking-wider text-blue-200">Interior Systems</p>
-              </div>
-            )}
-          </div>
-
-          <nav className="space-y-1">
-            {tabs.map((tab) => {
-              const IconComponent = tab.icon;
-              const isSelected = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  title={isCollapsed ? tab.desktopLabel : undefined}
-                  className={`w-full flex items-center rounded-xl text-xs font-bold tracking-wide transition-all duration-200 cursor-pointer border-none ${
-                    isCollapsed ? 'justify-center p-3.5' : 'space-x-3 px-4 py-3'
-                  } ${
-                    isSelected 
-                      ? 'bg-white text-[#0070c0] shadow-md font-black scale-[1.02]' 
-                      : 'text-blue-100/80 hover:bg-white/10 hover:text-white bg-transparent'
-                  }`}
-                >
-                  <IconComponent className={`w-4 h-4 shrink-0 ${isSelected ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-                  {!isCollapsed && (
-                    <span className="animate-in fade-in duration-200 whitespace-nowrap">{tab.desktopLabel}</span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className={`shrink-0 py-3 border-t border-blue-600/30 transition-all duration-200 flex flex-col items-center ${isCollapsed ? 'px-0' : 'px-2 items-start'}`}>
-          {!isCollapsed && (
-            <button 
-              onClick={() => setActiveTab('profile')}
-              className="mb-3 text-left w-full px-1 bg-transparent border-none cursor-pointer group hover:opacity-80 transition"
-            >
-              <p className="text-[9px] uppercase text-blue-200 tracking-wider font-bold">Logged In As</p>
-              <p className="text-xs font-bold text-white truncate max-w-[180px] group-hover:underline">{userName}</p>
-            </button>
-          )}
-
-          <button
-            onClick={handleLogoutClick}
-            aria-label="Log Out"
-            title={isCollapsed ? 'Log Out' : undefined}
-            className={`w-full flex items-center rounded-xl text-xs font-bold tracking-wide transition-all duration-200 cursor-pointer border-none text-blue-100/80 hover:bg-red-500/20 hover:text-white bg-transparent mb-2 ${
-              isCollapsed ? 'justify-center p-3.5' : 'space-x-3 px-3 py-2.5'
-            }`}
-          >
-            <LogOut className="w-4 h-4 shrink-0 stroke-[1.8]" />
-            {!isCollapsed && (
-              <span className="animate-in fade-in duration-200 whitespace-nowrap">Log Out</span>
-            )}
-          </button>
-
-          <p className="text-[9px] text-blue-200/60 tracking-wider font-mono w-full text-center mt-1">
-            {isCollapsed ? '©26' : '© 2026 MARC CUSTOM DESIGNS'}
-          </p>
-        </div>
-      </aside>
-
-      {/* 2. MAIN CONTENT AREA */}
-      <main data-dashboard-content className={`flex-1 min-w-0 ${activeTab === 'chat' ? 'h-full min-h-0 overflow-hidden' : 'overflow-y-auto'} bg-slate-50 relative p-3 sm:p-4 md:p-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8 w-full max-w-7xl mx-auto`}>
-        {React.Children.map(children, child => {
-          if (React.isValidElement(child)) {
-            return React.cloneElement(child, { userName, setActiveTab } as { userName: string; setActiveTab: (tab: string) => void });
-          }
-          return child;
-        })}
-      </main>
-
-      {/* 3. MOBILE ONLY: BOTTOM NAVIGATION BAR */}
-      <div data-mobile-navigation className="md:hidden fixed bottom-0 left-0 right-0 max-h-dvh overflow-auto overscroll-contain bg-[#0070c0] border-t border-blue-600/30 px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] grid grid-cols-5 items-center z-50 shadow-lg">
-        {tabs.map((tab) => {
-          const IconComponent = tab.icon;
-          const isSelected = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              aria-label={tab.desktopLabel}
-              className={`min-w-0 min-h-11 flex flex-col items-center justify-center transition-all px-1 py-1 rounded-xl cursor-pointer border-none bg-transparent ${
-                isSelected ? 'text-white scale-105 font-black' : 'text-blue-100/70'
-              }`}
-            >
-              <IconComponent className={`w-4 h-4 ${isSelected ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
-              <span className="text-[7px] sm:text-[8px] leading-tight tracking-normal sm:tracking-wider mt-1 uppercase font-bold text-center break-words">{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-    </div>
-  );
+  return <div className={'marc-dashboard-shell ' + (activeTab === 'chat' ? 'marc-chat-shell' : '')}>
+    {bookingAlert && <div role="alert" className="marc-booking-alert"><AlertCircle size={20} /><div><strong>{bookingAlert.title}</strong><p>{bookingAlert.message}</p></div><button aria-label="Dismiss notification" onClick={() => void dismissRejectionAlert(bookingAlert.id)}>Close</button></div>}
+    <aside id="marc-client-sidebar" className="marc-sidebar" data-expanded={sidebarExpanded} onMouseEnter={()=>setSidebarExpanded(true)} onMouseLeave={()=>setSidebarExpanded(false)} onFocusCapture={()=>setSidebarExpanded(true)} onBlurCapture={event=>{if(!event.currentTarget.contains(event.relatedTarget))setSidebarExpanded(false);}}>
+      <button type="button" className="marc-sidebar-handle" aria-label={sidebarExpanded?'Close client navigation':'Open client navigation'} aria-expanded={sidebarExpanded} aria-controls="marc-client-navigation" onClick={()=>setSidebarExpanded(value=>!value)}><Menu size={21}/></button>
+      <button className="marc-sidebar-brand" aria-label="Dashboard home" onClick={() => setActiveTab('home')}><MarcBrand light /></button>
+      <nav id="marc-client-navigation" aria-label="Client navigation">{tabs.map(({ id, label, icon: Icon }) => <button aria-label={label} title={label} key={id} aria-current={activeTab === id ? 'page' : undefined} onClick={() => setActiveTab(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
+      <div className="marc-sidebar-footer"><button onClick={() => setActiveTab('profile')}><small>LOGGED IN AS</small><span>{userName}</span></button><button onClick={handleLogoutClick}><LogOut size={14} />Log Out</button></div>
+    </aside>
+    <main data-dashboard-content className={'marc-dashboard-main ' + (activeTab === 'chat' ? 'marc-chat-main' : '')}>
+      {React.Children.map(children, child => React.isValidElement(child) ? React.cloneElement(child, { userName, setActiveTab } as { userName: string; setActiveTab: (tab: string) => void }) : child)}
+    </main>
+    <nav data-mobile-navigation className="marc-mobile-nav" aria-label="Mobile client navigation">{tabs.filter(tab=>['home','book','track','chat'].includes(tab.id)).map(({ id, label, icon: Icon }) => <button key={id} aria-current={activeTab === id ? 'page' : undefined} onClick={() => setActiveTab(id)}><Icon size={20} /><span>{label}</span></button>)}<button onClick={() => setActiveTab('profile')}><span>Account</span></button></nav>
+  </div>;
 }

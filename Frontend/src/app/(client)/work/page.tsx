@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Layers, Eye, X } from 'lucide-react';
-import { getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl } from '@/lib/api';
 
 interface PortfolioItem {
   id: number;
@@ -20,7 +20,7 @@ export default function Work() {
   const [loadError, setLoadError] = useState('');
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
-  
+
   // Track the active image item for the fullscreen preview modal
   const [activePreviewItem, setActivePreviewItem] = useState<PortfolioItem | null>(null);
 
@@ -70,7 +70,7 @@ export default function Work() {
       if (loading || controller.signal.aborted) return;
       loading = true;
       try {
-        const response = await fetch(`${getApiUrl()}/portfolio`, { signal: controller.signal, cache: 'no-store' });
+        const response = await apiFetch(`${getApiUrl()}/portfolio`, { signal: controller.signal, cache: 'no-store' });
         const result = await response.json().catch(() => null);
         if (!response.ok) throw new Error(result?.message || 'Unable to load the inspiration portfolio.');
         if (!Array.isArray(result)) throw new Error('The portfolio server returned an invalid response.');
@@ -107,17 +107,17 @@ export default function Work() {
   const categories = ['All', 'Cafe & Dining', 'Bar & Lounge', 'Office'];
   const moreCategories = ['Reception', 'Product Display', 'Showroom'];
 
-  const filteredItems = selectedCategory === 'All' 
-    ? portfolioItems 
+  const filteredItems = selectedCategory === 'All'
+    ? portfolioItems
     : portfolioItems.filter(item => item.category.replace(/\s+and\s+/gi, ' & ') === selectedCategory);
 
   return (
     <div className="p-0 sm:p-4 space-y-4 animate-fadeIn">
-      <div className="flex items-center space-x-2 text-xs font-bold tracking-wider text-slate-400">
-        <Layers className="w-4 h-4 text-blue-500" />
+      <div className="flex items-center space-x-2 text-xs font-bold tracking-wider text-stone-400">
+        <Layers className="w-4 h-4 text-brand-500" />
         <span>OUR INSPIRATIONS</span>
       </div>
-      
+
       {/* Category Horizontal Filter Tags */}
       <div className="relative flex flex-nowrap items-center gap-1 pb-1 sm:gap-2">
         {categories.map((cat) => (
@@ -125,20 +125,20 @@ export default function Work() {
             key={cat}
             onClick={() => setSelectedCategory(cat)}
             className={`min-w-0 shrink px-1.5 py-1.5 sm:px-4 rounded-full text-[9px] sm:text-xs font-semibold whitespace-nowrap transition-all ${
-              selectedCategory === cat 
-                ? 'bg-[#0070c0] text-white' 
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              selectedCategory === cat
+                ? 'bg-marc-charcoal text-white'
+                : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'
             }`}
           >
             {cat}
           </button>
         ))}
         <div className="shrink-0 sm:relative">
-          <button type="button" aria-expanded={moreOpen} aria-controls="more-categories" onClick={() => setMoreOpen(open => !open)} className={`px-1.5 py-1.5 sm:px-4 rounded-full text-[9px] sm:text-xs font-semibold whitespace-nowrap border ${moreCategories.includes(selectedCategory) ? 'bg-[#0070c0] text-white' : 'bg-white border-slate-200 text-slate-600'}`}>More <span aria-hidden="true">&#9662;</span></button>
+          <button type="button" aria-expanded={moreOpen} aria-controls="more-categories" onClick={() => setMoreOpen(open => !open)} className={`px-1.5 py-1.5 sm:px-4 rounded-full text-[9px] sm:text-xs font-semibold whitespace-nowrap border ${moreCategories.includes(selectedCategory) ? 'bg-marc-charcoal text-white' : 'bg-white border-stone-200 text-stone-600'}`}>More <span aria-hidden="true">&#9662;</span></button>
           {moreOpen && <>
             <button type="button" aria-label="Close more categories" className="fixed inset-0 z-10 cursor-default" onClick={() => setMoreOpen(false)} />
-            <div id="more-categories" className="absolute left-0 right-0 top-full z-20 mt-2 sm:left-auto sm:w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-lg" onKeyDown={event => { if (event.key === 'Escape') setMoreOpen(false); }}>
-              {moreCategories.map(category => <button key={category} type="button" aria-pressed={selectedCategory === category} onClick={() => { setSelectedCategory(category); setMoreOpen(false); }} className={`block min-h-11 w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-blue-50 ${selectedCategory === category ? 'bg-blue-50 text-blue-700' : 'text-slate-600'}`}>{category}</button>)}
+            <div id="more-categories" className="absolute left-0 right-0 top-full z-20 mt-2 sm:left-auto sm:w-64 rounded-xl border border-stone-200 bg-white p-2 shadow-lg" onKeyDown={event => { if (event.key === 'Escape') setMoreOpen(false); }}>
+              {moreCategories.map(category => <button key={category} type="button" aria-pressed={selectedCategory === category} onClick={() => { setSelectedCategory(category); setMoreOpen(false); }} className={`block min-h-11 w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-brand-50 ${selectedCategory === category ? 'bg-brand-50 text-brand-700' : 'text-stone-600'}`}>{category}</button>)}
             </div>
           </>}
         </div>
@@ -147,7 +147,7 @@ export default function Work() {
       {/* Grid Portfolio Feed */}
       <div className="space-y-4">
         {isLoading && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
+          <div className="rounded-2xl border border-stone-200 bg-white p-8 text-center text-xs text-stone-400">
             Loading inspirations...
           </div>
         )}
@@ -157,10 +157,10 @@ export default function Work() {
             <button type="button" onClick={() => setLoadAttempt(value => value + 1)} className="ml-3 underline">Retry</button>
           </div>
         )}
-        {!isLoading && !loadError && filteredItems.length === 0 && <p role="status" className="p-8 text-center text-xs text-slate-400">No inspirations published yet.</p>}
+        {!isLoading && !loadError && filteredItems.length === 0 && <p role="status" className="p-8 text-center text-xs text-stone-400">No inspirations published yet.</p>}
         {filteredItems.map((item) => (
-          <div key={item.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm group">
-            <div className="relative block w-full h-48 bg-slate-100 overflow-hidden text-left">
+          <div key={item.id} className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm group">
+            <div className="relative block w-full h-48 bg-stone-100 overflow-hidden text-left">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {item.image && !failedImages.has(item.id) ? <img
                 src={item.image}
@@ -168,21 +168,21 @@ export default function Work() {
                 loading="lazy"
                 onError={() => setFailedImages(current => new Set(current).add(item.id))}
                 className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-              /> : <div className="flex h-full items-center justify-center text-xs text-slate-500">Image unavailable</div>}
-              <span className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm text-white font-bold text-[9px] tracking-widest px-2 py-0.5 rounded">
+              /> : <div className="flex h-full items-center justify-center text-xs text-stone-500">Image unavailable</div>}
+              <span className="absolute top-3 left-3 bg-stone-900/80 backdrop-blur-sm text-white font-bold text-[9px] tracking-widest px-2 py-0.5 rounded">
                 {item.category.toUpperCase()}
               </span>
             </div>
             <div className="p-4 flex justify-between items-start gap-4">
               <div className="space-y-1">
-                <h4 className="text-xs font-bold text-slate-800">{item.title}</h4>
-                <p className="text-[11px] leading-relaxed text-slate-500">{item.description}</p>
+                <h4 className="text-xs font-bold text-stone-800">{item.title}</h4>
+                <p className="text-[11px] leading-relaxed text-stone-500">{item.description}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setActivePreviewItem(item)}
                 disabled={!item.image || failedImages.has(item.id)}
-                className="text-blue-500 hover:text-blue-600 transition p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer"
+                className="text-brand-500 hover:text-brand-600 transition p-1.5 hover:bg-stone-50 rounded-lg cursor-pointer"
                 aria-label={`Open preview for ${item.title}`}
               >
                 <Eye className="w-4 h-4" />
@@ -197,16 +197,16 @@ export default function Work() {
         <div
           role="presentation"
           onClick={() => setActivePreviewItem(null)}
-          className="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-200"
+          className="fixed inset-0 bg-stone-950 z-[100] flex flex-col items-center p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-200"
         >
           {/* Top Menu Actions Panel */}
           <div onClick={(event) => event.stopPropagation()} className="w-full max-w-4xl shrink-0 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 mt-auto mb-3 text-white">
             <div className="contents">
-              <span className="justify-self-start text-[10px] font-bold uppercase tracking-widest text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+              <span className="justify-self-start text-[10px] font-bold uppercase tracking-widest text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded">
                 {activePreviewItem.category}
               </span>
               <h3 className="col-start-1 row-start-2 min-w-0 break-words text-sm font-bold tracking-tight">{activePreviewItem.title}</h3>
-              <p className="col-start-1 row-start-3 max-w-2xl text-xs leading-relaxed text-slate-300">{activePreviewItem.description}</p>
+              <p className="col-start-1 row-start-3 max-w-2xl text-xs leading-relaxed text-stone-300">{activePreviewItem.description}</p>
             </div>
             <button
               type="button"
@@ -224,12 +224,12 @@ export default function Work() {
             aria-modal="true"
             aria-label={activePreviewItem.title}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-4xl shrink-0 mb-auto max-h-[75vh] rounded-2xl overflow-hidden bg-slate-900 shadow-2xl border border-white/10 flex items-center justify-center animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-4xl shrink-0 mb-auto max-h-[75vh] rounded-2xl overflow-hidden bg-stone-900 shadow-2xl border border-white/10 flex items-center justify-center animate-in zoom-in-95 duration-200"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src={activePreviewItem.image} 
-              alt={activePreviewItem.title} 
+            <img
+              src={activePreviewItem.image}
+              alt={activePreviewItem.title}
               className="w-full h-auto max-h-[75vh] object-contain"
             />
           </div>

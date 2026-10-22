@@ -13,6 +13,8 @@ const query = (sql, values = []) => new Promise((resolve, reject) => db.query(sq
 
 test('GCash QR: ownership, duplicate billing, references, receipts and disabled checkout', async () => {
   let server;
+  const originalDatabase=db.config.database;
+  const testDatabase='mcidbms_security_test_'+process.pid+'_'+Date.now();
   const sessions = new Map(); let creates = 0;
   provider.request = async (path, options) => {
     if (options?.method === 'POST') {
@@ -26,13 +28,20 @@ test('GCash QR: ownership, duplicate billing, references, receipts and disabled 
     return sessions.get(path.split('/').at(-1));
   };
   try {
-    for (const sql of require('../migrations/gcash')) await query(sql.replace('CREATE TABLE IF NOT EXISTS', 'CREATE TEMPORARY TABLE'));
-    await query('CREATE TEMPORARY TABLE users (id INT PRIMARY KEY, fullname VARCHAR(100), role VARCHAR(20), password VARCHAR(255))');
-    await query('CREATE TEMPORARY TABLE bookings (id INT PRIMARY KEY, user_id INT, service_type VARCHAR(100), status VARCHAR(30), accepted_at DATETIME, estimate JSON NULL)');
-    await query('CREATE TEMPORARY TABLE payments (id INT, booking_id INT, amount DECIMAL(10,2), reference_number VARCHAR(100), payment_status VARCHAR(30), created_at DATETIME)');
+    await query('CREATE DATABASE '+testDatabase);
+    await query('USE '+testDatabase);db.config.database=testDatabase;
+    for (const sql of require('../migrations/gcash')) await query(sql.replace('CREATE TABLE IF NOT EXISTS', 'CREATE TABLE'));
+    await query('CREATE TABLE users (id INT PRIMARY KEY, fullname VARCHAR(100), role VARCHAR(20), password VARCHAR(255))');
+    await query('CREATE TABLE bookings (id INT PRIMARY KEY, user_id INT, service_type VARCHAR(100), status VARCHAR(30), accepted_at DATETIME, estimate JSON NULL)');
+    await query('CREATE TABLE payments (id INT, booking_id INT, amount DECIMAL(10,2), reference_number VARCHAR(100), payment_status VARCHAR(30), created_at DATETIME)');
     await query("INSERT INTO users VALUES (1,'Test Admin','admin','ADMIN_ENV_AUTH'),(2,'Test Client','client','unused'),(3,'Other Client','client','unused')");
     await query("INSERT INTO bookings (id,user_id,service_type,status,accepted_at) VALUES (1,2,'Kitchen','Approved',NOW()),(2,3,'Bedroom','Approved',NOW()),(3,2,'Office','Pending',NULL)");
-    const app = express(); app.use(express.json()); app.use('/payment', require('../routes/paymentRoutes'));
+    await require('../migrations/paymentSecurity')(query);
+    await require('../migrations/paymentSecurity')(query);
+    await require('../migrations/quotations')(query);
+    await require('../migrations/projectMessaging')(query);
+    await query("INSERT INTO quotations (booking_id,revision,status,items,total,deposit,note,created_by) VALUES (1,1,'Accepted','[]',201,100.50,'Fixture quote',1)");
+    const app = express(); app.use(express.json()); app.use('/payment', require('../routes/paymentRoutes'));app.use('/booking',require('../routes/bookingRoutes'));
     server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
     const base = `http://127.0.0.1:${server.address().port}/payment`;
     const admin = { id: 1, role: 'admin' }, client = { id: 2, role: 'client' }, other = { id: 3, role: 'client' };
@@ -71,5 +80,27 @@ test('GCash QR: ownership, duplicate billing, references, receipts and disabled 
     assert.equal((await call('/' + id + '/review', admin, 'PUT', { decision: 'Paid', confirmed: true })).status, 200);
     assert.equal((await call('', client)).data.payments[0].status, 'Paid');
     assert.equal((await call('/settings', admin)).data.provider, 'Manual');
-  } finally { if (server) await new Promise(resolve => server.close(resolve)); db.destroy(); }
+    for (const [method,body] of [['DELETE',undefined],['PUT',{status:'Cancelled'}]]) {
+      const response=await fetch(base.replace('/payment','/booking/1'),{method,headers:{Authorization:'Bearer '+issueAccessToken(admin),'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+      assert.equal(response.status,409);
+    }
+    const history=await call('/'+id+'/history',client);
+    assert.deepEqual(history.data.history.map(item=>item.event),['request_created','receipt_submitted','payment_confirmed']);
+    assert.equal((await call('/'+id+'/history',other)).status,404);
+    assert.equal((await call('/'+id+'/proof',other)).status,404);
+    assert.equal((await call('/'+id+'/review',admin,'PUT',{decision:'Paid',confirmed:true})).status,409);
+    assert.equal((await call('',admin,'POST',invoice)).status,201);
+    const second=(await call('',client)).data.payments.find(row=>row.status==='Awaiting payment');
+    const duplicateBody=new FormData();duplicateBody.append('reference_number','9999999999999');duplicateBody.append('proof',new Blob([Buffer.from([137,80,78,71,13,10,26,10])],{type:'image/png'}),'receipt.png');
+    assert.equal((await fetch(base+'/'+second.id+'/proof',{method:'POST',headers:{Authorization:'Bearer '+issueAccessToken(client)},body:duplicateBody})).status,409);
+    // A failed audit insert rolls back the payment mutation too.
+    await query('RENAME TABLE payment_audit TO unavailable_audit');
+    assert.equal((await call('/'+second.id+'/cancel',admin,'PUT',{note:'Fixture cancellation'})).status,503);
+    assert.equal((await query('SELECT status FROM gcash_requests WHERE id=?',[second.id]))[0].status,'Awaiting payment');
+    await query('RENAME TABLE unavailable_audit TO payment_audit');
+    assert.equal((await call('/'+second.id+'/cancel',admin,'PUT',{note:'Fixture cancellation'})).status,200);
+    assert.equal((await call('/settings',admin,'PUT',{account_name:'Fixture Merchant',account_number:'09123456789',qr_image:'/designs/gcash qr.jpg'})).status,200);
+    assert.equal((await call('/settings',admin)).data.settings.qr_image,'/designs/gcash qr.jpg');
+    assert.equal((await call('',client)).data.payments.find(row=>row.id===id).qr_image,'/api/portfolio/images/fixture.png');
+  } finally { if (server) await new Promise(resolve => server.close(resolve)); db.config.database=originalDatabase;await query('USE '+originalDatabase);await query('DROP DATABASE IF EXISTS '+testDatabase);db.destroy(); }
 });

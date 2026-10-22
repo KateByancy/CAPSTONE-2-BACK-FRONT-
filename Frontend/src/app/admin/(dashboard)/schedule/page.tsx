@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, MapPin, User, Trash2 } from 'lucide-react';
-import { getApiUrl } from '@/lib/api';
+import { apiFetch, getApiUrl } from '@/lib/api';
 import Link from 'next/link';
 
 interface Timeblock {
@@ -28,7 +28,7 @@ export default function ScheduleManagement() {
 
   useEffect(() => {
     const loadSchedules = async () => {
-      const response = await fetch(`${getApiUrl()}/schedule`);
+      const response = await apiFetch(`${getApiUrl()}/schedule`);
       const schedules: Array<{ id: number; visit_date: string; service_type: string; client_name: string; client_address?: string }> = await response.json();
       if (!response.ok) throw new Error('Unable to load schedules.');
       const blocks = schedules.map((schedule): Timeblock => ({
@@ -76,7 +76,7 @@ export default function ScheduleManagement() {
   };
 
   const handleDeleteBlock = async (id: string) => {
-    const response = await fetch(`${getApiUrl()}/schedule/${id}`, { method: 'DELETE' });
+    const response = await apiFetch(`${getApiUrl()}/schedule/${id}`, { method: 'DELETE' });
     if (response.ok) setTimeblocks(timeblocks.filter(block => block.id !== id));
   };
 
@@ -90,7 +90,7 @@ export default function ScheduleManagement() {
     <div className="w-full max-w-5xl lg:max-w-[896px] mx-auto space-y-5 lg:space-y-[18px] pb-12 px-2 sm:px-4 lg:px-0">
       
       {/* 1. TOP BLUE HEADER BANNER */}
-      <div className="bg-[#0070c0] text-white rounded-2xl p-4 sm:p-5 lg:px-[18px] lg:py-4 lg:min-h-20 shadow-md grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 md:gap-x-3 gap-y-1">
+      <div className="bg-marc-charcoal text-white rounded-2xl p-4 sm:p-5 lg:px-[18px] lg:py-4 lg:min-h-20 shadow-md grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 md:gap-x-3 gap-y-1">
         <div className="min-w-0 col-start-1 row-start-1">
           {/* Dynamic Month & Year Selection Header */}
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
@@ -98,10 +98,10 @@ export default function ScheduleManagement() {
               aria-label="Month"
               value={month} 
               onChange={handleMonthChange}
-              className="min-w-0 max-w-full bg-transparent text-sm sm:text-2xl font-bold font-serif text-white outline-none cursor-pointer border-b border-blue-300/40 hover:border-white transition"
+              className="min-w-0 max-w-full bg-transparent text-sm sm:text-2xl font-bold font-serif text-white outline-none cursor-pointer border-b border-brand-300/40 hover:border-white transition"
             >
               {monthNames.map((name, idx) => (
-                <option key={name} value={idx} className="text-slate-900 bg-white">{name}</option>
+                <option key={name} value={idx} className="text-stone-900 bg-white">{name}</option>
               ))}
             </select>
 
@@ -109,15 +109,15 @@ export default function ScheduleManagement() {
               aria-label="Year"
               value={year} 
               onChange={handleYearChange}
-              className="shrink-0 bg-transparent text-sm sm:text-2xl font-bold font-serif text-white outline-none cursor-pointer border-b border-blue-300/40 hover:border-white transition"
+              className="shrink-0 bg-transparent text-sm sm:text-2xl font-bold font-serif text-white outline-none cursor-pointer border-b border-brand-300/40 hover:border-white transition"
             >
               {yearsList.map((y) => (
-                <option key={y} value={y} className="text-slate-900 bg-white">{y}</option>
+                <option key={y} value={y} className="text-stone-900 bg-white">{y}</option>
               ))}
             </select>
           </div>
         </div>
-          <p className="col-start-1 row-start-2 col-span-2 md:col-span-1 text-[9px] sm:text-xs uppercase font-bold tracking-wide sm:tracking-widest text-blue-100 opacity-90">
+          <p className="col-start-1 row-start-2 col-span-2 md:col-span-1 text-[9px] sm:text-xs uppercase font-bold tracking-wide sm:tracking-widest text-brand-100 opacity-90">
             Client Booking Schedule
           </p>
 
@@ -148,26 +148,26 @@ export default function ScheduleManagement() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2.06fr)_minmax(0,1fr)] gap-5 lg:gap-[18px]">
         
         {/* CALENDAR CONTAINER */}
-        <div className="min-w-0 bg-white rounded-3xl lg:rounded-[22px] border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
+        <div className="min-w-0 bg-white rounded-3xl lg:rounded-[22px] border border-stone-200/80 shadow-sm overflow-hidden flex flex-col">
           
           {/* DAY NAMES ROW */}
-          <div className="grid grid-cols-7 text-center bg-slate-50 border-b border-slate-200/80 py-2.5">
+          <div className="grid grid-cols-7 text-center bg-stone-50 border-b border-stone-200/80 py-2.5">
             {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
-              <span key={day} className="text-[10px] sm:text-xs font-bold uppercase text-slate-500 font-serif tracking-wider">
+              <span key={day} className="text-[10px] sm:text-xs font-bold uppercase text-stone-500 font-serif tracking-wider">
                 {day}
               </span>
             ))}
           </div>
 
           {/* CALENDAR CELLS GRID */}
-          <div className="grid grid-cols-7 auto-rows-fr lg:auto-rows-[77px] flex-1 divide-x divide-y divide-slate-100 bg-slate-100">
+          <div className="grid grid-cols-7 auto-rows-fr lg:auto-rows-[77px] flex-1 divide-x divide-y divide-stone-100 bg-stone-100">
             
             {/* 1. Previous Month Overflow Days */}
             {Array.from({ length: firstDayIndex }).map((_, idx) => {
               const prevDayNum = prevMonthDays - firstDayIndex + idx + 1;
               return (
-                <div key={`prev-${idx}`} className="bg-slate-50/60 p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] lg:min-h-0 flex flex-col justify-between">
-                  <span className="text-[11px] font-medium text-slate-400 font-mono">{prevDayNum}</span>
+                <div key={`prev-${idx}`} className="bg-stone-50/60 p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] lg:min-h-0 flex flex-col justify-between">
+                  <span className="text-[11px] font-medium text-stone-400 font-mono">{prevDayNum}</span>
                 </div>
               );
             })}
@@ -184,15 +184,15 @@ export default function ScheduleManagement() {
                   key={`day-${dayNum}`}
                   onClick={() => setSelectedDateStr(loopDateStr)}
                   className={`p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] lg:min-h-0 flex flex-col justify-between transition relative cursor-pointer group ${
-                    isSelected ? 'bg-blue-50/60 ring-2 ring-inset ring-[#0070c0]' : 'bg-white hover:bg-slate-50'
+                    isSelected ? 'bg-brand-50/60 ring-2 ring-inset ring-brand-600' : 'bg-white hover:bg-stone-50'
                   }`}
                 >
                   <div className="flex justify-between items-center">
-                    <span className={`text-xs font-bold font-mono ${isSelected ? 'text-[#0070c0]' : 'text-slate-800'}`}>
+                    <span className={`text-xs font-bold font-mono ${isSelected ? 'text-brand-600' : 'text-stone-800'}`}>
                       {dayNum}
                     </span>
                     {dayEvents.length > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0070c0] sm:hidden" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-marc-charcoal sm:hidden" />
                     )}
                   </div>
 
@@ -201,14 +201,14 @@ export default function ScheduleManagement() {
                     {dayEvents.slice(0, 2).map((evt) => (
                       <div 
                         key={evt.id} 
-                        className="hidden sm:block text-[9px] font-bold bg-[#f0f6fc] text-[#0070c0] px-1.5 py-0.5 rounded border border-blue-100 truncate"
+                        className="hidden sm:block text-[9px] font-bold bg-marc-panel text-brand-600 px-1.5 py-0.5 rounded border border-brand-100 truncate"
                         title={`${evt.clientName} - ${evt.title}`}
                       >
-                        <span className="font-extrabold text-slate-800">{evt.clientName}:</span> {evt.title}
+                        <span className="font-extrabold text-stone-800">{evt.clientName}:</span> {evt.title}
                       </div>
                     ))}
                     {dayEvents.length > 2 && (
-                      <span className="hidden sm:block text-[8px] font-bold text-slate-400 pl-0.5">
+                      <span className="hidden sm:block text-[8px] font-bold text-stone-400 pl-0.5">
                         +{dayEvents.length - 2} more
                       </span>
                     )}
@@ -219,59 +219,59 @@ export default function ScheduleManagement() {
 
             {/* 3. Next Month Overflow Days */}
             {Array.from({ length: (7 - ((firstDayIndex + daysInMonth) % 7)) % 7 }).map((_, idx) => (
-              <div key={`next-${idx}`} className="bg-slate-50/60 p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] lg:min-h-0 flex flex-col justify-between">
-                <span className="text-[11px] font-medium text-slate-400 font-mono">{idx + 1}</span>
+              <div key={`next-${idx}`} className="bg-stone-50/60 p-1.5 sm:p-2 min-h-[65px] sm:min-h-[85px] lg:min-h-0 flex flex-col justify-between">
+                <span className="text-[11px] font-medium text-stone-400 font-mono">{idx + 1}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* TIMELINE SIDE PANEL */}
-        <div className="min-w-0 bg-white rounded-3xl lg:rounded-[22px] border border-slate-200/80 p-5 lg:p-[18px] shadow-sm flex flex-col h-full space-y-4">
+        <div className="min-w-0 bg-white rounded-3xl lg:rounded-[22px] border border-stone-200/80 p-5 lg:p-[18px] shadow-sm flex flex-col h-full space-y-4">
           <div>
-            <h3 className="text-sm font-bold tracking-wider uppercase text-slate-900 font-serif">Scheduled Makeovers</h3>
-            <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mt-0.5">
-              Selected Date: <span className="text-[#0070c0] font-bold">{selectedDateStr}</span>
+            <h3 className="text-sm font-bold tracking-wider uppercase text-stone-900 font-serif">Scheduled Makeovers</h3>
+            <p className="text-[10px] font-mono text-stone-400 uppercase tracking-widest mt-0.5">
+              Selected Date: <span className="text-brand-600 font-bold">{selectedDateStr}</span>
             </p>
           </div>
 
           <div className="space-y-3 flex-1 overflow-y-auto max-h-[380px] pr-1">
             {activeTimelineBlocks.length > 0 ? (
               activeTimelineBlocks.map((block) => (
-                <div key={block.id} className="p-3.5 bg-[#f0f6fc]/80 border border-blue-100 rounded-2xl text-xs space-y-2 relative group transition hover:bg-[#f0f6fc]">
+                <div key={block.id} className="p-3.5 bg-marc-panel/80 border border-brand-100 rounded-2xl text-xs space-y-2 relative group transition hover:bg-marc-panel">
                   <button 
                     onClick={() => handleDeleteBlock(block.id)}
-                    className="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition border-none bg-transparent cursor-pointer p-1"
+                    className="absolute top-3 right-3 text-stone-400 hover:text-red-500 transition border-none bg-transparent cursor-pointer p-1"
                     title="Remove Schedule"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
 
-                  <div className="flex items-center space-x-1.5 font-bold text-[#0070c0]">
+                  <div className="flex items-center space-x-1.5 font-bold text-brand-600">
                     <Clock className="w-3.5 h-3.5" /> 
                     <span>{block.timeStart} - {block.timeEnd}</span>
                   </div>
 
                   {/* Client Name Display */}
-                  <div className="flex items-center space-x-1.5 text-slate-900 font-bold bg-white/80 p-1.5 rounded-lg border border-blue-100/60">
-                    <User className="w-3.5 h-3.5 text-[#0070c0]" />
+                  <div className="flex items-center space-x-1.5 text-stone-900 font-bold bg-white/80 p-1.5 rounded-lg border border-brand-100/60">
+                    <User className="w-3.5 h-3.5 text-brand-600" />
                     <span className="text-xs">{block.clientName}</span>
                   </div>
 
-                  <p className="font-semibold text-slate-700 pr-5 leading-snug">{block.title}</p>
+                  <p className="font-semibold text-stone-700 pr-5 leading-snug">{block.title}</p>
                   
-                  <div className="flex items-center space-x-1 text-[10px] text-slate-500 font-medium pt-0.5">
-                    <MapPin className="w-3 h-3 text-slate-400" />
+                  <div className="flex items-center space-x-1 text-[10px] text-stone-500 font-medium pt-0.5">
+                    <MapPin className="w-3 h-3 text-stone-400" />
                     <span>{block.location}</span>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="h-48 lg:h-44 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-center p-4 space-y-2">
-                <CalendarIcon className="w-8 h-8 text-slate-300" />
+              <div className="h-48 lg:h-44 border border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center text-center p-4 space-y-2">
+                <CalendarIcon className="w-8 h-8 text-stone-300" />
                 <div>
-                  <p className="text-xs text-slate-500 font-bold">No Makeover Bookings</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Client bookings for this date will automatically appear here.</p>
+                  <p className="text-xs text-stone-500 font-bold">No Makeover Bookings</p>
+                  <p className="text-[10px] text-stone-400 mt-0.5">Client bookings for this date will automatically appear here.</p>
                 </div>
               </div>
             )}

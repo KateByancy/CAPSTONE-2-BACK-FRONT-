@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+router.use(...require("../middeware/projectAccess")("notifications"));
 
 const {
     getNotifications,
