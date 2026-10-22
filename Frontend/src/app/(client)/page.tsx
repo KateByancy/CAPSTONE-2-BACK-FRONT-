@@ -127,9 +127,8 @@ export default function ClientMasterController() {
   const renderActiveTabContent = () => {
     switch (activeTab) {
       case 'customize':
-        return <HomeView key="customize" initialCustomize setActiveTab={setActiveTab} userName={userName} />;
       case 'home':
-        return <HomeView key="home" setActiveTab={setActiveTab} userName={userName} />;
+        return <HomeView key="home" initialCustomize={activeTab === 'customize'} setActiveTab={setActiveTab} userName={userName} />;
       case 'work':
         return <WorkView />;
       case 'book':

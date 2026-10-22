@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Home, Calendar, Compass, MessageSquare, LogOut, AlertCircle, SlidersHorizontal, Wallet, UserRound, Menu } from 'lucide-react';
+import { Home, Calendar, Compass, MessageSquare, LogOut, AlertCircle, SlidersHorizontal, Wallet, UserRound } from 'lucide-react';
 import MarcBrand from '@/components/MarcBrand';
 import { apiFetch, getApiUrl, getClientSession } from '@/lib/api';
 
@@ -95,10 +95,9 @@ export default function DashboardShell({
   return <div className={'marc-dashboard-shell ' + (activeTab === 'chat' ? 'marc-chat-shell' : '')}>
     {bookingAlert && <div role="alert" className="marc-booking-alert"><AlertCircle size={20} /><div><strong>{bookingAlert.title}</strong><p>{bookingAlert.message}</p></div><button aria-label="Dismiss notification" onClick={() => void dismissRejectionAlert(bookingAlert.id)}>Close</button></div>}
     <aside id="marc-client-sidebar" className="marc-sidebar" data-expanded={sidebarExpanded} onMouseEnter={()=>setSidebarExpanded(true)} onMouseLeave={()=>setSidebarExpanded(false)} onFocusCapture={()=>setSidebarExpanded(true)} onBlurCapture={event=>{if(!event.currentTarget.contains(event.relatedTarget))setSidebarExpanded(false);}}>
-      <button type="button" className="marc-sidebar-handle" aria-label={sidebarExpanded?'Close client navigation':'Open client navigation'} aria-expanded={sidebarExpanded} aria-controls="marc-client-navigation" onClick={()=>setSidebarExpanded(value=>!value)}><Menu size={21}/></button>
-      <button className="marc-sidebar-brand" aria-label="Dashboard home" onClick={() => setActiveTab('home')}><MarcBrand light /></button>
+      <button className="marc-sidebar-brand" aria-label="Dashboard home" onClick={() => setActiveTab('home')}><span className="marc-sidebar-mark" aria-hidden="true">M</span><MarcBrand light /></button>
       <nav id="marc-client-navigation" aria-label="Client navigation">{tabs.map(({ id, label, icon: Icon }) => <button aria-label={label} title={label} key={id} aria-current={activeTab === id ? 'page' : undefined} onClick={() => setActiveTab(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
-      <div className="marc-sidebar-footer"><button onClick={() => setActiveTab('profile')}><small>LOGGED IN AS</small><span>{userName}</span></button><button onClick={handleLogoutClick}><LogOut size={14} />Log Out</button></div>
+      <div className="marc-sidebar-footer"><button aria-label={`Account profile: ${userName}`} onClick={() => setActiveTab('profile')}><UserRound size={19} /><span><small>LOGGED IN AS</small><span>{userName}</span></span></button><button aria-label="Log out" onClick={handleLogoutClick}><LogOut size={19} /><span>Log Out</span></button></div>
     </aside>
     <main data-dashboard-content className={'marc-dashboard-main ' + (activeTab === 'chat' ? 'marc-chat-main' : '')}>
       {React.Children.map(children, child => React.isValidElement(child) ? React.cloneElement(child, { userName, setActiveTab } as { userName: string; setActiveTab: (tab: string) => void }) : child)}

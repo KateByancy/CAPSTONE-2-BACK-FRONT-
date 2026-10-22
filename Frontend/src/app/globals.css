@@ -316,7 +316,8 @@ body:has(.marc-interior-details[open]){overflow:hidden}
 
 
 /* Interior consultation booking uses the same charcoal, cream and gold palette. */
-.marc-booking-form { gap: 18px 16px; }
+.marc-booking-form { gap: 18px 16px; scrollbar-width: none; }
+.marc-booking-form::-webkit-scrollbar { display: none; }
 .marc-booking-intro { padding: 4px 0 8px; }
 .marc-booking-intro > p { color: #c7b782; font-size: 10px; letter-spacing: .12em; }
 .marc-booking-intro h4 { color: white; font-size: 23px; margin: 7px 0; }
@@ -423,19 +424,27 @@ body:has(.marc-interior-details[open]){overflow:hidden}
 .marc-card-actions .marc-detail-button,.marc-card-customize {margin:0;padding:8px 12px;font-size:12px;min-height:38px;}
 .marc-card-customize {border:1px solid #272727;border-radius:4px;background:#272727;color:#fff;cursor:pointer;}
 .marc-card-customize:hover {background:#45433d;}
-/* A narrow hover target reveals the client menu without shifting the page. */
+/* Match the admin's hover-expanding icon rail; flex layout resizes every client page. */
 @media(min-width:601px){
- .marc-dashboard-shell {padding-left:40px;}
- .marc-sidebar {position:fixed;left:0;top:0;bottom:0;width:245px;height:100dvh;z-index:80;transform:translateX(-205px);transition:transform .22s ease;overflow-y:auto;padding:54px 15px 24px;box-shadow:3px 0 14px #0001;}
- .marc-sidebar[data-expanded=true],.marc-sidebar:has(:focus-visible) {transform:translateX(0);}
- .marc-sidebar-handle {position:absolute;right:0;top:12px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:#e5d7ad;border-radius:5px;}
- .marc-sidebar-brand,.marc-sidebar>nav,.marc-sidebar-footer {opacity:0;pointer-events:none;transition:opacity .15s ease;}
- .marc-sidebar[data-expanded=true] .marc-sidebar-brand,.marc-sidebar[data-expanded=true]>nav,.marc-sidebar[data-expanded=true] .marc-sidebar-footer,.marc-sidebar:has(:focus-visible) .marc-sidebar-brand,.marc-sidebar:has(:focus-visible)>nav,.marc-sidebar:has(:focus-visible) .marc-sidebar-footer {opacity:1;pointer-events:auto;}
- .marc-sidebar nav {display:flex;flex-direction:column;gap:7px;}
- .marc-sidebar nav button {min-height:42px;font-size:13px;}
+ .marc-dashboard-shell {min-width:0;width:100%;}
+ .marc-sidebar {position:sticky;top:0;width:80px;height:100dvh;z-index:50;padding:0 16px 16px;overflow:hidden;transition:width .3s ease-in-out,box-shadow .3s ease-in-out;}
+ .marc-sidebar[data-expanded=true],.marc-sidebar:has(:focus-visible) {width:256px;box-shadow:0 20px 25px -5px #0003;}
+ .marc-sidebar-brand {display:flex;align-items:center;gap:12px;align-self:stretch;flex-shrink:0;min-height:81px;margin:0 0 16px;padding:0 6px;overflow:hidden;}
+ .marc-sidebar-mark {display:flex;align-items:center;justify-content:center;flex:0 0 36px;height:36px;border-radius:12px;background:#806225;color:white;font-size:16px;font-weight:700;}
+ .marc-sidebar .marc-brand {flex:0 0 156px;width:156px;}
+ .marc-sidebar nav {display:flex;flex:1;min-height:0;flex-direction:column;gap:4px;overflow-x:hidden;overflow-y:auto;scrollbar-width:none;}
+ .marc-sidebar nav::-webkit-scrollbar {display:none;}
+ .marc-sidebar nav button {flex-shrink:0;min-height:44px;padding:12px 14px;gap:12px;font-size:12px;}
+ .marc-sidebar svg {flex-shrink:0;}
+ .marc-sidebar .marc-brand,.marc-sidebar nav button>span,.marc-sidebar-footer button>span {opacity:0;white-space:nowrap;transition:opacity .2s ease;}
+ .marc-sidebar[data-expanded=true] .marc-brand,.marc-sidebar[data-expanded=true] nav button>span,.marc-sidebar[data-expanded=true] .marc-sidebar-footer button>span,.marc-sidebar:has(:focus-visible) .marc-brand,.marc-sidebar:has(:focus-visible) nav button>span,.marc-sidebar:has(:focus-visible) .marc-sidebar-footer button>span {opacity:1;}
+ .marc-sidebar-footer {flex-shrink:0;gap:8px;padding:16px 0 0;border-top:1px solid #ffffff1a;overflow:hidden;}
+ .marc-sidebar-footer button,.marc-sidebar-footer button:first-child {flex-direction:row;align-items:center;gap:12px;min-height:44px;padding:8px 14px;white-space:nowrap;}
+ .marc-sidebar-footer button:first-child>span {display:flex;flex-direction:column;gap:2px;min-width:0;}
+ .marc-sidebar-footer button:first-child>span>span {max-width:160px;overflow:hidden;text-overflow:ellipsis;}
 }
-@media(max-width:600px){.marc-sidebar-handle {display:none;}.marc-card-actions {gap:6px;}.marc-card-actions button {flex:1;font-size:11px!important;padding:8px!important;}}
-@media(prefers-reduced-motion:reduce){.marc-sidebar,.marc-sidebar-brand,.marc-sidebar>nav,.marc-sidebar-footer {transition:none;}}
+@media(max-width:600px){.marc-card-actions {gap:6px;}.marc-card-actions button {flex:1;font-size:11px!important;padding:8px!important;}}
+@media(prefers-reduced-motion:reduce){.marc-sidebar,.marc-sidebar .marc-brand,.marc-sidebar nav button>span,.marc-sidebar-footer button>span {transition:none;}}
 
 .marc-quotes{color:#272727;max-width:1250px;margin:auto}.marc-quotes header{padding:24px;background:#272727;color:#fff;border-radius:12px;margin-bottom:22px}.marc-quotes h1{font-size:25px}.marc-quotes header p{font-size:12px;margin-top:8px;color:#e3d9bf}.marc-quotes label{display:grid;gap:7px;font-size:12px;margin:14px 0}.marc-quotes input,.marc-quotes select,.marc-quotes textarea{width:100%;min-width:0;border:1px solid #ccc4b0;border-radius:7px;padding:10px;background:white;font:inherit}.marc-quote-picker{max-width:650px}.marc-quote-columns{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,1fr);gap:22px;align-items:start}.marc-quote-panel{border:1px solid #ddd6c4;border-radius:12px;padding:22px;margin-bottom:18px;background:#fff;min-width:0}.marc-quote-panel h2,.marc-quote-panel h3{font-size:18px;margin-bottom:12px}.marc-quote-panel p{font-size:12px;line-height:1.7}.marc-quote-muted{color:#7b7465;font-size:11px!important;margin:10px 0}.marc-quote-request{white-space:pre-wrap;overflow-wrap:anywhere;margin:14px 0}.marc-quote-design{width:100%;height:200px;object-fit:cover;border-radius:8px;margin:15px 0}.marc-quotes button{background:#272727;color:white;padding:11px 15px;border-radius:7px;font-size:12px;cursor:pointer}.marc-quotes button:disabled{opacity:.45;cursor:default}.marc-quotes .marc-quote-secondary{background:#eeeadf;color:#6e5422}.marc-quote-item{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(90px,1fr) auto;align-items:center;gap:10px}.marc-quote-item button{padding:9px;font-size:10px}.marc-quotes table{width:100%;font-size:12px;border-collapse:collapse}.marc-quotes td,.marc-quotes th{padding:12px 5px;border-bottom:1px solid #eeeadf;text-align:left;overflow-wrap:anywhere}.marc-quotes td:last-child,.marc-quotes th:last-child{text-align:right}.marc-quote-total{font-size:17px!important;font-weight:bold;margin:16px 0}.marc-quote-status{display:inline-block;background:#eeeadf;color:#806225;padding:5px 8px;border-radius:6px;font-size:11px}.marc-quote-error{padding:12px;background:#fff0ed;color:#9d2c20;margin-bottom:15px}.marc-quote-notice{padding:12px;background:#eeeadf;color:#4e492e;margin-bottom:15px}.marc-quote-response{border-top:1px solid #ddd6c4;margin-top:18px;padding-top:14px}.marc-project-chat-feed{max-height:400px;overflow:auto;background:#f6f4ee;border-radius:8px;padding:12px}.marc-project-chat-feed>div{padding:12px;margin:10px 0;background:white;border-radius:8px;overflow-wrap:anywhere}.marc-project-chat-feed strong{font-size:10px;color:#8a681c}.marc-project-chat-feed p{white-space:pre-wrap}.marc-project-chat-feed .marc-chat-own{background:#e7e0cb}.marc-quotes summary{cursor:pointer;font-size:12px;color:#806225}
 @media(max-width:850px){.marc-quote-columns{grid-template-columns:1fr}.marc-quote-item{grid-template-columns:minmax(0,1fr) minmax(80px,1fr)}.marc-quote-item button{grid-column:1/-1;justify-self:end}.marc-quote-panel{padding:17px}}

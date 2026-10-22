@@ -31,7 +31,7 @@ export default function Home({ setActiveTab = tab => window.location.assign('/?s
   const { designs: marcDesigns, loading: catalogLoading, error: catalogError } = useDesignCatalog();
   const desktopTimePicker = useSyncExternalStore(subscribeToDesktopTime, desktopTimeSnapshot, serverTimeSnapshot);
   const [clientDisplayName, setClientDisplayName] = useState(userName);
-  const [isCustomizing, setIsCustomizing] = useState(initialCustomize);
+  const isCustomizing = initialCustomize;
   const [homeError, setHomeError] = useState('');
   const [servicesLoading, setServicesLoading] = useState(true);
 
@@ -481,8 +481,8 @@ export default function Home({ setActiveTab = tab => window.location.assign('/?s
       </div>
       {homeError && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{homeError}</p>}
 
-      {isCustomizing ? <DesignCustomizer initialDesignId={selectedDesignId} onBack={()=>setIsCustomizing(false)} onComplete={(id, requirements, preferences)=>{ chooseDesign(id); setCustomization(preferences); setProjectDescription(requirements); setIsCustomizing(false); handleOpenBooking(); }}/> : <div className="marc-dashboard-columns">
-        <section className="marc-dashboard-designs"><h2>BROWSE DESIGNS</h2><p>Find the perfect design for your dream space.</p><DesignGallery compact onCustomize={design=>{chooseDesign(design.id);setIsCustomizing(true);}} onChoose={design => {
+      {isCustomizing ? <DesignCustomizer initialDesignId={selectedDesignId} onBack={()=>setActiveTab('home')} onComplete={(id, requirements, preferences)=>{ chooseDesign(id); setCustomization(preferences); setProjectDescription(requirements); setActiveTab('home'); handleOpenBooking(); }}/> : <div className="marc-dashboard-columns">
+        <section className="marc-dashboard-designs"><h2>BROWSE DESIGNS</h2><p>Find the perfect design for your dream space.</p><DesignGallery compact onCustomize={design=>{chooseDesign(design.id);setActiveTab('customize');}} onChoose={design => {
           chooseDesign(design.id); handleOpenBooking();
         }} /></section>
         <div className="space-y-4 flex flex-col justify-between">
@@ -497,7 +497,7 @@ export default function Home({ setActiveTab = tab => window.location.assign('/?s
               <span>BOOK NOW!</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
-            <button type="button" className="marc-custom-launch" onClick={()=>setIsCustomizing(true)}>Customize your design <ArrowRight size={15}/></button>
+            <button type="button" className="marc-custom-launch" onClick={()=>setActiveTab('customize')}>Customize your design <ArrowRight size={15}/></button>
           </div>
 
           <div className="marc-dashboard-shortcuts grid grid-cols-2 gap-4">
