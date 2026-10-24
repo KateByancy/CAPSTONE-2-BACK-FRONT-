@@ -43,6 +43,14 @@ export default function ClientsManagement() {
   const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
   const deletedClientIds = useRef(new Set<string>());
   const [searchQuery, setSearchQuery] = useState('');
+
+  // --- ACTIVE CHAT STATE ---
+  const [activeChatClient, setActiveChatClient] = useState<ClientProfile | null>(null);
+  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
+  const [newMessageText, setNewMessageText] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const openedClient = useRef('');
+
   const searchTerms = searchQuery.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
   const filteredClients = clients.filter(client => {
     const searchable = (client.name + ' ' + client.email).toLocaleLowerCase().replace(/,/g, '');
@@ -59,14 +67,20 @@ export default function ClientsManagement() {
           throw new Error(result.message || 'Unable to load clients.');
         }
 
-        setClients((result.users ?? []).filter(client => !deletedClientIds.current.has(String(client.id))).map((client) => ({
+        const loadedClients = (result.users ?? []).filter(client => !deletedClientIds.current.has(String(client.id))).map((client) => ({
           id: String(client.id),
           name: formatClientName(client.fullname),
           email: client.email,
           initial: client.fullname.trim().charAt(0).toUpperCase() || 'C',
           projectName: 'Registered client',
           isOnline: Boolean(client.is_online),
-        })).sort((first, second) => Number(second.isOnline) - Number(first.isOnline)));
+        })).sort((first, second) => Number(second.isOnline) - Number(first.isOnline));
+        setClients(loadedClients);
+        setActiveChatClient(current => {
+          if (current && loadedClients.some(c => c.id === current.id)) return current;
+          const requested = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('client') : null;
+          return loadedClients.find(c => c.id === requested) || loadedClients[0] || null;
+        });
       } catch (err) {
         setClientsError(err instanceof Error ? err.message : 'Unable to load clients.');
       }
@@ -77,15 +91,16 @@ export default function ClientsManagement() {
     return () => window.clearInterval(timer);
   }, []);
 
-  // --- ACTIVE CHAT STATE ---
-  // Default to null on initial load so chat only appears when "View Chat" is clicked
-  const [activeChatClient, setActiveChatClient] = useState<ClientProfile | null>(null);
+  useEffect(() => {
+    const requested = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('client') : null;
+    if (!requested || openedClient.current === requested) return;
+    const client = clients.find(row => row.id === requested);
+    if (client) {
+      openedClient.current = requested;
+      queueMicrotask(() => setActiveChatClient(client));
+    }
+  }, [clients]);
 
-  const openedClient=useRef('');
-  useEffect(()=>{const requested=new URLSearchParams(window.location.search).get('client');if(!requested||openedClient.current===requested)return;const client=clients.find(row=>row.id===requested);if(client){openedClient.current=requested;queueMicrotask(()=>setActiveChatClient(client));}},[clients]);
-  const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
-  const [newMessageText, setNewMessageText] = useState("");
-  const [isSending, setIsSending] = useState(false);
   const { feedRef, onScroll, showLatestButton, scrollToLatest } = useChatScroll(messages, activeChatClient?.id || '');
   const conversationRequestRef = useRef(0);
 
@@ -209,6 +224,7 @@ export default function ClientsManagement() {
               return (
                 <div
                   key={client.id}
+                  onClick={() => setActiveChatClient(client)}
                   className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
                     isSelected
                       ? 'bg-marc-panel border-brand-600/30 shadow-sm'
@@ -338,10 +354,30 @@ export default function ClientsManagement() {
               </form>
             </>
           ) : (
-            /* EMPTY STATE UNTIL "VIEW CHAT" IS CLICKED */
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center text-stone-400 space-y-2">
-              <MessageSquare className="w-8 h-8 opacity-40" />
-              <p className="text-xs font-serif italic">Select &quot;View Chat&quot; next to a client to open project communications.</p>
+            /* EMPTY STATE UNTIL A CLIENT IS SELECTED */
+            <div className="h-full flex flex-col justify-between">
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stone-400 space-y-2">
+                <MessageSquare className="w-8 h-8 opacity-40" />
+                <p className="text-xs font-serif italic">{clients.length ? 'Choose a client to view project communications and reply.' : 'No registered clients yet.'}</p>
+              </div>
+              <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-stone-200/80 flex items-center space-x-2 shrink-0">
+                <input
+                  type="text"
+                  disabled={!activeChatClient}
+                  value={newMessageText}
+                  onChange={(e) => setNewMessageText(e.target.value)}
+                  placeholder={clients.length ? 'Select a client to send a reply...' : 'No clients available to message'}
+                  className="flex-1 text-xs bg-stone-100 border border-stone-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-brand-600 transition text-stone-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                />
+                <button
+                  type="submit"
+                  disabled={true}
+                  className="p-2.5 bg-marc-charcoal text-white rounded-xl transition border-none cursor-not-allowed flex items-center justify-center shrink-0 shadow-sm opacity-50"
+                  aria-label="Send message as admin"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
             </div>
           )}
         </div>

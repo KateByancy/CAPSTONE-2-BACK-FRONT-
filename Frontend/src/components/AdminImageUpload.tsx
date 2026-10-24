@@ -4,7 +4,8 @@ import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { apiFetch, getApiUrl } from '@/lib/api';
 
-export function imageSource(image: string) {
+export function imageSource(image?: string | null) {
+  if (!image) return '/designs/gcash qr.jpg';
   return image.startsWith('/api/') ? `${getApiUrl().replace(/\/api$/, '')}${image}` : image;
 }
 

@@ -1,10 +1,10 @@
-﻿// A single provider queue avoids duplicate lookups and respects the provider request interval.
+// A single provider queue avoids duplicate lookups and respects the provider request interval.
 function createFleetGeocoder({ fetchLocation = (...args) => fetch(...args), delay = ms => new Promise(resolve => setTimeout(resolve, ms)), now = Date.now } = {}) {
   const cache = new Map();
   const pending = new Set();
   let queue = Promise.resolve();
   const keyFor = booking => JSON.stringify([String(booking.address || '').trim().toLowerCase(), String(booking.landmark || '').trim().toLowerCase()]);
-  const canonical = value => String(value || '').toLowerCase().replace(/\bcity\b/g, '').replace(/[^a-z0-9]/g, '');
+  const canonical = value => String(value || '').toLowerCase().replace(/\b(city|of|municipality|town)\b/g, '').replace(/[^a-z0-9]/g, '');
 
   function queriesFor(address, landmark) {
     const normalized = address.trim()
@@ -43,7 +43,7 @@ function createFleetGeocoder({ fetchLocation = (...args) => fetch(...args), dela
           const lat = Number(result.lat), lng = Number(result.lon);
           if (result.lat == null || result.lon == null || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) continue;
           if (locality) {
-            const actual = result.address?.city || result.address?.town || result.address?.municipality;
+            const actual = result.address?.city || result.address?.town || result.address?.municipality || result.address?.county;
             if (actual ? canonical(actual) !== canonical(locality) : !canonical(result.display_name).includes(canonical(locality))) continue;
           }
           const metadata = result.addresstype ? {
@@ -53,6 +53,25 @@ function createFleetGeocoder({ fetchLocation = (...args) => fetch(...args), dela
           return { coordinates: { lat, lng, ...metadata } };
         }
       } catch { return { reason: 'unavailable' }; }
+      finally { await delay(1100); }
+    }
+    if (locality) {
+      try {
+        const query = new URLSearchParams({ format: 'jsonv2', city: locality, countrycodes: 'ph', limit: '1', addressdetails: '1' });
+        const response = await fetchLocation('https://nominatim.openstreetmap.org/search?' + query, {
+          headers: { 'User-Agent': 'MARC-Interior-Design-Fleet/1.0' }, signal: AbortSignal.timeout(8000)
+        });
+        if (response.ok) {
+          const results = await response.json();
+          if (Array.isArray(results) && results[0]) {
+            const result = results[0];
+            const lat = Number(result.lat), lng = Number(result.lon);
+            if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+              return { coordinates: { lat, lng, precision: 'area', matched_address: result.display_name || locality } };
+            }
+          }
+        }
+      } catch { /* proceed to not_found */ }
       finally { await delay(1100); }
     }
     return { reason: 'not_found' };

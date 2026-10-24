@@ -97,7 +97,7 @@ export default function Chat() {
     try {
       const response = await apiFetch(`${getApiUrl()}/chat`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('clientToken') || ''}` },
-        body: JSON.stringify({ user_id: client.id, sender: 'client', message: draft.trim(), human_only:true }),
+        body: JSON.stringify({ user_id: client.id, sender: 'client', message: draft.trim() }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Unable to send message.');

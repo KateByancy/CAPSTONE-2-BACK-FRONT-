@@ -10,6 +10,7 @@ const interiorHighlights: Record<string, string[]> = {
   'Living Room': ['A coordinated seating and furniture arrangement', 'A neutral palette with layered textures', 'A layout shaped around comfort and everyday use'],
   Kitchen: ['Integrated cabinetry and practical storage', 'Coordinated work surfaces and finishes', 'A functional cooking and preparation layout'],
   'Bed Room': ['Layered textiles for a restful interior', 'Bedside lighting and coordinated storage', 'A comfortable layout for sleeping and relaxing'],
+  Bedroom: ['Layered textiles for a restful interior', 'Bedside lighting and coordinated storage', 'A comfortable layout for sleeping and relaxing'],
   Office: ['An organized workstation and storage layout', 'A calm palette for a focused environment', 'A balance of natural light and interior finishes'],
 };
 
@@ -29,10 +30,17 @@ export default function DesignGallery({ compact = false, onChoose, onCustomize }
     previewDialog.current?.showModal();
   };
   const available = marcDesigns;
-  const filtered = available.filter(item => category === 'All Designs' || item.category === category);
+  const isCategoryMatch = (itemCategory: string, cat: string) => {
+    if (cat === 'All Designs') return true;
+    if (itemCategory === cat) return true;
+    if (cat === 'Bedroom' && (itemCategory === 'Bed Room' || itemCategory === 'Bedroom')) return true;
+    if (cat === 'Bed Room' && (itemCategory === 'Bedroom' || itemCategory === 'Bed Room')) return true;
+    return false;
+  };
+  const filtered = available.filter(item => isCategoryMatch(item.category, category));
   return <div className={`marc-gallery ${compact ? 'marc-gallery-compact' : ''}`}>
     {error && <p role="alert">{error}</p>}{loading && <p role="status">Loading designs...</p>}
-    {compact && <div className="marc-filters" aria-label="Filter designs">{['All Designs', 'Kitchen', 'Office', 'Living Room', 'Bed Room'].map(value => <button key={value} type="button" aria-pressed={category === value} onClick={() => setCategory(value)}>{value}</button>)}</div>}
+    {compact && <div className="marc-filters" aria-label="Filter designs">{['All Designs', 'Kitchen', 'Office', 'Living Room', 'Bedroom'].map(value => <button key={value} type="button" aria-pressed={category === value} onClick={() => setCategory(value)}>{value}</button>)}</div>}
     <div className="marc-design-grid">{filtered.map(item => <article className="marc-design-card" key={item.id}>
       <button type="button" className="marc-design-image marc-image-trigger" aria-label={`Expand image: ${item.name}`} aria-haspopup="dialog" onClick={() => openPreview(item)}><Image src={item.image} alt={item.name} unoptimized fill sizes="(max-width: 600px) 90vw, 33vw" /><span className="marc-image-hint" aria-hidden="true">View image</span></button><h3>{item.name}</h3><p className="marc-design-price">{designPrice(item.price)}</p><p className="marc-card-description">{item.description.length > 110 ? item.description.slice(0,107).replace(/\s+\S*$/, '') + '...' : item.description}</p>
       <div className="marc-card-actions"><button type="button" className="marc-detail-button" onClick={() => openDetails(item)}>View Details<span className="sr-only">: {item.name}</span></button>{onCustomize && <button type="button" className="marc-card-customize" onClick={()=>onCustomize(item)}>Customize<span className="sr-only">: {item.name}</span></button>}</div>

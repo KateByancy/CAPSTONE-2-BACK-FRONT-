@@ -60,6 +60,23 @@ test('rejects a wrong-city landmark and resolves the barangay in the requested c
   assert.equal(geocoder.read(projects).locations[0].lng, 123.9655201);
 });
 
+test('resolves Lapu-Lapu City accurately with area fallback when street is unrecognized', async () => {
+  const geocoder = createFleetGeocoder({ delay: async () => {}, fetchLocation: async url => {
+    const parsed = new URL(url);
+    const city = parsed.searchParams.get('city');
+    if (city === 'Lapu-Lapu') {
+      return { ok: true, json: async () => [{ lat: '10.3126722', lon: '123.9488177', addresstype: 'city', display_name: 'Lapu-Lapu, Central Visayas, Philippines', address: { city: 'Lapu-Lapu' } }] };
+    }
+    return { ok: true, json: async () => [] };
+  } });
+  const projects = [booking(30, 'Unmapped Street, Lapu-Lapu City')];
+  geocoder.read(projects); await geocoder.idle();
+  const outcome = geocoder.read(projects);
+  assert.equal(outcome.locations[0].booking_id, 30);
+  assert.equal(outcome.locations[0].lat, 10.3126722);
+  assert.equal(outcome.locations[0].precision, 'area');
+});
+
 test('provider errors are distinguishable from unrecognized addresses', async () => {
   const geocoder = createFleetGeocoder({ delay: async () => {}, fetchLocation: async () => ({ ok: true, json: async () => [] }) });
   geocoder.read([booking(9, 'Unknown address')]); await geocoder.idle();

@@ -23,7 +23,12 @@ const imageType = buffer => {
 };
 exports.getSettings = wrap(async (_req, res) => {
     const rows = await query('SELECT account_name, account_number, qr_image FROM gcash_settings WHERE id=1');
-    res.json({ settings: rows[0] || null, provider: 'Manual', configured: Boolean(rows[0]?.qr_image && rows[0]?.account_name && /^09\d{9}$/.test(rows[0]?.account_number || '')) });
+    const settings = rows[0] ? {
+        account_name: rows[0].account_name,
+        account_number: rows[0].account_number,
+        qr_image: rows[0].qr_image || '/designs/gcash qr.jpg'
+    } : null;
+    res.json({ settings, provider: 'Manual', configured: Boolean(settings?.qr_image && settings?.account_name && /^09\d{9}$/.test(settings?.account_number || '')) });
 });
 exports.saveSettings = wrap(async (req, res) => {
     const name = typeof req.body.account_name === 'string' ? req.body.account_name.trim() : '';
@@ -38,7 +43,7 @@ exports.list = wrap(async (req, res) => {
     const admin = req.user.role === 'admin';
     const payments = await query(`SELECT p.id, p.booking_id, p.quote_id, p.amount, p.description, p.account_name, p.account_number, p.status,
         p.reference_number, p.review_note, p.created_at, p.submitted_at, p.reviewed_at,
-        p.payment_provider, p.checkout_session_id, p.checkout_creating, p.qr_image,
+        p.payment_provider, p.checkout_session_id, p.checkout_creating, COALESCE(NULLIF(p.qr_image, ''), '/designs/gcash qr.jpg') AS qr_image,
         p.proof IS NOT NULL AS has_proof, b.service_type, b.status AS booking_status, u.fullname AS client_name
         FROM gcash_requests p JOIN bookings b ON b.id=p.booking_id JOIN users u ON u.id=b.user_id
         ${admin ? '' : 'WHERE b.user_id=?'} ORDER BY p.id DESC`, admin ? [] : [req.user.id]);

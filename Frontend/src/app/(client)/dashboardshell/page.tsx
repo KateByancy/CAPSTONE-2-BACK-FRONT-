@@ -102,6 +102,24 @@ export default function DashboardShell({
     <main data-dashboard-content className={'marc-dashboard-main ' + (activeTab === 'chat' ? 'marc-chat-main' : '')}>
       {React.Children.map(children, child => React.isValidElement(child) ? React.cloneElement(child, { userName, setActiveTab } as { userName: string; setActiveTab: (tab: string) => void }) : child)}
     </main>
-    <nav data-mobile-navigation className="marc-mobile-nav" aria-label="Mobile client navigation">{tabs.filter(tab=>['home','book','track','chat'].includes(tab.id)).map(({ id, label, icon: Icon }) => <button key={id} aria-current={activeTab === id ? 'page' : undefined} onClick={() => setActiveTab(id)}><Icon size={20} /><span>{label}</span></button>)}<button onClick={() => setActiveTab('profile')}><span>Account</span></button></nav>
+    <nav data-mobile-navigation className="marc-mobile-nav" aria-label="Mobile client navigation">
+      {[
+        { id: 'home', label: 'Browse', fullLabel: 'Browse Designs', icon: Home },
+        { id: 'book', label: 'Bookings', fullLabel: 'Pending Bookings', icon: Calendar },
+        { id: 'track', label: 'Tracking', fullLabel: 'Live Build Tracking', icon: Compass },
+        { id: 'chat', label: 'Chat', fullLabel: 'Chat Support', icon: MessageSquare },
+        { id: 'profile', label: 'Account', fullLabel: 'Account Profile', icon: UserRound },
+      ].map(({ id, label, fullLabel, icon: Icon }) => (
+        <button
+          key={id}
+          aria-label={fullLabel}
+          aria-current={(activeTab === id || (id === 'home' && activeTab === 'customize')) ? 'page' : undefined}
+          onClick={() => setActiveTab(id)}
+        >
+          <Icon size={18} />
+          <span>{label}</span>
+        </button>
+      ))}
+    </nav>
   </div>;
 }

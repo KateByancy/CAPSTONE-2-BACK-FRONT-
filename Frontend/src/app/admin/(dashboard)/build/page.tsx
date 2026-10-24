@@ -102,7 +102,7 @@ export default function BuildManagement() {
     const url=`${getApiUrl()}/tracking${activeRoadmapBuild.trackingId?`/${activeRoadmapBuild.trackingId}`:''}`;
     const bookingResponse=await apiFetch(`${getApiUrl()}/booking/${activeRoadmapBuild.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:activeRoadmapBuild.status})});
     if(!bookingResponse.ok){window.alert('Unable to save the project status.');return;}
-    const response=await fetch(url,{method:activeRoadmapBuild.trackingId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({booking_id:Number(activeRoadmapBuild.id),progress:activeRoadmapBuild.progress,current_stage:activeRoadmapBuild.status})});
+    const response=await apiFetch(url,{method:activeRoadmapBuild.trackingId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({booking_id:Number(activeRoadmapBuild.id),progress:activeRoadmapBuild.progress,current_stage:activeRoadmapBuild.status})});
     const result=await response.json();
     if(!response.ok){window.alert(result.message||'Unable to save project progress.');return;}
     const savedBuild={...activeRoadmapBuild,trackingId:activeRoadmapBuild.trackingId||result.trackingId};

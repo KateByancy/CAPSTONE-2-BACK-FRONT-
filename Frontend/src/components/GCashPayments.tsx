@@ -84,10 +84,11 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       } else setError(billingResult.reason.message);
       if (settingsResult.status === 'fulfilled') {
         const result = settingsResult.value;
-        setAccountName(result.settings?.account_name || ''); setAccountNumber(result.settings?.account_number || ''); setQrImage(result.settings?.qr_image || '/designs/gcash qr.jpg');
-        setManualReady(Boolean(result.settings?.qr_image));
-        if (result.settings?.qr_image) {
-          setSavedAccount(result.settings);
+        const qr = result.settings?.qr_image || '/designs/gcash qr.jpg';
+        setAccountName(result.settings?.account_name || ''); setAccountNumber(result.settings?.account_number || ''); setQrImage(qr);
+        setManualReady(Boolean(result.settings?.account_name && result.settings?.account_number));
+        if (result.settings?.account_name && result.settings?.account_number) {
+          setSavedAccount({ account_name: result.settings.account_name, account_number: result.settings.account_number, qr_image: qr });
           setEditingAccount(false);
         }
       } else setError(settingsResult.reason.message);
