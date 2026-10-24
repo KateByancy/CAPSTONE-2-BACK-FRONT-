@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MapPin, Calendar, Users, CreditCard, Clock, Trash2 } from 'lucide-react';
 import { useNavigationSelection } from '@/lib/use-navigation-selection';
 import { apiFetch, getApiUrl } from '@/lib/api';
+import AdminNotificationBell from '@/components/AdminNotificationBell';
 
 interface ClientProject {
   id: string;
@@ -72,11 +73,16 @@ export default function DashboardOverview() {
     <div className="space-y-8 pb-10">
       
       {/* HEADER BANNER BLOCK WITH CORNER RADIUS MATCHING BUILD PAGE */}
-      <div className="bg-gradient-to-r from-marc-charcoal to-stone-600 text-white rounded-2xl p-6 shadow-sm mb-6 space-y-1">
-        <div className="inline-block px-3 py-0.5 bg-brand-200 text-brand-900 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm font-serif">
-          Administrator
+      <div className="bg-gradient-to-r from-marc-charcoal to-stone-600 text-white rounded-2xl p-4 sm:p-6 shadow-sm mb-6 flex items-center justify-between gap-4">
+        <div className="space-y-1 min-w-0">
+          <div className="inline-block px-3 py-0.5 bg-brand-200 text-brand-900 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm font-serif">
+            Administrator
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold font-serif tracking-tight">Dashboard</h1>
         </div>
-        <h1 className="text-2xl font-bold font-serif tracking-tight">Dashboard</h1>
+        <div className="shrink-0 flex items-center">
+          <AdminNotificationBell />
+        </div>
       </div>
 
       {/* 1. INTERACTIVE BUILD PIPELINE HEADER */}

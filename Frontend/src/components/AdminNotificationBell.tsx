@@ -86,7 +86,7 @@ export default function AdminNotificationBell() {
     >
       <summary aria-label={'Admin notifications, ' + unread + ' unread'}>
         <Bell size={20} />
-        <span>Notifications</span>
+        <span className="hidden sm:inline marc-admin-bell-label">Notifications</span>
         {unread > 0 && <b>{unread > 99 ? '99+' : unread}</b>}
       </summary>
       <section aria-label="Admin notifications">
