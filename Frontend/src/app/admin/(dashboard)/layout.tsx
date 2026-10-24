@@ -1,5 +1,4 @@
 "use client";
-import AdminNotificationBell from '@/components/AdminNotificationBell';
 import MarcBrand from '@/components/MarcBrand';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -131,9 +130,6 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
 
       {/* INTERACTIVE WORK AREA */}
       <main data-dashboard-content className="min-w-0 w-full flex-1 bg-white overflow-y-auto p-3 sm:p-4 md:p-8 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
-        {pathname !== '/admin/dashboard' && (
-          <div className="mb-4 flex justify-end"><AdminNotificationBell/></div>
-        )}
         {children}
       </main>
 
