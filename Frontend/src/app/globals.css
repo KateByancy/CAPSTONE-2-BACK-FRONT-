@@ -468,6 +468,14 @@ body:has(.marc-interior-details[open]){overflow:hidden}
 .marc-quote-invoice{margin-top:14px;border-top:1px solid #e6dfcf;padding-top:14px}.marc-admin-bell{position:relative;z-index:60;font-size:12px}.marc-admin-bell>summary{display:flex;align-items:center;gap:9px;cursor:pointer;list-style:none;border:1px solid #d5ceba;padding:11px 15px;border-radius:10px;background:#fff;color:#272727}.marc-admin-bell>summary::-webkit-details-marker{display:none}.marc-admin-bell b{background:#806225;color:#fff;border-radius:20px;padding:2px 6px;font-size:10px}.marc-admin-bell>section{position:absolute;right:0;top:calc(100% + 8px);width:min(380px,calc(100vw - 32px));background:#fff;border:1px solid #ded7c7;border-radius:12px;box-shadow:0 12px 35px #0002;overflow:hidden}.marc-admin-bell-heading{display:flex;justify-content:space-between;align-items:center;padding:16px;background:#272727;color:#fff}.marc-admin-bell button{font-size:11px;text-decoration:underline;cursor:pointer}.marc-admin-bell ul{max-height:420px;overflow:auto}.marc-admin-bell li{border-bottom:1px solid #eee9de}.marc-admin-bell li[data-unread=true]{background:#f3efdf}.marc-admin-bell li a{display:grid;gap:5px;padding:14px 16px}.marc-admin-bell li span{color:#6b6458}.marc-admin-bell time{font-size:10px;color:#847b6a}.marc-admin-bell>section>p{padding:16px}
 
 @media(max-width:640px){
+  .marc-admin-bell[open]::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.35);
+    z-index:90;
+    pointer-events:none;
+  }
   .marc-admin-bell>summary{
     display:flex!important;
     align-items:center!important;
@@ -494,5 +502,49 @@ body:has(.marc-interior-details[open]){overflow:hidden}
     line-height:1.2!important;
     border-radius:9999px!important;
     border:2px solid #fff!important;
+  }
+  .marc-admin-bell>section{
+    position:fixed!important;
+    top:clamp(65px,12vh,85px)!important;
+    left:50%!important;
+    right:auto!important;
+    transform:translateX(-50%)!important;
+    width:calc(100vw - 24px)!important;
+    max-width:360px!important;
+    max-height:calc(100dvh - 120px)!important;
+    border-radius:14px!important;
+    box-shadow:0 12px 40px rgba(0,0,0,0.35)!important;
+    z-index:100!important;
+    box-sizing:border-box!important;
+  }
+  .marc-admin-bell-heading{
+    padding:12px 14px!important;
+  }
+  .marc-admin-bell-heading h2{
+    font-size:14px!important;
+  }
+  .marc-admin-bell-heading button{
+    font-size:11px!important;
+  }
+  .marc-admin-bell ul{
+    max-height:calc(100dvh - 190px)!important;
+  }
+  .marc-admin-bell li a{
+    padding:11px 13px!important;
+    gap:3px!important;
+  }
+  .marc-admin-bell li strong{
+    font-size:12px!important;
+    line-height:1.25!important;
+  }
+  .marc-admin-bell li span{
+    font-size:11px!important;
+  }
+  .marc-admin-bell time{
+    font-size:9.5px!important;
+  }
+  .marc-admin-bell>section>p{
+    padding:14px!important;
+    font-size:12px!important;
   }
 }

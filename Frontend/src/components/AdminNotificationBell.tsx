@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Bell } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { apiFetch, getApiUrl } from '@/lib/api';
 
 interface Notice {
@@ -51,8 +51,13 @@ export default function AdminNotificationBell() {
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
-      if (detailsRef.current && detailsRef.current.open && !detailsRef.current.contains(event.target as Node)) {
-        detailsRef.current.open = false;
+      if (detailsRef.current && detailsRef.current.open) {
+        const target = event.target as Node;
+        const section = detailsRef.current.querySelector('section');
+        const summary = detailsRef.current.querySelector('summary');
+        if (section && !section.contains(target) && summary && !summary.contains(target)) {
+          detailsRef.current.open = false;
+        }
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -92,9 +97,29 @@ export default function AdminNotificationBell() {
       <section aria-label="Admin notifications">
         <div className="marc-admin-bell-heading">
           <h2>Notifications</h2>
-          <button type="button" disabled={busy} onClick={() => void read()}>
-            Mark all read
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button type="button" disabled={busy} onClick={() => void read()}>
+              Mark all read
+            </button>
+            <button
+              type="button"
+              aria-label="Close notifications"
+              onClick={hideCard}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '2px',
+                opacity: 0.85,
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
         {error && (
           <p role="alert">
