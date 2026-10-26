@@ -7,11 +7,18 @@ import { Send, ChevronDown, ChevronLeft, MessageSquare, Search, Trash2 } from 'l
 import { apiFetch, getApiUrl } from '@/lib/api';
 import Link from 'next/link';
 
+interface PortfolioItem {
+  id?: number | string;
+  title: string;
+  image: string;
+}
+
 interface ChatMessage {
   id: string;
   sender: 'admin' | 'client' | 'bot';
   text: string;
   timestamp: string;
+  portfolio?: PortfolioItem[];
 }
 
 interface ClientProfile {
@@ -115,11 +122,11 @@ export default function ClientsManagement() {
       throw new Error(message);
     }
     if (!Array.isArray(result)) throw new Error('The conversation response has an invalid format.');
-    const rows = result as Array<{id:number;sender:'admin'|'client'|'bot';message:string;created_at:string}>;
+    const rows = result as Array<{id:number;sender:'admin'|'client'|'bot';message:string;created_at:string;portfolio?:PortfolioItem[]}>;
     if (requestId !== conversationRequestRef.current) return;
     setMessages(prev => ({ ...prev, [clientId]: rows.map(row => {
       const sender = String(row.sender).trim().toLowerCase();
-      return { id:String(row.id), sender:(sender === 'admin' ? 'admin' : sender === 'bot' ? 'bot' : 'client') as ChatMessage['sender'], text:row.message, timestamp:new Date(row.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) };
+      return { id:String(row.id), sender:(sender === 'admin' ? 'admin' : sender === 'bot' ? 'bot' : 'client') as ChatMessage['sender'], text:row.message, timestamp:new Date(row.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), portfolio: row.portfolio };
     }) }));
   }, []);
 
@@ -300,8 +307,19 @@ export default function ClientsManagement() {
                   const isBot = msg.sender === 'bot';
                   if (isBot) return (
                     <div key={msg.id} className="flex justify-center py-1">
-                      <div className="max-w-[80%] rounded-full border border-stone-200 bg-stone-100 px-4 py-2 text-center text-[10px] text-stone-500">
-                        <span className="font-bold">Design Assistant:</span> {msg.text}
+                      <div className="max-w-[85%] rounded-2xl border border-stone-200 bg-stone-100 p-3 text-[11px] text-stone-600">
+                        <p><span className="font-bold text-brand-700">Design Assistant:</span> {msg.text}</p>
+                        {msg.portfolio && msg.portfolio.length > 0 && (
+                          <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {msg.portfolio.map(item => (
+                              <div key={item.id} className="rounded-lg border border-stone-200 bg-white p-1 text-center">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={item.image} alt={item.title} className="h-16 w-full object-contain rounded" />
+                                <span className="block mt-1 text-[9px] font-medium text-stone-700 truncate">{item.title}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

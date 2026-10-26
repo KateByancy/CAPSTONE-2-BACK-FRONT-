@@ -35,7 +35,7 @@ export default function DashboardShell({
     { id: 'payments', label: 'Payments', icon: Wallet },
     { id: 'profile', label: 'Account Profile', icon: UserRound },
     { id: 'book', label: 'Pending Bookings', icon: Calendar },
-    { id: 'track', label: 'Live Build Tracking', icon: Compass },
+    { id: 'track', label: 'Progress Tracking', icon: Compass },
     { id: 'chat', label: 'Chat Support', icon: MessageSquare },
   ];
 
@@ -95,7 +95,10 @@ export default function DashboardShell({
   return <div className={'marc-dashboard-shell ' + (activeTab === 'chat' ? 'marc-chat-shell' : '')}>
     {bookingAlert && <div role="alert" className="marc-booking-alert"><AlertCircle size={20} /><div><strong>{bookingAlert.title}</strong><p>{bookingAlert.message}</p></div><button aria-label="Dismiss notification" onClick={() => void dismissRejectionAlert(bookingAlert.id)}>Close</button></div>}
     <aside id="marc-client-sidebar" className="marc-sidebar" data-expanded={sidebarExpanded} onMouseEnter={()=>setSidebarExpanded(true)} onMouseLeave={()=>setSidebarExpanded(false)} onFocusCapture={()=>setSidebarExpanded(true)} onBlurCapture={event=>{if(!event.currentTarget.contains(event.relatedTarget))setSidebarExpanded(false);}}>
-      <button className="marc-sidebar-brand marc-navigation-brand" aria-label="Dashboard home" onClick={() => setActiveTab('home')}><MarcBrand light /></button>
+      <button className="marc-sidebar-brand marc-navigation-brand" aria-label="Dashboard home" onClick={() => setActiveTab('home')}>
+        <span className="marc-brand-expanded"><MarcBrand light /></span>
+        <span className="marc-brand-compact"><MarcBrand light iconOnly /></span>
+      </button>
       <nav id="marc-client-navigation" aria-label="Client navigation">{tabs.map(({ id, label, icon: Icon }) => <button aria-label={label} title={label} key={id} aria-current={activeTab === id ? 'page' : undefined} onClick={() => setActiveTab(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
       <div className="marc-sidebar-footer"><button aria-label={`Account profile: ${userName}`} onClick={() => setActiveTab('profile')}><UserRound size={19} /><span><small>LOGGED IN AS</small><span>{userName}</span></span></button><button aria-label="Log out" onClick={handleLogoutClick}><LogOut size={19} /><span>Log Out</span></button></div>
     </aside>
@@ -106,7 +109,7 @@ export default function DashboardShell({
       {[
         { id: 'home', label: 'Browse', fullLabel: 'Browse Designs', icon: Home },
         { id: 'book', label: 'Bookings', fullLabel: 'Pending Bookings', icon: Calendar },
-        { id: 'track', label: 'Tracking', fullLabel: 'Live Build Tracking', icon: Compass },
+        { id: 'track', label: 'Tracking', fullLabel: 'Progress Tracking', icon: Compass },
         { id: 'chat', label: 'Chat', fullLabel: 'Chat Support', icon: MessageSquare },
         { id: 'profile', label: 'Account', fullLabel: 'Account Profile', icon: UserRound },
       ].map(({ id, label, fullLabel, icon: Icon }) => (

@@ -70,6 +70,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
       <aside 
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        data-expanded={isSidebarExpanded}
         className={`hidden md:flex flex-col justify-between shrink-0 h-screen sticky top-0 bg-marc-charcoal text-white border-r border-white/5 transition-all duration-300 ease-in-out z-50 overflow-x-hidden ${
           isSchedulePage ? 'w-[230px]' : isHovered ? 'w-64 shadow-2xl' : 'w-20'
         }`}
@@ -78,12 +79,21 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
           
           {/* Top Branding Section */}
-          <Link href="/admin/dashboard" aria-label="Admin dashboard" className="marc-navigation-brand px-4 h-[81px] border-b border-white/15 flex items-center justify-center shrink-0 overflow-hidden">
-            <MarcBrand light />
+          <Link 
+            href="/admin/dashboard" 
+            aria-label="Admin dashboard" 
+            className="marc-navigation-brand px-3 pt-4 pb-3 min-h-[86px] border-b border-white/15 flex items-center justify-center shrink-0 overflow-hidden"
+          >
+            <span className="marc-brand-expanded">
+              <MarcBrand light />
+            </span>
+            <span className="marc-brand-compact">
+              <MarcBrand light iconOnly />
+            </span>
           </Link>
 
           {/* Navigation Links */}
-          <nav className="p-4 space-y-1 overflow-hidden">
+          <nav className={`p-3 space-y-1.5 overflow-hidden flex flex-col ${isSidebarExpanded ? '' : 'items-center'}`}>
             {navItems.map((item) => {
               const active = checkActive(item.path);
               const Icon = item.icon;
@@ -91,13 +101,16 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`flex items-center px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition-all ${
+                  title={item.label}
+                  className={`flex items-center ${
+                    isSidebarExpanded ? 'px-4 justify-start w-full' : 'px-0 justify-center w-12 h-11'
+                  } py-2.5 rounded-xl text-xs font-bold tracking-wider uppercase transition-all ${
                     active ? 'bg-brand-400 text-marc-charcoal shadow-md' : 'text-stone-300 hover:bg-white/5'
                   }`}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
-                  <span className={`ml-3 transition-opacity duration-200 whitespace-nowrap ${
-                    isSidebarExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none w-0'
+                  <span className={`transition-opacity duration-200 whitespace-nowrap ${
+                    isSidebarExpanded ? 'ml-3 opacity-100' : 'opacity-0 pointer-events-none w-0 overflow-hidden hidden'
                   }`}>
                     {item.label}
                   </span>
@@ -108,19 +121,22 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         </div>
 
         {/* Bottom Session Management Block */}
-        <div className="p-4 border-t border-white/10 shrink-0 overflow-hidden">
+        <div className={`p-3 border-t border-white/10 shrink-0 overflow-hidden flex flex-col ${isSidebarExpanded ? '' : 'items-center'}`}>
           <Link 
             href="/admin" 
+            title="Exit Session"
             onClick={() => {
               markAdminOffline();
               localStorage.removeItem('adminToken');
               localStorage.removeItem('adminAccount');
             }}
-            className="flex items-center px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase text-rose-400 hover:bg-rose-500/10 transition-all"
+            className={`flex items-center ${
+              isSidebarExpanded ? 'px-4 justify-start w-full' : 'px-0 justify-center w-12 h-11'
+            } py-2.5 rounded-xl text-xs font-bold tracking-wider uppercase text-rose-400 hover:bg-rose-500/10 transition-all`}
           >
             <LogOut className="w-4 h-4 shrink-0" />
-            <span className={`ml-3 transition-opacity duration-200 whitespace-nowrap ${
-              isSidebarExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none w-0'
+            <span className={`transition-opacity duration-200 whitespace-nowrap ${
+              isSidebarExpanded ? 'ml-3 opacity-100' : 'opacity-0 pointer-events-none w-0 overflow-hidden hidden'
             }`}>
               Exit Session
             </span>

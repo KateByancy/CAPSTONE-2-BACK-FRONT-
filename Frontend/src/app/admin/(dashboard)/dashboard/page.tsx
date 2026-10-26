@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Calendar, Users, CreditCard, Clock, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { MapPin, Calendar, Users, CreditCard, Clock, Trash2, UserRound } from 'lucide-react';
 import { useNavigationSelection } from '@/lib/use-navigation-selection';
 import { apiFetch, getApiUrl } from '@/lib/api';
 import AdminNotificationBell from '@/components/AdminNotificationBell';
@@ -80,7 +81,15 @@ export default function DashboardOverview() {
           </div>
           <h1 className="text-xl sm:text-2xl font-bold font-serif tracking-tight">Dashboard</h1>
         </div>
-        <div className="shrink-0 flex items-center">
+        <div className="shrink-0 flex items-center gap-2.5 sm:gap-3">
+          <Link
+            href="/admin/settings"
+            aria-label="Profile Settings"
+            title="Profile Settings"
+            className="flex items-center justify-center p-1.5 text-stone-300 hover:text-white transition-colors"
+          >
+            <UserRound size={20} />
+          </Link>
           <AdminNotificationBell />
         </div>
       </div>

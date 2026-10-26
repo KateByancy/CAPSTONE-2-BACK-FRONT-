@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquare, Send, Bot, UserRound, ChevronDown, X } from 'lucide-react';
 import useChatScroll from '@/components/useChatScroll';
 import { apiFetch, getApiUrl, getClientSession } from '@/lib/api';
+import { imageSource } from '@/components/AdminImageUpload';
 
 interface PortfolioImage { id: number; title: string; image: string; }
 interface ChatMessage { id: number; text: string; isMe: boolean; sender: string; portfolio?: PortfolioImage[]; }
@@ -149,7 +150,7 @@ export default function Chat() {
                 <button type="button" key={item.id} onClick={() => setPreviewImage(item)} aria-label={`View ${item.title || 'MARC portfolio project'} in full`} className="mt-3 block w-full overflow-hidden rounded-lg border border-stone-200 text-left">
                   {/* Portfolio URLs are supplied by the admin and validated by the backend. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.image} alt={item.title || 'MARC portfolio project'} loading="lazy" className="max-h-64 w-full object-contain" />
+                  <img src={imageSource(item.image)} alt={item.title || 'MARC portfolio project'} loading="lazy" className="max-h-64 w-full object-contain" />
                   <span className="block p-2 font-medium">{item.title || 'MARC portfolio project'}</span>
                 </button>
               ))}
@@ -170,7 +171,7 @@ export default function Chat() {
         {previewImage && <div className="relative flex h-full w-full items-center justify-center p-4 pt-[max(4rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button type="button" autoFocus onClick={() => setPreviewImage(null)} aria-label="Close image preview" className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-white/15 hover:bg-white/25"><X className="h-6 w-6" /></button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={previewImage.image} alt={previewImage.title || 'MARC portfolio project'} className="max-h-full max-w-full object-contain" />
+          <img src={imageSource(previewImage.image)} alt={previewImage.title || 'MARC portfolio project'} className="max-h-full max-w-full object-contain" />
         </div>}
       </dialog>
 

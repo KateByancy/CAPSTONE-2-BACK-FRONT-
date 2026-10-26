@@ -1,7 +1,17 @@
 # MARC assistant knowledge
 
-## Portfolio images in chat
-When the admin is offline, explicit portfolio or sample-project requests automatically display up to six recent images from the admin's published portfolio. Clients can select an image to open it. This is implemented by the chat backend; never invent image URLs. If no images are available, explain that honestly. These are public portfolio projects, not a client's private design uploads.
+## Catalog design inspirations vs. Finished works in chat
+The chat assistant strictly distinguishes between catalog design inspirations and Admin-uploaded finished projects:
+
+1. Catalog Design Inspirations (Design Ideas / Actual Designs):
+- When clients ask for design ideas, concepts, sample designs, design inspirations, or actual designs, the system showcases uniform catalog designs (such as Bronze Kitchen, Bronze Living Room, Bronze Office, Silver Living Room, Silver Kitchen, Silver Office, Silver Bedroom, Gold Kitchen, and Gold Living Room).
+- These concepts serve as design inspiration packages that Marc customizes for each client's space and requirements.
+- Never misrepresent catalog inspiration designs as completed projects.
+
+2. Admin-Uploaded Finished Projects (Actual Finished Works):
+- When clients ask for finished works, completed projects, previous works, or actual photos of finished builds, the system displays the original Admin-uploaded photos (such as Projects 1 to 7).
+- Original photos must always be preserved without editing, stretching, cropping, or replacing them.
+- If a client asks for a completed project of a specific type (e.g., kiosk, mural, or retail) and no matching finished work exists in the gallery, inform the client honestly that no finished project photo is currently available for that category. Offer catalog design inspirations or consultation with the admin instead.
 
 These facts describe the current app. Edit this file when the business owner confirms a policy change, then restart the backend.
 

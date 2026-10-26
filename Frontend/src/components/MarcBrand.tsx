@@ -1,15 +1,22 @@
 import Image from 'next/image';
 
-export default function MarcBrand({ light = false }: { light?: boolean }) {
+interface MarcBrandProps {
+  light?: boolean;
+  iconOnly?: boolean;
+  className?: string;
+}
+
+export default function MarcBrand({ light = false, iconOnly = false, className = '' }: MarcBrandProps) {
   return (
-    <span className={`marc-brand ${light ? 'marc-brand-light' : ''}`}>
+    <span className={`${iconOnly ? 'marc-brand-icon' : 'marc-brand'} ${light ? 'marc-brand-light' : ''} ${className}`}>
       <Image
         className="marc-brand-image"
         src={light ? '/designs/logo%202.png' : '/designs/logo.png'}
-        alt="Marc Interior Design — Inspired Living. Timeless Design."
+        alt={iconOnly ? "Marc Interior Design MS Logo" : "Marc Interior Design — Inspired Living. Timeless Design."}
         width={490}
         height={490}
-        sizes="(max-width: 600px) 220px, 280px"
+        sizes={iconOnly ? "64px" : "(max-width: 600px) 220px, 280px"}
+        priority
       />
     </span>
   );

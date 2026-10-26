@@ -3,7 +3,7 @@ const { generateReply } = require("../services/geminiChat");
 const query = (sql, values = []) => new Promise((resolve, reject) => {
     db.query(sql, values, (error, rows) => error ? reject(error) : resolve(rows));
 });
-const { isPortfolioRequest, encodePortfolio, decodePortfolio, safeImage } = require("../services/portfolioChat");
+const { isPortfolioRequest, resolveShowcaseResponse, encodePortfolio, decodePortfolio, safeImage } = require("../services/portfolioChat");
 const { getMarcProfileReply } = require("../services/marcProfileReply");
 const pending = new Set();
 const adminIsOnline = async () => (await query(
@@ -55,13 +55,14 @@ const sendMessage = async (req, res) => {
         if (sender === "admin" || await adminIsOnline()) {
             return res.status(201).json({ success: true, responder: "admin" });
         }
-        if (isPortfolioRequest(message)) {
-            const items = (await query("SELECT id, title, image FROM portfolio WHERE image IS NOT NULL AND image <> '' ORDER BY id DESC LIMIT 20"))
-                .filter(item => safeImage(item.image)).slice(0, 6);
-            const text = items.length ? "Here are some of MARC's portfolio projects. Select an image to view it in full." : "There are no portfolio images available yet. Your request is saved here for the admin to review.";
+        const showcaseResult = await resolveShowcaseResponse(message, query);
+        if (showcaseResult) {
             if (await adminIsOnline()) return res.status(201).json({ success: true, responder: "admin" });
-            await query("INSERT INTO messages (user_id, sender, message) VALUES (?, 'bot', ?)", [userId, encodePortfolio(text, items.map(item => item.id))]);
-            return res.status(201).json({ success: true, responder: "portfolio" });
+            const botMessage = showcaseResult.items && showcaseResult.items.length
+                ? encodePortfolio(showcaseResult.text, showcaseResult.items, showcaseResult.showcaseType)
+                : showcaseResult.text;
+            await query("INSERT INTO messages (user_id, sender, message) VALUES (?, 'bot', ?)", [userId, botMessage]);
+            return res.status(201).json({ success: true, responder: showcaseResult.showcaseType || "showcase" });
         }
         const history = await query("SELECT sender, message FROM messages WHERE user_id=? ORDER BY created_at DESC, id DESC LIMIT 12", [userId]);
         let reply;
@@ -102,14 +103,24 @@ const getAdminStatus = (req, res) => {
 const getMessages = async (req, res) => {
     try {
         const rows = await query("SELECT * FROM messages WHERE user_id=? ORDER BY created_at ASC, id ASC", [req.params.userId]);
-        const ids = [...new Set(rows.flatMap(row => decodePortfolio(row)?.ids || []))];
-        const items = ids.length ? await query("SELECT id, title, image FROM portfolio WHERE id IN (" + ids.map(() => "?").join(",") + ")", ids) : [];
-        const byId = new Map(items.filter(item => safeImage(item.image)).map(item => [Number(item.id), item]));
+        const legacyIds = [...new Set(rows.flatMap(row => decodePortfolio(row)?.ids || []))];
+        const legacyItems = legacyIds.length ? await query("SELECT id, title, image FROM portfolio WHERE id IN (" + legacyIds.map(() => "?").join(",") + ")", legacyIds) : [];
+        const byLegacyId = new Map(legacyItems.filter(item => safeImage(item.image)).map(item => [Number(item.id), item]));
         return res.json(rows.map(row => {
             const attachment = decodePortfolio(row);
             if (!attachment) return row;
-            const portfolio = attachment.ids.map(id => byId.get(id)).filter(Boolean);
-            return { ...row, message: attachment.ids.length && !portfolio.length ? "These portfolio images are no longer available." : attachment.text, portfolio };
+            let portfolio = [];
+            if (attachment.items && attachment.items.length) {
+                portfolio = attachment.items;
+            } else if (attachment.ids && attachment.ids.length) {
+                portfolio = attachment.ids.map(id => byLegacyId.get(id)).filter(Boolean);
+            }
+            return {
+                ...row,
+                message: attachment.text,
+                portfolio: portfolio.length ? portfolio : undefined,
+                showcaseType: attachment.showcaseType,
+            };
         }));
     } catch {
         return res.status(500).json({ success: false, message: "Unable to load messages." });
