@@ -117,18 +117,22 @@ select:not(.appearance-none):not([multiple]):not([size]) {
 /* Clip the supplied logo's transparent padding without modifying the original files. */
 .marc-brand{display:inline-block;position:relative;overflow:hidden;width:240px;max-width:100%;aspect-ratio:415/176;vertical-align:middle;flex-shrink:0}
 .marc-brand .marc-brand-image{position:absolute;width:118.08%;max-width:none;height:auto;left:-9.16%;top:-89.2%}
-.marc-brand-icon{display:inline-block;position:relative;overflow:hidden;width:38px;aspect-ratio:92/97;vertical-align:middle;flex-shrink:0}
+.marc-brand-icon{display:inline-flex;align-items:center;justify-content:center;position:relative;width:38px;height:40px;vertical-align:middle;flex-shrink:0}
 .marc-brand-icon .marc-brand-image{position:absolute;width:532.61%;max-width:none;height:auto;left:-215.22%;top:-161.86%}
+.marc-brand-icon .marc-brand-standalone-icon{width:auto;height:38px;max-width:100%;max-height:100%;object-fit:contain;display:block}
 .marc-header .marc-brand{width:155px}
 .marc-sidebar .marc-brand{width:190px}
 .marc-header{height:112px;display:flex;align-items:center;justify-content:space-between;padding:16px 6% 16px 28px}
 
 
 .marc-header nav{display:flex;gap:clamp(24px,5vw,80px);font-size:16px}
-.marc-header nav a{position:relative;transition:color .2s cubic-bezier(0.16,1,0.3,1),opacity .2s ease}
+.marc-header nav a{position:relative;transition:color .2s cubic-bezier(0.16,1,0.3,1),opacity .2s ease;padding-bottom:4px}
 .marc-header nav a:hover{color:#987521}
-.marc-header nav a::after{content:'';position:absolute;bottom:-4px;left:0;width:100%;height:2px;background:#987521;border-radius:2px;transform:scaleX(0);transform-origin:right;transition:transform .24s cubic-bezier(0.16,1,0.3,1)}
-.marc-header nav a:hover::after,.marc-header nav a:focus-visible::after{transform:scaleX(1);transform-origin:left}
+.marc-header nav a::after{content:'';position:absolute;bottom:0;left:0;width:100%;height:2.5px;background:#987521;border-radius:2px;transform:scaleX(0);transform-origin:center;transition:transform .24s cubic-bezier(0.16,1,0.3,1),opacity .2s ease;opacity:0}
+.marc-header nav a[aria-current="page"]::after,
+.marc-header nav a.marc-nav-active::after{transform:scaleX(1);opacity:1}
+.marc-header nav a[aria-current="page"],
+.marc-header nav a.marc-nav-active{color:#987521;font-weight:600}
 .marc-hero{min-height:520px;height:43vw;max-height:760px;position:relative;background:linear-gradient(90deg,#0008,#0005),url('/designs/hero.webp') center/cover no-repeat;color:#fff;display:flex;align-items:center;padding:6% 3%}
 .marc-hero-copy>p:first-child{font-size:15px;margin-bottom:10px}.marc-hero h1{font-size:clamp(44px,5.5vw,80px);line-height:1.1;font-weight:400;letter-spacing:1px}.marc-hero h1 strong{font-weight:800}
 .marc-hero-description{font-size:18px;line-height:1.15;margin-top:8px}
@@ -479,28 +483,39 @@ body:has(.marc-interior-details[open]){overflow:hidden}
 .marc-navigation-brand .marc-brand {width:100%;max-width:190px;flex:0 1 auto;}
 .marc-navigation-brand .marc-brand-icon {width:38px;flex:0 0 38px;}
 
-/* Sidebar branding: Collapsed shows MS Logo only; Expanded shows Full Brand */
-.marc-sidebar:not([data-expanded=true]) .marc-brand-full,
-aside:not([data-expanded=true]) .marc-brand-full,
-aside[data-expanded=false] .marc-brand-full {
+/* Sidebar branding: Collapsed shows MS Logo only; Expanded / Hover shows Full Brand */
+.marc-sidebar:not([data-expanded="true"]):not(:hover) .marc-brand-expanded,
+.marc-sidebar:not([data-expanded="true"]):not(:hover) .marc-brand-full,
+aside:not([data-expanded="true"]):not(:hover) .marc-brand-expanded,
+aside:not([data-expanded="true"]):not(:hover) .marc-brand-full,
+aside[data-expanded="false"]:not(:hover) .marc-brand-expanded,
+aside[data-expanded="false"]:not(:hover) .marc-brand-full {
   display: none !important;
 }
-.marc-sidebar:not([data-expanded=true]) .marc-brand-compact,
-aside:not([data-expanded=true]) .marc-brand-compact,
-aside[data-expanded=false] .marc-brand-compact {
+.marc-sidebar:not([data-expanded="true"]):not(:hover) .marc-brand-compact,
+aside:not([data-expanded="true"]):not(:hover) .marc-brand-compact,
+aside[data-expanded="false"]:not(:hover) .marc-brand-compact {
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
 }
 
-.marc-sidebar[data-expanded=true] .marc-brand-full,
-aside[data-expanded=true] .marc-brand-full {
+.marc-sidebar[data-expanded="true"] .marc-brand-expanded,
+.marc-sidebar[data-expanded="true"] .marc-brand-full,
+.marc-sidebar:hover .marc-brand-expanded,
+.marc-sidebar:hover .marc-brand-full,
+aside[data-expanded="true"] .marc-brand-expanded,
+aside[data-expanded="true"] .marc-brand-full,
+aside:hover .marc-brand-expanded,
+aside:hover .marc-brand-full {
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
 }
-.marc-sidebar[data-expanded=true] .marc-brand-compact,
-aside[data-expanded=true] .marc-brand-compact {
+.marc-sidebar[data-expanded="true"] .marc-brand-compact,
+.marc-sidebar:hover .marc-brand-compact,
+aside[data-expanded="true"] .marc-brand-compact,
+aside:hover .marc-brand-compact {
   display: none !important;
 }
 
@@ -653,5 +668,303 @@ aside[data-expanded=true] .marc-brand-compact {
   .marc-admin-bell>section>p{
     padding:14px!important;
     font-size:12px!important;
+  }
+}
+
+/* Client Sidebar Footer: User button with stacked text and no profile icon */
+.marc-sidebar-footer .marc-sidebar-user-btn {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  width: 100% !important;
+  padding: 8px 12px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  text-align: left !important;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.marc-sidebar-footer .marc-sidebar-user-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.marc-sidebar-footer .marc-user-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+.marc-sidebar-footer .marc-user-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #a8a29e;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.marc-sidebar-footer .marc-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f5f5f4;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 190px;
+}
+.marc-sidebar:not([data-expanded="true"]):not(:hover) .marc-sidebar-footer .marc-sidebar-user-btn {
+  display: none !important;
+}
+
+/* Hero actions & client ratings badge */
+.marc-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  margin-top: 24px;
+}
+.marc-hero-actions .marc-browse {
+  margin-top: 0;
+}
+.marc-hero-ratings-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 13.5px;
+  color: #f5f5f4;
+}
+.marc-stars-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #f59e0b;
+}
+.marc-hero-rating-score {
+  font-weight: 700;
+  color: #fbbf24;
+}
+.marc-hero-rating-sep {
+  opacity: 0.6;
+}
+.marc-hero-rating-count {
+  font-size: 12.5px;
+  color: #e7e5e4;
+}
+
+/* Ratings & Reviews Section */
+.marc-ratings-section {
+  padding: 64px 6%;
+  background: #fdfbf7;
+  border-top: 1px solid #ede8df;
+  border-bottom: 1px solid #ede8df;
+}
+.marc-ratings-intro {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 36px;
+}
+.marc-ratings-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #8a681c;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.marc-ratings-intro h2 {
+  font-size: clamp(26px, 3.2vw, 38px);
+  color: #272727;
+  font-weight: 400;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+.marc-ratings-subtitle {
+  font-size: 16px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.marc-ratings-summary-card {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 14px;
+  padding: 28px 36px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  max-width: 960px;
+  margin: 0 auto 40px;
+  gap: 32px;
+}
+.marc-rating-score-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-right: 28px;
+  border-right: 1px solid #ede8df;
+}
+.marc-large-score {
+  font-size: 54px;
+  font-weight: 800;
+  color: #272727;
+  line-height: 1;
+}
+.marc-stars-hero {
+  margin: 8px 0 6px;
+  gap: 4px;
+}
+.marc-score-note {
+  font-size: 12px;
+  color: #78716c;
+}
+
+.marc-ratings-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  text-align: center;
+}
+.marc-rating-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.marc-kpi-val {
+  font-size: 32px;
+  font-weight: 700;
+  color: #8a681c;
+  line-height: 1;
+}
+.marc-kpi-lbl {
+  font-size: 13px;
+  color: #57534e;
+  font-weight: 500;
+}
+
+.marc-reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1160px;
+  margin: 0 auto;
+}
+.marc-review-card {
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 12px;
+  padding: 26px 22px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.marc-review-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+}
+.marc-review-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.marc-verified-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #15803d;
+  background: #f0fdf4;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  border: 1px solid #bbf7d0;
+}
+.marc-review-comment {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #44403c;
+  font-style: italic;
+  flex: 1;
+  margin-bottom: 18px;
+}
+.marc-review-author-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #f5f2eb;
+}
+.marc-author-initial {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ece7db;
+  color: #8a681c;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.marc-author-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.marc-author-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #272727;
+}
+.marc-author-role {
+  font-size: 11.5px;
+  color: #78716c;
+}
+
+@media(max-width: 850px) {
+  .marc-ratings-summary-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding: 22px;
+    gap: 20px;
+  }
+  .marc-rating-score-block {
+    border-right: none;
+    border-bottom: 1px solid #ede8df;
+    padding-right: 0;
+    padding-bottom: 18px;
+  }
+  .marc-reviews-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+@media(max-width: 600px) {
+  .marc-hero-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .marc-ratings-section {
+    padding: 40px 18px;
+  }
+  .marc-large-score {
+    font-size: 42px;
+  }
+  .marc-kpi-val {
+    font-size: 24px;
+  }
+  .marc-kpi-lbl {
+    font-size: 11px;
   }
 }
