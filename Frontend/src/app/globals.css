@@ -133,7 +133,7 @@ select:not(.appearance-none):not([multiple]):not([size]) {
 .marc-header nav a.marc-nav-active::after{transform:scaleX(1);opacity:1}
 .marc-header nav a[aria-current="page"],
 .marc-header nav a.marc-nav-active{color:#987521;font-weight:600}
-.marc-hero{min-height:520px;height:43vw;max-height:760px;position:relative;background:linear-gradient(90deg,#0008,#0005),url('/designs/hero.webp') center/cover no-repeat;color:#fff;display:flex;align-items:center;padding:6% 3%}
+.marc-hero{min-height:520px;height:calc(100dvh - 112px);max-height:720px;position:relative;background:linear-gradient(90deg,rgba(0,0,0,0.78),rgba(0,0,0,0.48)),url('/designs/hero.webp') center/cover no-repeat;color:#fff;display:flex;align-items:center;padding:4% 3%;overflow:hidden}
 .marc-hero-copy>p:first-child{font-size:15px;margin-bottom:10px}.marc-hero h1{font-size:clamp(44px,5.5vw,80px);line-height:1.1;font-weight:400;letter-spacing:1px}.marc-hero h1 strong{font-weight:800}
 .marc-hero-description{font-size:18px;line-height:1.15;margin-top:8px}
 .marc-browse{display:inline-flex;gap:9px;align-items:center;background:#bbae82;color:white;border-radius:4px;padding:7px 10px;margin-top:24px;font-size:17px;transition:background-color .25s cubic-bezier(0.16,1,0.3,1),transform .25s cubic-bezier(0.16,1,0.3,1),box-shadow .25s cubic-bezier(0.16,1,0.3,1);will-change:transform}
@@ -141,7 +141,7 @@ select:not(.appearance-none):not([multiple]):not([size]) {
 .marc-browse:active{transform:translateY(0);box-shadow:0 2px 6px rgba(0,0,0,0.12)}
 .marc-browse svg{transition:transform .25s ease}
 .marc-browse:hover svg{transform:scale(1.1)}
-.marc-hero-caption{position:absolute;right:10px;bottom:4px;font-size:clamp(12px,1.9vw,18px);font-weight:200;text-align:right;opacity: 70%;}
+.marc-hero-caption{position:absolute;right:clamp(16px,3.5vw,44px);bottom:clamp(18px,3.5vh,32px);font-size:clamp(12.5px,1.6vw,17px);font-weight:400;letter-spacing:0.12em;text-align:right;opacity:0.95;color:#ffffff;text-shadow:0 2px 8px rgba(0,0,0,0.85);pointer-events:none;z-index:10;}
 .marc-benefits{display:grid;grid-template-columns:repeat(3,1fr);padding:20px 5%;min-height:205px;align-items:stretch}
 .marc-benefits>div{display:flex;align-items:center;justify-content:center;gap:22px;padding:22px;border-right:1px solid #aaa;transition:transform .25s cubic-bezier(0.16,1,0.3,1),background-color .25s ease}
 .marc-benefits>div:hover{background-color:#faf9f6}
@@ -189,7 +189,7 @@ select:not(.appearance-none):not([multiple]):not([size]) {
 @media(min-width:1450px){.marc-dashboard-main{padding-top:80px}.marc-sidebar{width:270px}}
 @media(max-width:1100px){.marc-dashboard-main{padding:40px 25px}.marc-sidebar{width:210px;padding:30px 12px}.marc-sidebar nav button{font-size:13px}.marc-dashboard-columns{gap:22px;grid-template-columns:minmax(0,1.4fr) minmax(200px,1fr)}.marc-filters{flex-wrap:wrap;justify-content:flex-start;margin-bottom:18px}.marc-filters button{font-size:13px;padding:4px}.marc-welcome h2{font-size:22px}.marc-benefits>div{gap:12px;padding:15px}.marc-benefits h2{font-size:16px}.marc-benefits svg{width:35px;height:35px}}
 @media(max-width:850px){.marc-dashboard-columns{grid-template-columns:1fr}.marc-dashboard-columns>div:last-child{padding-top:0;display:grid;grid-template-columns:1fr 1fr;gap:16px}.marc-dashboard-columns>div:last-child>div:first-child{min-height:165px;padding:16px}.marc-dashboard-columns>div:last-child>.marc-dashboard-shortcuts{gap:12px}.marc-sidebar{width:200px}.marc-header{padding:15px 20px}.marc-header nav{gap:24px;font-size:14px}.marc-benefits{padding:10px;min-height:150px}.marc-benefits>div{flex-direction:column;gap:10px;text-align:center}.marc-benefits p{font-size:10px}.marc-design-grid{gap:20px}.marc-login-panel{min-height:620px}.marc-login-form-panel{padding:60px 28px 30px}.marc-return{left:28px}.marc-login-form-panel>.marc-brand{margin-bottom:35px}}
-@media(max-width:600px){.marc-header{height:auto;min-height:100px;flex-direction:column;gap:18px}.marc-header nav{gap:28px;font-size:13px}.marc-header .marc-brand{width:140px}.marc-hero{height:480px;min-height:0;padding:30px 22px}.marc-hero-copy>p:first-child{font-size:10px}.marc-hero h1{font-size:44px}.marc-hero-description{font-size:14px}.marc-browse{font-size:14px}.marc-hero-caption{font-size:11px;bottom:10px;left:10px}.marc-benefits{gap:0;padding:15px 3px;min-height:150px}.marc-benefits>div{padding:10px 7px}.marc-benefits h2{font-size:12px}.marc-benefits p{font-size:9px}.marc-benefits svg{width:28px;height:28px}.marc-featured{padding:35px 20px}.marc-featured>h2{font-size:23px}.marc-featured>p:first-child{font-size:14px}.marc-section-description{font-size:11px;line-height:1.5}.marc-design-grid{grid-template-columns:1fr;gap:20px}.marc-design-card h3{font-size:16px}.marc-design-card p{font-size:12px}.marc-detail-button{font-size:11px;margin-bottom:8px}.marc-about{padding:30px 22px}.marc-contact{padding:30px 22px;flex-direction:column;align-items:flex-start}.marc-about h2,.marc-contact h2{font-size:24px}.marc-login-page{padding:30px 18px}.marc-login-panel{display:block;min-height:640px;max-width:430px}.marc-login-photo{display:none}.marc-login-form-panel{padding:60px 26px 35px}.marc-login-form-panel>.marc-brand{margin-bottom:32px}.marc-return{left:26px;top:22px}.marc-login-form input{height:43px}.marc-sidebar{display:none}.marc-dashboard-main{padding:22px 16px 100px}.marc-mobile-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;z-index:50;background:#272727;color:#ddd;padding:6px 2px max(8px,env(safe-area-inset-bottom));gap:2px;box-shadow:0 -2px 10px rgba(0,0,0,0.25)}.marc-mobile-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:44px;padding:4px 1px;border-radius:6px;font-size:10px;font-weight:500;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;color:#bbb;border:0;background:transparent;cursor:pointer}.marc-mobile-nav button svg{width:18px;height:18px;flex-shrink:0}.marc-mobile-nav button[aria-current=page]{background:#555;color:#fff;font-weight:600}.marc-welcome{padding:18px 15px;min-height:110px}.marc-welcome h2{font-size:20px}.marc-welcome p{font-size:10px}.marc-welcome>button{padding:6px}.marc-welcome>button>span:first-child{height:32px;width:32px}.marc-dashboard-designs h2{font-size:23px}.marc-filters{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;padding:6px;border:1px solid #888;border-radius:8px;margin-bottom:16px;background:#fff;width:100%;box-sizing:border-box}.marc-filters button{display:flex;align-items:center;justify-content:center;text-align:center;min-height:34px;height:34px;padding:3px 2px;font-size:11px;font-weight:500;border:1px solid transparent;border-radius:5px;white-space:nowrap;width:100%;box-sizing:border-box;cursor:pointer}.marc-filters button:nth-child(1),.marc-filters button:nth-child(2),.marc-filters button:nth-child(3){grid-column:span 2}.marc-filters button:nth-child(4),.marc-filters button:nth-child(5){grid-column:span 3}.marc-filters button[aria-pressed=true]{border-color:#c2b998;background:#faf7f0;color:#8a681c;font-weight:600}.marc-gallery-compact .marc-design-card{min-height:195px}.marc-gallery-compact .marc-design-grid{gap:10px}.marc-gallery-compact .marc-design-card p{font-size:9px}.marc-dashboard-columns>div:last-child{grid-template-columns:1fr;gap:16px}.marc-dashboard-columns>div:last-child>.marc-dashboard-shortcuts>button{min-height:120px}.marc-chat-main{padding-bottom:90px}}
+@media(max-width:600px){.marc-header{height:auto;min-height:100px;flex-direction:column;gap:18px}.marc-header nav{gap:28px;font-size:13px}.marc-header .marc-brand{width:140px}.marc-hero{height:480px;min-height:0;padding:30px 22px}.marc-hero-copy>p:first-child{font-size:10px}.marc-hero h1{font-size:44px}.marc-hero-description{font-size:14px}.marc-browse{font-size:14px}.marc-hero-caption{position:relative;bottom:auto;left:auto;right:auto;margin-top:18px;font-size:11px;letter-spacing:0.08em;color:#f5f5f4;text-align:left;opacity:0.95;text-shadow:0 2px 6px rgba(0,0,0,0.85)}.marc-benefits{gap:0;padding:15px 3px;min-height:150px}.marc-benefits>div{padding:10px 7px}.marc-benefits h2{font-size:12px}.marc-benefits p{font-size:9px}.marc-benefits svg{width:28px;height:28px}.marc-featured{padding:35px 20px}.marc-featured>h2{font-size:23px}.marc-featured>p:first-child{font-size:14px}.marc-section-description{font-size:11px;line-height:1.5}.marc-design-grid{grid-template-columns:1fr;gap:20px}.marc-design-card h3{font-size:16px}.marc-design-card p{font-size:12px}.marc-detail-button{font-size:11px;margin-bottom:8px}.marc-about{padding:30px 22px}.marc-contact{padding:30px 22px;flex-direction:column;align-items:flex-start}.marc-about h2,.marc-contact h2{font-size:24px}.marc-login-page{padding:30px 18px}.marc-login-panel{display:block;min-height:640px;max-width:430px}.marc-login-photo{display:none}.marc-login-form-panel{padding:60px 26px 35px}.marc-login-form-panel>.marc-brand{margin-bottom:32px}.marc-return{left:26px;top:22px}.marc-login-form input{height:43px}.marc-sidebar{display:none}.marc-dashboard-main{padding:22px 16px 100px}.marc-mobile-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;bottom:0;left:0;right:0;z-index:50;background:#272727;color:#ddd;padding:6px 2px max(8px,env(safe-area-inset-bottom));gap:2px;box-shadow:0 -2px 10px rgba(0,0,0,0.25)}.marc-mobile-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:44px;padding:4px 1px;border-radius:6px;font-size:10px;font-weight:500;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;color:#bbb;border:0;background:transparent;cursor:pointer}.marc-mobile-nav button svg{width:18px;height:18px;flex-shrink:0}.marc-mobile-nav button[aria-current=page]{background:#555;color:#fff;font-weight:600}.marc-welcome{padding:18px 15px;min-height:110px}.marc-welcome h2{font-size:20px}.marc-welcome p{font-size:10px}.marc-welcome>button{padding:6px}.marc-welcome>button>span:first-child{height:32px;width:32px}.marc-dashboard-designs h2{font-size:23px}.marc-filters{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;padding:6px;border:1px solid #888;border-radius:8px;margin-bottom:16px;background:#fff;width:100%;box-sizing:border-box}.marc-filters button{display:flex;align-items:center;justify-content:center;text-align:center;min-height:34px;height:34px;padding:3px 2px;font-size:11px;font-weight:500;border:1px solid transparent;border-radius:5px;white-space:nowrap;width:100%;box-sizing:border-box;cursor:pointer}.marc-filters button:nth-child(1),.marc-filters button:nth-child(2),.marc-filters button:nth-child(3){grid-column:span 2}.marc-filters button:nth-child(4),.marc-filters button:nth-child(5){grid-column:span 3}.marc-filters button[aria-pressed=true]{border-color:#c2b998;background:#faf7f0;color:#8a681c;font-weight:600}.marc-gallery-compact .marc-design-card{min-height:195px}.marc-gallery-compact .marc-design-grid{gap:10px}.marc-gallery-compact .marc-design-card p{font-size:9px}.marc-dashboard-columns>div:last-child{grid-template-columns:1fr;gap:16px}.marc-dashboard-columns>div:last-child>.marc-dashboard-shortcuts>button{min-height:120px}.marc-chat-main{padding-bottom:90px}}
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto!important}
   .marc-design-dialog[open],.marc-image-preview[open]{animation:none!important}
@@ -320,10 +320,13 @@ body:has(.marc-image-preview[open]){overflow:hidden}
 .marc-contact-secondary-text{display:block;font-size:12px;line-height:1.6;color:var(--color-stone-500);margin-top:5px}
 .marc-contact-social{grid-column:1/-1;padding-top:20px;border-top:1px solid var(--color-stone-200)}
 .marc-contact-social>svg{top:20px}
-.marc-site-footer{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:32px 6%;border-top:1px solid var(--color-stone-200);background:var(--color-brand-50)}
-.marc-site-footer>div>p{font-size:15px;margin:0 0 14px;color:var(--color-stone-600)}
+.marc-site-footer{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:20px;padding:44px 20px;border-top:1px solid var(--color-stone-200);background:var(--color-brand-50);width:100%;box-sizing:border-box}
+.marc-site-footer .marc-brand{margin:0 auto;display:inline-block}
+.marc-site-footer-content,.marc-site-footer>div{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;width:100%}
+.marc-site-footer-content>p,.marc-site-footer>div>p{font-size:15px;margin:0 0 16px;color:var(--color-stone-600);text-align:center}
+.marc-site-footer-actions{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
 @media(max-width:850px){.marc-contact-section{grid-template-columns:1fr}.marc-contact-intro{padding:36px}.marc-contact-intro>p:not(.marc-contact-eyebrow){max-width:100%}.marc-contact-information{padding:36px}}
-@media(max-width:600px){.marc-contact-section{margin:36px 20px;scroll-margin-top:170px}.marc-contact-intro,.marc-contact-information{padding:28px 22px}.marc-contact-grid{grid-template-columns:1fr;gap:25px}.marc-contact-social{grid-column:auto}.marc-contact-info-header>p{font-size:22px}.marc-site-footer{flex-direction:column;align-items:flex-start;padding:28px 22px}.marc-site-footer .marc-primary,.marc-site-footer .marc-secondary{padding:10px 16px;font-size:12px}}
+@media(max-width:600px){.marc-contact-section{margin:36px 20px;scroll-margin-top:170px}.marc-contact-intro,.marc-contact-information{padding:28px 22px}.marc-contact-grid{grid-template-columns:1fr;gap:25px}.marc-contact-social{grid-column:auto}.marc-contact-info-header>p{font-size:22px}.marc-site-footer{flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 18px}.marc-site-footer .marc-primary,.marc-site-footer .marc-secondary{padding:10px 16px;font-size:12px}}
 
 /* Interior-design details: concept, consultation, features, and specifications. */
 .marc-interior-details{max-width:1120px;width:calc(100% - 40px);border-color:var(--color-stone-200);border-radius:14px;color:var(--color-marc-charcoal);background:#fff}
@@ -967,4 +970,180 @@ aside:hover .marc-brand-compact {
   .marc-kpi-lbl {
     font-size: 11px;
   }
+}
+
+/* Pure White Logo in Side Navigator (Admin & Client) */
+.marc-brand-standalone-full {
+  width: 100%;
+  max-width: 190px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+.marc-sidebar .marc-brand-light,
+aside .marc-brand-light,
+.marc-brand-light {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  max-width: 190px !important;
+  aspect-ratio: auto !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+/* Client Sidebar Footer: Non-clickable info container */
+.marc-sidebar-footer .marc-sidebar-user-info {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  width: 100% !important;
+  padding: 8px 12px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  text-align: left !important;
+  cursor: default !important;
+  user-select: text;
+}
+.marc-sidebar-footer .marc-user-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #a8a29e;
+  text-transform: uppercase;
+  line-height: 1.2;
+  display: block;
+}
+.marc-sidebar-footer .marc-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 190px;
+  display: block;
+  margin-top: 2px;
+}
+.marc-sidebar:not([data-expanded="true"]):not(:hover) .marc-sidebar-footer .marc-sidebar-user-info {
+  display: none !important;
+}
+
+/* Responsive Client Star Ratings for all mobile phones and gadgets */
+@media(max-width: 640px) {
+  .marc-hero-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  .marc-hero-ratings-badge {
+    padding: 6px 12px !important;
+    font-size: 11.5px !important;
+    gap: 6px !important;
+    border-radius: 10px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    flex-wrap: wrap !important;
+  }
+  .marc-hero-ratings-badge .marc-stars-row svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+  .marc-hero-rating-score {
+    font-size: 12px !important;
+  }
+  .marc-hero-rating-count {
+    font-size: 11px !important;
+  }
+
+  .marc-ratings-section {
+    padding: 36px 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+  .marc-ratings-intro {
+    margin-bottom: 22px !important;
+    padding: 0 4px !important;
+  }
+  .marc-ratings-intro h2 {
+    font-size: 22px !important;
+    line-height: 1.3 !important;
+  }
+  .marc-ratings-subtitle {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+  }
+
+  .marc-ratings-summary-card {
+    grid-template-columns: 1fr !important;
+    padding: 20px 14px !important;
+    gap: 16px !important;
+    border-radius: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 24px !important;
+  }
+  .marc-rating-score-block {
+    border-right: none !important;
+    border-bottom: 1px solid #ede8df !important;
+    padding-right: 0 !important;
+    padding-bottom: 16px !important;
+  }
+  .marc-large-score {
+    font-size: 38px !important;
+  }
+  .marc-stars-hero svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .marc-score-note {
+    font-size: 11px !important;
+  }
+
+  .marc-ratings-stats-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .marc-kpi-val {
+    font-size: 20px !important;
+  }
+  .marc-kpi-lbl {
+    font-size: 9.5px !important;
+    line-height: 1.25 !important;
+  }
+
+  .marc-reviews-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .marc-review-card {
+    padding: 18px 14px !important;
+    border-radius: 10px !important;
+  }
+  .marc-review-comment {
+    font-size: 12.5px !important;
+    line-height: 1.55 !important;
+    margin-bottom: 14px !important;
+  }
+  .marc-review-stars svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+}
+
+/* Form input placeholder styles */
+.marc-login-form input::placeholder,
+.marc-registration-form input::placeholder {
+  color: #78716c !important;
+  opacity: 0.8 !important;
+  font-size: 13px !important;
 }

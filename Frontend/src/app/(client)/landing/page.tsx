@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, Ruler, PanelsTopLeft, Search, Phone, MapPin, Clock, UserRound, ArrowUpRight, Star } from 'lucide-react';
 import MarcBrand from '@/components/MarcBrand';
 import DesignGallery from '@/components/DesignGallery';
@@ -15,6 +15,54 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
     { id: 'about', label: 'About', href: '#about' },
     { id: 'contact', label: 'Contact Us', href: '#contact' },
   ];
+
+  // Dynamic Scroll-Spy: moves the underline automatically to whatever section appears on screen
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const fullHeight = document.documentElement.scrollHeight;
+
+      // Bottom threshold (reached bottom of page -> Contact Us)
+      if (scrollY + windowHeight >= fullHeight - 60) {
+        setActiveNav('contact');
+        return;
+      }
+
+      // Check section bounding rects from bottom to top
+      const sections = [
+        { id: 'contact', el: document.getElementById('contact') },
+        { id: 'about', el: document.getElementById('about') },
+        { id: 'featured', el: document.getElementById('featured') },
+        { id: 'home', el: document.getElementById('home') },
+      ];
+
+      const headerOffset = 180;
+      for (const section of sections) {
+        if (section.el) {
+          const rect = section.el.getBoundingClientRect();
+          if (rect.top <= headerOffset) {
+            setActiveNav(section.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    setActiveNav(id);
+    const target = document.getElementById(id);
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth' });
+      window.history.pushState(null, '', `#${id}`);
+    }
+  };
 
   const clientReviews = [
     {
@@ -43,7 +91,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
   return (
     <div className="marc-landing" id="home">
       <header className="marc-header">
-        <a href="#home" aria-label="Marc Interior Design home" onClick={() => setActiveNav('home')}>
+        <a href="#home" aria-label="Marc Interior Design home" onClick={(e) => handleNavClick(e, 'home')}>
           <MarcBrand />
         </a>
         <nav aria-label="Main navigation">
@@ -53,7 +101,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
               href={item.href}
               aria-current={activeNav === item.id ? 'page' : undefined}
               className={activeNav === item.id ? 'marc-nav-active' : ''}
-              onClick={() => setActiveNav(item.id)}
+              onClick={(e) => handleNavClick(e, item.id)}
             >
               {item.label}
             </a>
@@ -68,7 +116,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
           <p className="marc-hero-description">Step into a world of refined elegance,<br />where every detail is meticulously curated to elevate your lifestyle.</p>
           
           <div className="marc-hero-actions">
-            <a href="#featured" className="marc-browse" onClick={() => setActiveNav('featured')}>
+            <a href="#featured" className="marc-browse" onClick={(e) => handleNavClick(e, 'featured')}>
               <Search size={20} /> Browse Designs
             </a>
 
@@ -85,6 +133,8 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
             </div>
           </div>
         </div>
+
+        {/* Home Side Caption: Positioned cleanly inside initial viewport fold without scrolling */}
         <p className="marc-hero-caption">TRANSFORMING VOIDS INTO INSPIRED SPACES.</p>
       </section>
 
@@ -188,10 +238,12 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
 
       <footer className="marc-site-footer">
         <MarcBrand />
-        <div>
+        <div className="marc-site-footer-content">
           <p>Your project, in one place.</p>
-          <button type="button" className="marc-primary" onClick={login}>Log in</button>
-          <button type="button" className="marc-secondary" onClick={register}>Create an account</button>
+          <div className="marc-site-footer-actions">
+            <button type="button" className="marc-primary" onClick={login}>Log in</button>
+            <button type="button" className="marc-secondary" onClick={register}>Create an account</button>
+          </div>
         </div>
       </footer>
     </div>

@@ -100,7 +100,7 @@ export default function DashboardShell({
         <span className="marc-brand-compact"><MarcBrand light iconOnly /></span>
       </button>
       <nav id="marc-client-navigation" aria-label="Client navigation">{tabs.map(({ id, label, icon: Icon }) => <button aria-label={label} title={label} key={id} aria-current={activeTab === id ? 'page' : undefined} onClick={() => setActiveTab(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
-      <div className="marc-sidebar-footer"><button className="marc-sidebar-user-btn" aria-label={`Account profile: ${userName}`} onClick={() => setActiveTab('profile')}><span className="marc-user-stack"><span className="marc-user-label">LOGGED IN AS</span><span className="marc-user-name">{userName}</span></span></button><button aria-label="Log out" onClick={handleLogoutClick}><LogOut size={19} /><span>Log Out</span></button></div>
+      <div className="marc-sidebar-footer"><div className="marc-sidebar-user-info" aria-label={`Logged in as ${userName}`}><span className="marc-user-label">LOGGED IN AS</span><span className="marc-user-name">{userName}</span></div><button aria-label="Log out" onClick={handleLogoutClick}><LogOut size={19} /><span>Log Out</span></button></div>
     </aside>
     <main data-dashboard-content className={'marc-dashboard-main ' + (activeTab === 'chat' ? 'marc-chat-main' : '')}>
       {React.Children.map(children, child => React.isValidElement(child) ? React.cloneElement(child, { userName, setActiveTab } as { userName: string; setActiveTab: (tab: string) => void }) : child)}

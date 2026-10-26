@@ -82,15 +82,15 @@ export default function DashboardOverview() {
           <h1 className="text-xl sm:text-2xl font-bold font-serif tracking-tight">Dashboard</h1>
         </div>
         <div className="shrink-0 flex items-center gap-2.5 sm:gap-3">
+          <AdminNotificationBell />
           <Link
             href="/admin/settings"
             aria-label="Profile Settings"
             title="Profile Settings"
-            className="flex items-center justify-center p-1.5 text-stone-300 hover:text-white transition-colors"
+            className="flex md:hidden items-center justify-center w-8 h-8 rounded-full bg-white text-black shadow-sm transition-transform active:scale-95 shrink-0"
           >
-            <UserRound size={20} />
+            <UserRound size={17} className="text-black" />
           </Link>
-          <AdminNotificationBell />
         </div>
       </div>
 

@@ -214,30 +214,30 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
             <fieldset disabled={isLoading} className="marc-registration-fields">
               <div className="marc-registration-field">
                 <label htmlFor="register-name">Full Name</label>
-                <input id="register-name" name="fullname" type="text" autoComplete="name" value={fullName} onChange={e => setFullName(e.target.value)} required />
+                <input id="register-name" name="fullname" type="text" autoComplete="name" placeholder="Enter your Full name" value={fullName} onChange={e => setFullName(e.target.value)} required />
               </div>
               <div className="marc-registration-field">
                 <label htmlFor="register-phone">Phone Number</label>
-                <input id="register-phone" name="phone" type="tel" autoComplete="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} required />
+                <input id="register-phone" name="phone" type="tel" autoComplete="tel" placeholder="Enter your mobile number" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} required />
               </div>
               <div className="marc-registration-field marc-registration-full">
                 <label htmlFor="register-address">Project Address</label>
-                <input id="register-address" name="address" type="text" autoComplete="street-address" list="project-address-suggestions" value={projectAddress} onChange={e => setProjectAddress(e.target.value)} placeholder="Barangay, city, or province" aria-describedby="register-address-help" required />
+                <input id="register-address" name="address" type="text" autoComplete="street-address" list="project-address-suggestions" value={projectAddress} onChange={e => setProjectAddress(e.target.value)} placeholder="e.g. Unit/House No., Street, Barangay, City, Province" aria-describedby="register-address-help" required />
                 <datalist id="project-address-suggestions">{addressSuggestions.map(suggestion => <option key={suggestion} value={suggestion} />)}</datalist>
                 <p id="register-address-help" className="marc-field-help" role="status">{addressLookupLoading ? 'Loading address suggestions...' : 'Include your house or building number and street.'}</p>
               </div>
               <div className="marc-registration-field marc-registration-full">
                 <label htmlFor="register-landmark">Nearest Landmark</label>
-                <input id="register-landmark" name="landmark" type="text" value={landmark} onChange={e => setLandmark(e.target.value)} required />
+                <input id="register-landmark" name="landmark" type="text" placeholder="e.g. Near Grand Mall, beside Shell station" value={landmark} onChange={e => setLandmark(e.target.value)} required />
               </div>
               <div className="marc-registration-field marc-registration-full">
                 <label htmlFor="register-email">Email</label>
-                <input id="register-email" name="email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <input id="register-email" name="email" type="email" autoComplete="email" placeholder="Enter your email address" value={email} onChange={e => setEmail(e.target.value)} required />
               </div>
               <div className="marc-registration-field">
                 <label htmlFor="register-password">Password</label>
                 <div className="marc-password">
-                  <input id="register-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} minLength={8} aria-describedby="register-password-help" required />
+                  <input id="register-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)} minLength={8} aria-describedby="register-password-help" required />
                   <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
                 </div>
                 <p id="register-password-help" className="marc-field-help">Use at least 8 characters.</p>
@@ -245,7 +245,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
               <div className="marc-registration-field">
                 <label htmlFor="register-confirm">Confirm Password</label>
                 <div className="marc-password">
-                  <input id="register-confirm" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} minLength={8} aria-describedby="register-confirm-help" aria-invalid={Boolean(confirmPassword && password !== confirmPassword)} required />
+                  <input id="register-confirm" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="Re-enter your password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} minLength={8} aria-describedby="register-confirm-help" aria-invalid={Boolean(confirmPassword && password !== confirmPassword)} required />
                   <button type="button" aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
                 </div>
                 <p id="register-confirm-help" className="marc-field-help">{confirmPassword && password !== confirmPassword ? 'Passwords do not match.' : 'Re-enter your password.'}</p>
