@@ -154,7 +154,7 @@ export default function FleetMapManagement() {
         </div>
 
         {/* Accepted project manifest */}
-        <div className="bg-white rounded-3xl border border-stone-200/80 p-5 shadow-sm space-y-4 h-full flex flex-col justify-between">
+        <div className="bg-white rounded-3xl border border-stone-200/80 p-4 sm:p-5 shadow-sm space-y-4 h-full flex flex-col justify-between">
           <div className="space-y-1">
             <h3 className="text-xs font-black tracking-widest uppercase text-stone-800 font-serif">Job Sites Manifest</h3>
             <p className="text-[10px] font-medium text-stone-400">Select a project to center its pin and open its details.</p>
@@ -206,7 +206,7 @@ export default function FleetMapManagement() {
         </div>
 
       </div>
-      <section id="fleet-selected-project-details" aria-labelledby="fleet-details-heading" className="fleet-selected-details scroll-mt-6 rounded-2xl border border-stone-200 bg-white p-5 sm:p-7 shadow-sm">
+      <section id="fleet-selected-project-details" aria-labelledby="fleet-details-heading" className="fleet-selected-details scroll-mt-6 rounded-2xl border border-stone-200 bg-white p-4 sm:p-7 shadow-sm">
         <h2 id="fleet-details-heading" className="text-xl text-stone-900">Selected project details</h2>
         {activeProject ? <>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs text-brand-700">Project {activeProject.projectRef}</p><h3 className="mt-1 text-lg text-stone-900">{activeProject.clientName}</h3><p className="mt-1 text-sm text-stone-600">{activeProject.projectDetails}</p></div><span className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-900">{activeProject.status} - {activeProject.progress}% complete</span></div>

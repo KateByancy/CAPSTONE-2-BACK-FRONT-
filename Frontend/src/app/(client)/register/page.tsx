@@ -238,7 +238,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
                 <label htmlFor="register-password">Password</label>
                 <div className="marc-password">
                   <input id="register-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)} minLength={8} aria-describedby="register-password-help" required />
-                  <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
+                  <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <Eye size={17} /> : <EyeOff size={17} />}</button>
                 </div>
                 <p id="register-password-help" className="marc-field-help">Use at least 8 characters.</p>
               </div>

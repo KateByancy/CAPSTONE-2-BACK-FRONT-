@@ -170,7 +170,7 @@ function FleetProjectMap({ projects, selectedProjectId, selectionRevision = 0, o
   );
 
   return (
-    <div className="relative isolate z-0 h-[340px] sm:h-[430px] w-full">
+    <div className="relative isolate z-0 h-[360px] sm:h-[430px] w-full">
     <MapContainer center={PHILIPPINES_CENTER} zoom={6} scrollWheelZoom={false} dragging={false} touchZoom={false} className="h-full w-full">
       <MapGestures />
       <TileLayer
@@ -189,7 +189,7 @@ function FleetProjectMap({ projects, selectedProjectId, selectionRevision = 0, o
             title={`Project #${project.id}: ${project.clientName}`}
             eventHandlers={{ click: () => onSelectProject(project.id) }}
           >
-            <Popup className="fleet-project-popup" minWidth={220} maxWidth={340} autoPanPadding={[24, 24]}>
+            <Popup className="fleet-project-popup" minWidth={160} maxWidth={280} autoPanPadding={[12, 12]}>
               <div className="fleet-project-details">
                 <p className="fleet-project-ref">Project #{project.id}</p>
                 <h2>{project.clientName}</h2>

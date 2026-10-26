@@ -238,7 +238,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
 
       <footer className="marc-site-footer">
         <MarcBrand />
-        <div className="marc-site-footer-content">
+        <div>
           <p>Your project, in one place.</p>
           <div className="marc-site-footer-actions">
             <button type="button" className="marc-primary" onClick={login}>Log in</button>
