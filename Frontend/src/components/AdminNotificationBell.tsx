@@ -132,7 +132,7 @@ export default function AdminNotificationBell() {
         {!rows.length && !error && <p>No new bookings or messages.</p>}
         <ul>
           {rows.map(row => (
-            <li key={row.event_key} data-unread={!row.read_at}>
+            <li key={row.event_key} data-unread={!row.read_at} data-kind={row.kind}>
               <Link
                 href={row.kind === 'support' ? '/admin/clients?client=' + row.user_id : '/admin/quotes?booking=' + row.booking_id}
                 onClick={() => {
@@ -140,7 +140,10 @@ export default function AdminNotificationBell() {
                   void read(row.event_key);
                 }}
               >
-                <strong>
+                <strong
+                  style={row.kind === 'support' ? { color: '#6b6458' } : undefined}
+                  className={row.kind === 'support' ? 'marc-support-notice-title' : undefined}
+                >
                   {row.kind === 'booking'
                     ? 'New booking #' + row.booking_id
                     : row.kind === 'project'
