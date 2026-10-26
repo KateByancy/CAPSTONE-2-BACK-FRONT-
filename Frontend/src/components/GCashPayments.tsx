@@ -23,7 +23,6 @@ const peso = (amount: string | number) => new Intl.NumberFormat('en-PH', { style
 const input = 'mt-1 w-full rounded-xl border border-stone-300 bg-white p-3 text-sm text-stone-900';
 const button = 'rounded-xl bg-marc-charcoal px-4 py-3 text-sm font-semibold text-white disabled:opacity-50';
 const card = 'rounded-2xl border border-stone-200 bg-white p-5 shadow-sm';
-const gcashVisibilityKey = 'adminGcashAccountHidden';
 
 export default function GCashPayments({ role, onBack }: { role: 'admin' | 'client'; onBack?: () => void }) {
   const admin = role === 'admin';
@@ -31,14 +30,17 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
   const [, setBookings] = useState<Booking[]>([]);
   const [legacy, setLegacy] = useState<Legacy[]>([]);
   const [estimates, setEstimates] = useState<BookingEstimate[]>([]);
-  const [accountName, setAccountName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [qrImage, setQrImage] = useState('/designs/gcash qr.jpg');
+  const [accountName, setAccountName] = useState('Marc Semblante');
+  const [accountNumber, setAccountNumber] = useState('09123456789');
+  const [qrImage, setQrImage] = useState('/designs/gcash%20qr.jpg');
   const [qrUploading, setQrUploading] = useState(false);
-  const [, setManualReady] = useState(false);
-  const [editingAccount, setEditingAccount] = useState(true);
-  const [gcashAccountHidden, setGcashAccountHidden] = useState(false);
-  const [savedAccount, setSavedAccount] = useState<{ account_name: string; account_number: string; qr_image: string } | null>(null);
+  const [, setManualReady] = useState(true);
+  const [editingAccount, setEditingAccount] = useState(false);
+  const [savedAccount, setSavedAccount] = useState<{ account_name: string; account_number: string; qr_image: string } | null>({
+    account_name: 'Marc Semblante',
+    account_number: '09123456789',
+    qr_image: '/designs/gcash%20qr.jpg'
+  });
   const [, setBusyAction] = useState<string | null>(null);
   const [savingAccount, setSavingAccount] = useState(false);
   const accountSaveInFlight = useRef(false);
@@ -72,10 +74,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     let active = true;
     void Promise.allSettled([request(''), request('/settings')]).then(([billingResult, settingsResult]) => {
       if (!active) return;
-      if (admin) {
-        try { setGcashAccountHidden(localStorage.getItem(gcashVisibilityKey) === 'true'); }
-        catch { /* Keep the current view when browser storage is unavailable. */ }
-      }
+
       if (billingResult.status === 'fulfilled') {
         const billing = billingResult.value;
         setPayments(billing.payments); setBookings(billing.bookings); setLegacy(billing.legacy);
@@ -84,13 +83,16 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       } else setError(billingResult.reason.message);
       if (settingsResult.status === 'fulfilled') {
         const result = settingsResult.value;
-        const qr = result.settings?.qr_image || '/designs/gcash qr.jpg';
-        setAccountName(result.settings?.account_name || ''); setAccountNumber(result.settings?.account_number || ''); setQrImage(qr);
-        setManualReady(Boolean(result.settings?.account_name && result.settings?.account_number));
-        if (result.settings?.account_name && result.settings?.account_number) {
-          setSavedAccount({ account_name: result.settings.account_name, account_number: result.settings.account_number, qr_image: qr });
-          setEditingAccount(false);
-        }
+        const name = result.settings?.account_name || 'Marc Semblante';
+        const num = result.settings?.account_number || '09123456789';
+        const rawQr = result.settings?.qr_image || '/designs/gcash%20qr.jpg';
+        const qr = (rawQr && !rawQr.startsWith('/api/portfolio/images/')) ? rawQr : '/designs/gcash%20qr.jpg';
+        setAccountName(name); 
+        setAccountNumber(num); 
+        setQrImage(qr);
+        setManualReady(true);
+        setSavedAccount({ account_name: name, account_number: num, qr_image: qr });
+        setEditingAccount(false);
       } else setError(settingsResult.reason.message);
     }).catch(err => { if (active) setError(err.message); }).finally(() => { if (active) setLoading(false); });
     const refresh = () => { if (!inFlight.current && document.visibilityState === 'visible') void load().catch(err => setError(err.message)); };
@@ -108,11 +110,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     const key=(event:KeyboardEvent)=>{if(event.key==='Escape')setProofUrl('');if(event.key==='Tab'){event.preventDefault();close?.focus();}};
     document.addEventListener('keydown',key);return()=>{document.body.style.overflow=previousOverflow;document.removeEventListener('keydown',key);previousFocus?.focus();};
   },[proofUrl]);
-  function changeGcashVisibility(hidden: boolean) {
-    setGcashAccountHidden(hidden);
-    try { localStorage.setItem(gcashVisibilityKey, String(hidden)); }
-    catch { /* Visibility still works for this visit if storage is blocked. */ }
-  }
+
   async function refreshPayments() {
     if (inFlight.current) return;
     inFlight.current = true; setRefreshing(true); setError(''); setNotice('');
@@ -141,7 +139,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     event.preventDefault(); event.stopPropagation();
     if (accountSaveInFlight.current || qrUploading) return;
     accountSaveInFlight.current = true; setSavingAccount(true); setError(''); setNotice('');
-    const account = { account_name: accountName.trim(), account_number: accountNumber.trim(), qr_image: qrImage };
+    const account = { account_name: accountName.trim() || 'Marc Semblante', account_number: accountNumber.trim() || '09123456789', qr_image: qrImage || '/designs/gcash%20qr.jpg' };
     try {
       await request('/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(account) });
       setAccountName(account.account_name); setAccountNumber(account.account_number);
@@ -174,31 +172,118 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
     {!admin && <Link href="/?screen=dashboard&tab=quotes" className="inline-flex rounded-xl border border-brand-200 px-4 py-3 text-sm text-brand-800">Review agreed quotations</Link>}
     {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
     {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-sm text-green-800">{notice}</p>}
-    {admin && <div className="grid items-start gap-5 lg:grid-cols-2">
-      <section className={`${card} min-w-0 lg:col-span-2`}>
-        <div className="flex items-center justify-between gap-2"><h2 className="min-w-0 font-bold">Admin GCash account</h2>
-          <div className="flex shrink-0 items-center gap-1">
-            {!editingAccount && savedAccount && <button type="button" aria-label="Edit GCash account" title="Edit GCash account" disabled={busy} onClick={() => { setEditingAccount(true); changeGcashVisibility(false); }} className="flex h-11 w-11 items-center justify-center rounded-xl text-brand-700 hover:bg-brand-50 disabled:opacity-50"><Pencil size={18} /></button>}
-            <button type="button" disabled={loading} aria-expanded={!loading && !gcashAccountHidden} aria-controls="gcash-account-content" onClick={() => changeGcashVisibility(!gcashAccountHidden)} className="flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-xs font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50">
-              {gcashAccountHidden ? <EyeOff size={16} /> : <Eye size={16} />}{gcashAccountHidden ? 'Unhide' : 'Hide'}
-            </button>
+    {/* CLIENT PERMANENT OFFICIAL GCASH QR DISPLAY */}
+    {!admin && (
+      <section className={`${card} border-brand-200 bg-brand-50/40`}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="max-w-md space-y-2">
+            <span className="inline-block rounded-full bg-brand-100 px-3 py-1 text-xs font-bold text-brand-800 uppercase tracking-wider">
+              Official Payment Destination
+            </span>
+            <h2 className="text-lg font-bold text-stone-900">MCID GCash Account &amp; QR</h2>
+            <p className="text-xs text-stone-600 leading-relaxed">
+              Scan this official QR code using your GCash app for all accepted quotation deposits and balance billings. 
+              Always verify the recipient name and number before confirming your transfer, then submit your receipt screenshot below for verification.
+            </p>
+            <dl className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="rounded-lg bg-white p-2.5 border border-stone-200 shadow-2xs">
+                <dt className="text-stone-500 font-medium">Account Name</dt>
+                <dd className="font-bold text-stone-900 text-sm mt-0.5">{accountName || savedAccount?.account_name || 'Marc Semblante'}</dd>
+              </div>
+              <div className="rounded-lg bg-white p-2.5 border border-stone-200 shadow-2xs">
+                <dt className="text-stone-500 font-medium">GCash Number</dt>
+                <dd className="font-bold text-stone-900 text-sm mt-0.5 tracking-wider">{accountNumber || savedAccount?.account_number || '09123456789'}</dd>
+              </div>
+            </dl>
+          </div>
+          <div className="flex shrink-0 justify-center">
+            <PaymentQr src={qrImage || savedAccount?.qr_image || '/designs/gcash%20qr.jpg'} name={accountName || savedAccount?.account_name || 'Marc Semblante'} />
           </div>
         </div>
-        <div id="gcash-account-content" hidden={loading || gcashAccountHidden}>
-        {!editingAccount && savedAccount ? <div className="mt-4 space-y-3">
-          <dl className="space-y-3"><div><dt className="text-xs text-stone-500">Account name</dt><dd className="mt-1 break-words font-semibold">{savedAccount.account_name}</dd></div><div><dt className="text-xs text-stone-500">GCash mobile number</dt><dd className="mt-1 font-semibold tracking-wide">{savedAccount.account_number}</dd></div></dl>
-          <PaymentQr src={savedAccount.qr_image} name={savedAccount.account_name}/>
-          <p className="text-xs text-green-700">GCash account saved</p>
-        </div> : <form id="gcash-account-form" onSubmit={saveAccount}>
-        <label className="mt-3 block text-sm">Account name<input required maxLength={100} value={accountName} onChange={event => setAccountName(event.target.value)} className={input} /></label>
-        <label className="mt-3 block text-sm">GCash mobile number<input required pattern="09[0-9]{9}" maxLength={11} inputMode="numeric" value={accountNumber} onChange={event => setAccountNumber(event.target.value)} className={input} /></label>
-        <p className="my-3 text-sm">Upload the QR exported from your GCash account. Clients will see it on their payment request.</p>
-        <button type="button" disabled={savingAccount || qrUploading} onClick={()=>setQrImage('/designs/gcash qr.jpg')} className="mb-3 min-h-11 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm text-brand-800">Use provided GCash QR photo</button>
-        <AdminImageUpload value={qrImage} onChange={setQrImage} onBusyChange={setQrUploading} disabled={savingAccount} />
-        <div className="mt-4 flex flex-wrap gap-3"><button type="submit" form="gcash-account-form" disabled={savingAccount || loading || qrUploading || !qrImage} className={button}>{savingAccount ? 'Saving GCash account...' : 'Save GCash account'}</button>
-          {savedAccount && <button type="button" disabled={savingAccount || qrUploading} className="rounded-xl border px-4 py-3 text-sm" onClick={() => { setAccountName(savedAccount.account_name); setAccountNumber(savedAccount.account_number); setQrImage(savedAccount.qr_image); setEditingAccount(false); }}>Cancel</button>}
+      </section>
+    )}
+
+    {/* ADMIN PERMANENT OFFICIAL GCASH QR DISPLAY */}
+    {admin && <div className="grid items-start gap-5 lg:grid-cols-2">
+      <section className={`${card} min-w-0 lg:col-span-2`}>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="min-w-0 font-bold text-lg">Admin GCash Account &amp; QR Code</h2>
+            <p className="text-xs text-stone-500 mt-0.5">This permanent QR code and recipient account are displayed to clients on their payment requests.</p>
+          </div>
+          {!editingAccount && (
+            <button 
+              type="button" 
+              aria-label="Edit GCash account" 
+              title="Edit GCash account details" 
+              disabled={busy} 
+              onClick={() => setEditingAccount(true)} 
+              className="flex h-10 items-center gap-1.5 px-3 rounded-xl border border-stone-300 text-xs font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+            >
+              <Pencil size={15} /> Edit Details
+            </button>
+          )}
         </div>
-      </form>}
+
+        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-6 items-start border-t border-stone-100 pt-5">
+          {/* Permanent QR Preview Card */}
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 text-center flex flex-col items-center">
+            <span className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Active GCash QR Code</span>
+            <PaymentQr src={qrImage || savedAccount?.qr_image || '/designs/gcash%20qr.jpg'} name={accountName || savedAccount?.account_name || 'Marc Semblante'} />
+            <p className="mt-3 text-xs text-green-700 font-medium">✓ Permanent public QR: /designs/gcash qr.jpg</p>
+          </div>
+
+          {/* Account Details / Edit Form */}
+          <div>
+            {!editingAccount ? (
+              <div className="space-y-4">
+                <dl className="space-y-3">
+                  <div className="rounded-xl border border-stone-200 bg-white p-3.5 shadow-2xs">
+                    <dt className="text-xs text-stone-500 font-medium">Recipient Account Name</dt>
+                    <dd className="mt-1 break-words font-bold text-stone-900 text-base">{accountName || savedAccount?.account_name || 'Marc Semblante'}</dd>
+                  </div>
+                  <div className="rounded-xl border border-stone-200 bg-white p-3.5 shadow-2xs">
+                    <dt className="text-xs text-stone-500 font-medium">GCash Mobile Number</dt>
+                    <dd className="mt-1 font-bold tracking-wider text-stone-900 text-base">{accountNumber || savedAccount?.account_number || '09123456789'}</dd>
+                  </div>
+                </dl>
+                <button 
+                  type="button" 
+                  onClick={() => setEditingAccount(true)} 
+                  className="rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-xs font-semibold text-stone-700 hover:bg-stone-50 shadow-2xs"
+                >
+                  Edit Account Information
+                </button>
+              </div>
+            ) : (
+              <form id="gcash-account-form" onSubmit={saveAccount} className="space-y-3">
+                <label className="block text-sm font-medium text-stone-700">Account name
+                  <input required maxLength={100} value={accountName} onChange={event => setAccountName(event.target.value)} placeholder="Marc Semblante" className={input} />
+                </label>
+                <label className="block text-sm font-medium text-stone-700">GCash mobile number
+                  <input required pattern="09[0-9]{9}" maxLength={11} inputMode="numeric" value={accountNumber} onChange={event => setAccountNumber(event.target.value)} placeholder="09123456789" className={input} />
+                </label>
+                <div className="pt-2">
+                  <button 
+                    type="button" 
+                    disabled={savingAccount || qrUploading} 
+                    onClick={() => setQrImage('/designs/gcash%20qr.jpg')} 
+                    className="w-full min-h-11 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-xs font-semibold text-brand-800"
+                  >
+                    Reset to Permanent GCash QR (/designs/gcash qr.jpg)
+                  </button>
+                </div>
+                <div className="pt-2 flex flex-wrap gap-2">
+                  <button type="submit" form="gcash-account-form" disabled={savingAccount || loading} className={button}>
+                    {savingAccount ? 'Saving GCash account...' : 'Save GCash Account'}
+                  </button>
+                  <button type="button" disabled={savingAccount} className="rounded-xl border px-4 py-3 text-sm font-semibold" onClick={() => setEditingAccount(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       </section>
       <section className={card}><h2 className="font-bold">Payments from accepted quotations</h2><p className="mt-2 text-sm">Send an itemized quotation and obtain client approval before requesting the agreed deposit or remaining balance.</p><Link href="/admin/quotes" className="mt-3 inline-block rounded-xl bg-marc-charcoal px-4 py-3 text-sm text-white">Open quotations &amp; client chat</Link></section>
@@ -217,7 +302,7 @@ export default function GCashPayments({ role, onBack }: { role: 'admin' | 'clien
       {payment.payment_provider === 'PayMongo' && payment.status !== 'Paid' && payment.status !== 'Cancelled' && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Previous PayMongo request. Contact the admin to check whether funds were received before replacing this bill with a GCash QR request.</p>}
       {!admin && payment.payment_provider === 'Manual' && ['Awaiting payment','Returned'].includes(payment.status) && !['rejected','cancelled'].includes(payment.booking_status.toLowerCase()) && <div className="mt-4 border-t pt-4">
         <p className="text-sm">{payment.status === 'Returned' ? 'Check the admin note and correct your receipt or reference. Do not pay again if funds were already sent.' : 'Open GCash and send the exact requested amount to the account below. Check the recipient before confirming.'}</p>
-        <div className="my-3 rounded-xl bg-brand-50 p-4"><p className="text-xs text-stone-500">GCash recipient</p><p className="font-bold">{payment.account_name}</p><p className="text-lg font-bold tracking-wide">{payment.account_number}</p><p className="mt-1 text-sm">Amount: {peso(payment.amount)}</p>{payment.qr_image && <PaymentQr src={payment.qr_image} name={payment.account_name}/>}</div>
+        <div className="my-3 rounded-xl bg-brand-50 p-4"><p className="text-xs text-stone-500">GCash recipient</p><p className="font-bold">{payment.account_name}</p><p className="text-lg font-bold tracking-wide">{payment.account_number}</p><p className="mt-1 text-sm">Amount: {peso(payment.amount)}</p><div className="mt-3"><PaymentQr src={payment.qr_image || qrImage || '/designs/gcash%20qr.jpg'} name={payment.account_name || accountName || 'Marc Semblante'} /></div></div>
         <form onSubmit={e => void submitProof(e, payment.id)} className="grid items-end gap-3 md:grid-cols-3">
           <label className="text-sm">GCash reference number<input name="reference_number" required pattern="[0-9]{10,30}" maxLength={30} inputMode="numeric" defaultValue={payment.reference_number || ''} className={input} /></label>
           <label className="text-sm">Receipt image (max 5 MB)<input name="proof" required type="file" accept="image/png,image/jpeg,image/webp" className={`${input} text-xs`} /></label>

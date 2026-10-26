@@ -5,8 +5,16 @@ import Image from 'next/image';
 import { apiFetch, getApiUrl } from '@/lib/api';
 
 export function imageSource(image?: string | null) {
-  if (!image) return '/designs/gcash qr.jpg';
-  return image.startsWith('/api/') ? `${getApiUrl().replace(/\/api$/, '')}${image}` : image;
+  if (!image || image === '/designs/gcash qr.jpg' || image === '/designs/gcash%20qr.jpg' || image === '/designs/gcash-qr.jpg') {
+    return '/designs/gcash%20qr.jpg';
+  }
+  if (image.startsWith('/api/')) {
+    return `${getApiUrl().replace(/\/api$/, '')}${image}`;
+  }
+  if (image.startsWith('/') && image.includes(' ')) {
+    return encodeURI(image);
+  }
+  return image;
 }
 
 export default function AdminImageUpload({ value, onChange, onBusyChange, disabled = false }: {

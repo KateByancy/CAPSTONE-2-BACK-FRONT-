@@ -1,3 +1,5 @@
+const path = require('node:path');
+const fs = require('node:fs');
 const db = require('../config/db');
 const audit = require('../utils/paymentAudit');
 const { createHash } = require('node:crypto');
@@ -23,19 +25,32 @@ const imageType = buffer => {
 };
 exports.getSettings = wrap(async (_req, res) => {
     const rows = await query('SELECT account_name, account_number, qr_image FROM gcash_settings WHERE id=1');
+    const permanentQr = '/designs/gcash qr.jpg';
+    let qr = rows[0]?.qr_image || permanentQr;
+    if (qr.startsWith('/api/portfolio/images/')) {
+        const imagePath = path.join(__dirname, '..', 'uploads', path.basename(qr));
+        if (!fs.existsSync(imagePath)) {
+            qr = permanentQr;
+        }
+    }
     const settings = rows[0] ? {
-        account_name: rows[0].account_name,
-        account_number: rows[0].account_number,
-        qr_image: rows[0].qr_image || '/designs/gcash qr.jpg'
-    } : null;
+        account_name: rows[0].account_name || 'Marc Semblante',
+        account_number: rows[0].account_number || '09123456789',
+        qr_image: qr
+    } : {
+        account_name: 'Marc Semblante',
+        account_number: '09123456789',
+        qr_image: permanentQr
+    };
     res.json({ settings, provider: 'Manual', configured: Boolean(settings?.qr_image && settings?.account_name && /^09\d{9}$/.test(settings?.account_number || '')) });
 });
 exports.saveSettings = wrap(async (req, res) => {
     const name = typeof req.body.account_name === 'string' ? req.body.account_name.trim() : '';
     const number = typeof req.body.account_number === 'string' ? req.body.account_number.trim() : '';
     if (!name || name.length > 100 || !/^09\d{9}$/.test(number)) return res.status(400).json({ message: 'Enter the GCash account name and an 11-digit mobile number starting with 09.' });
-    const qr = req.body.qr_image || null;
-    if (qr && (typeof qr !== 'string' || (qr !== '/designs/gcash qr.jpg' && !/^\/api\/portfolio\/images\/[a-zA-Z0-9_.-]+$/.test(qr)))) return res.status(400).json({ message: 'Upload a GCash QR image first.' });
+    const qr = req.body.qr_image || '/designs/gcash qr.jpg';
+    const isStandardQr = ['/designs/gcash qr.jpg', '/designs/gcash%20qr.jpg', '/designs/gcash-qr.jpg'].includes(qr);
+    if (qr && (typeof qr !== 'string' || (!isStandardQr && !/^\/api\/portfolio\/images\/[a-zA-Z0-9_.-]+$/.test(qr)))) return res.status(400).json({ message: 'Upload a GCash QR image first.' });
     await audit(req, 'account_updated', 'INSERT INTO gcash_settings (id, account_name, account_number, qr_image) VALUES (1,?,?,?) ON DUPLICATE KEY UPDATE account_name=VALUES(account_name), account_number=VALUES(account_number), qr_image=VALUES(qr_image)', [name, number, qr], {account_name:name, account_number:number, qr_image:qr});
     res.json({ success: true });
 });
@@ -52,6 +67,14 @@ exports.list = wrap(async (req, res) => {
         if (payment.payment_provider !== 'PayMongo' || payment.status === 'Paid' || !payment.checkout_session_id) continue;
         try { await syncPayment(payment); }
         catch { syncWarning = 'Some payment statuses could not be checked with PayMongo. Refresh to try again; do not pay again while confirmation is pending.'; }
+    }
+        for (const payment of payments) {
+        if (payment.qr_image && payment.qr_image.startsWith('/api/portfolio/images/')) {
+            const imagePath = path.join(__dirname, '..', 'uploads', path.basename(payment.qr_image));
+            if (!fs.existsSync(imagePath)) {
+                payment.qr_image = '/designs/gcash qr.jpg';
+            }
+        }
     }
     payments.sort(latestPaymentFirst);
     const bookings = admin ? await query(`SELECT b.id, b.service_type, u.fullname AS client_name FROM bookings b JOIN users u ON u.id=b.user_id
