@@ -238,7 +238,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
                 <label htmlFor="register-password">Password</label>
                 <div className="marc-password">
                   <input id="register-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="At least 8 characters" value={password} onChange={e => setPassword(e.target.value)} minLength={8} aria-describedby="register-password-help" required />
-                  <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <Eye size={17} /> : <EyeOff size={17} />}</button>
+                  {password && <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <Eye size={17} /> : <EyeOff size={17} />}</button>}
                 </div>
                 <p id="register-password-help" className="marc-field-help">Use at least 8 characters.</p>
               </div>
@@ -246,7 +246,7 @@ export default function ClientRegisterPage({ onRegisterSuccess, onBackToMain }: 
                 <label htmlFor="register-confirm">Confirm Password</label>
                 <div className="marc-password">
                   <input id="register-confirm" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="Re-enter your password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} minLength={8} aria-describedby="register-confirm-help" aria-invalid={Boolean(confirmPassword && password !== confirmPassword)} required />
-                  <button type="button" aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
+                  {confirmPassword && <button type="button" aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <Eye size={17} /> : <EyeOff size={17} />}</button>}
                 </div>
                 <p id="register-confirm-help" className="marc-field-help">{confirmPassword && password !== confirmPassword ? 'Passwords do not match.' : 'Re-enter your password.'}</p>
               </div>
