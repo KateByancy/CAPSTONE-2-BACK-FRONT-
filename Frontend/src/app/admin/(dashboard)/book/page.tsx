@@ -93,10 +93,29 @@ export default function BookingsManagement() {
     }, 1200);
   };
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   // Permanently delete a booking entry
   const handleDelete = async (id: string) => {
-    const response = await apiFetch(`${getApiUrl()}/booking/${id}`, { method: 'DELETE' });
-    if (response.ok) setBookings(prev => prev.filter(b => b.id !== id));
+    if (!window.confirm('Are you sure you want to delete this booking record?')) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      const response = await apiFetch(`${getApiUrl()}/booking/${id}`, { method: 'DELETE' });
+      const result: { success?: boolean; message?: string } | null = await response.json().catch(() => null);
+
+      if (response.ok && result?.success) {
+        setBookings(prev => prev.filter(b => b.id !== id));
+      } else {
+        alert(result?.message || 'Unable to delete booking.');
+      }
+    } catch {
+      alert('Unable to delete booking. Please check your network connection and try again.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   // Metrics Counters
@@ -288,9 +307,15 @@ export default function BookingsManagement() {
 
                       {/* DELETE ICON BUTTON */}
                       <button
-                        onClick={() => handleDelete(booking.id)}
-                        className="absolute top-5 right-5 p-1.5 rounded-xl text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition border-none bg-transparent cursor-pointer"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(booking.id);
+                        }}
+                        disabled={deletingId === booking.id}
+                        className="absolute top-5 right-5 p-1.5 rounded-xl text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition border-none bg-transparent cursor-pointer disabled:opacity-50"
                         title="Delete record"
+                        aria-label="Delete booking"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

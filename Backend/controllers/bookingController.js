@@ -206,17 +206,35 @@ const updateBooking = (req, res) => {
 
 // Delete booking
 const deleteBooking = (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+        return res.status(400).json({ success: false, message: "Invalid booking ID." });
+    }
 
     db.query(
-        "DELETE FROM bookings WHERE id=? AND NOT EXISTS (SELECT 1 FROM gcash_requests p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM quotations q WHERE q.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM project_messages m WHERE m.booking_id=bookings.id)",
-        [req.params.id],
+        "DELETE FROM bookings WHERE id=? AND NOT EXISTS (SELECT 1 FROM gcash_requests p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM quotations q WHERE q.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM project_messages m WHERE m.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM designs d WHERE d.project_id=bookings.id)",
+        [id],
         (err, result) => {
 
             if (err) {
-                return res.status(500).json(err);
+                return res.status(500).json({ success: false, message: err.message || "Unable to delete booking." });
             }
 
-            if(!result.affectedRows)return res.status(409).json({success:false,message:"Bookings with payment, quotation, or project-chat records cannot be deleted. Keep them for history."});
+            if (!result.affectedRows) {
+                return db.query("SELECT id FROM bookings WHERE id=?", [id], (lookupErr, rows) => {
+                    if (lookupErr) {
+                        return res.status(500).json({ success: false, message: "Database error verifying booking status." });
+                    }
+                    if (!rows.length) {
+                        return res.status(404).json({ success: false, message: "Booking not found." });
+                    }
+                    return res.status(409).json({
+                        success: false,
+                        message: "Bookings with payment, quotation, project-chat, or design records cannot be deleted. Keep them for history."
+                    });
+                });
+            }
+
             cache.clear("schedule:unavailable-slots");
 
             res.json({
