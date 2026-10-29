@@ -129,8 +129,8 @@ export default function ClientLoginPage({ onLoginSuccess, onBackToLanding }: Log
         <MarcBrand /><h1>Login</h1>
         <form onSubmit={handleSubmit} className="marc-login-form">
           {error && <p role="alert" className="marc-form-error">{error}</p>}
-          <label htmlFor="marc-email">Email</label><input id="marc-email" type="email" autoComplete="email" placeholder="Enter your email address" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} />
-          <label htmlFor="marc-password">Password</label><div className="marc-password"><input id="marc-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} required disabled={isLoading} />{password && <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <Eye size={17} /> : <EyeOff size={17} />}</button>}</div>
+          <label htmlFor="marc-email">Email</label><input id="marc-email" type="email" autoComplete="email" placeholder="" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLoading} />
+          <label htmlFor="marc-password">Password</label><div className="marc-password"><input id="marc-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="" value={password} onChange={e => setPassword(e.target.value)} required disabled={isLoading} />{password && <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <Eye size={17} /> : <EyeOff size={17} />}</button>}</div>
           <button type="button" className="marc-forgot" onClick={() => router.push('/forgot-password')}>Forgot Password?</button>
           <button type="submit" className="marc-primary marc-login-submit" disabled={isLoading}>{isLoading ? 'Signing in...' : 'Sign in'}</button>
         </form>
