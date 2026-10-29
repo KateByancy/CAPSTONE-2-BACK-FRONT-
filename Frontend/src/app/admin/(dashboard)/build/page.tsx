@@ -152,7 +152,7 @@ export default function BuildManagement() {
       {/* 1. TOP HEADER BANNER */}
       <div className="bg-marc-charcoal text-white rounded-2xl p-4 sm:p-5 shadow-md flex items-center justify-between">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold font-serif tracking-tight">Active Builds</h2>
+          <h2 className="text-xl sm:text-2xl font-bold font-serif tracking-tight">Progress Builds</h2>
           <p className="text-[10px] sm:text-xs uppercase font-bold tracking-widest text-brand-100 opacity-90 mt-0.5">
             Project Logistics
           </p>
