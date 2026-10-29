@@ -181,46 +181,54 @@ export default function ClientNotificationBell({ onNavigate, className }: Client
       </button>
 
       {open && (
-        <div
-          role="region"
-          aria-label="Client notification tray"
-          className="marc-client-notification-tray absolute right-0 top-full mt-2 w-[340px] sm:w-[380px] max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden animate-fadeIn text-black z-50 text-left"
-        >
-          {/* Header */}
-          <div className="marc-notif-header flex items-center justify-between px-4 py-3 bg-stone-900 text-white">
-            <div className="flex items-center gap-2">
-              <Bell size={16} className="text-amber-400" />
-              <h3 className="text-xs font-bold font-serif tracking-wide uppercase">Project Updates</h3>
-              {unread > 0 && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-800 text-brand-100 font-bold">
-                  {unread} new
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {unread > 0 && (
+        <>
+          {/* Mobile backdrop to center focus and allow tap-outside dismissal */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs z-40 sm:hidden animate-fadeIn"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div
+            role="region"
+            aria-label="Client notification tray"
+            className="marc-client-notification-tray fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 sm:translate-x-0 sm:translate-y-0 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:mt-2 w-[calc(100vw-32px)] max-w-sm sm:max-w-none sm:w-[380px] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden animate-fadeIn text-black z-50 text-left"
+          >
+            {/* Header */}
+            <div className="marc-notif-header flex items-center justify-between px-4 py-3 bg-stone-900 text-white">
+              <div className="flex items-center gap-2">
+                <Bell size={16} className="text-amber-400" />
+                <h3 className="text-xs font-bold font-serif tracking-wide uppercase">Project Updates</h3>
+                {unread > 0 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-800 text-brand-100 font-bold">
+                    {unread} new
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {unread > 0 && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void markAllRead()}
+                    className="text-[11px] text-stone-300 hover:text-white underline cursor-pointer"
+                  >
+                    Mark all read
+                  </button>
+                )}
                 <button
                   type="button"
-                  disabled={busy}
-                  onClick={() => void markAllRead()}
-                  className="text-[11px] text-stone-300 hover:text-white underline cursor-pointer"
+                  aria-label="Close"
+                  onClick={() => setOpen(false)}
+                  className="p-1.5 sm:p-1 text-stone-400 hover:text-white rounded-lg transition-colors cursor-pointer"
                 >
-                  Mark all read
+                  <X size={16} />
                 </button>
-              )}
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => setOpen(false)}
-                className="p-1 text-stone-400 hover:text-white rounded-lg transition-colors cursor-pointer"
-              >
-                <X size={15} />
-              </button>
+              </div>
             </div>
-          </div>
 
-          {/* List content */}
-          <div className="max-h-[380px] overflow-y-auto divide-y divide-stone-100">
+            {/* List content */}
+            <div className="max-h-[60vh] sm:max-h-[380px] overflow-y-auto divide-y divide-stone-100">
             {error && (
               <p role="alert" className="p-3 text-xs text-red-600 bg-red-50">
                 {error}
@@ -286,6 +294,7 @@ export default function ClientNotificationBell({ onNavigate, className }: Client
             ))}
           </div>
         </div>
+        </>
       )}
     </div>
   );

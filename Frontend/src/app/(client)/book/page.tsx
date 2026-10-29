@@ -48,6 +48,10 @@ export default function Book({ setActiveTab }: { setActiveTab?: (tab: string) =>
         throw new Error(data.message || 'Unable to delete rejected booking.');
       }
       setRejectedBookings(prev => prev.filter(b => b.id !== id));
+      if (sessionStorage.getItem('highlight_rejected_id') === String(id)) {
+        sessionStorage.removeItem('highlight_rejected_id');
+        setHighlightRejectedId(null);
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Unable to delete rejected booking.');
     } finally {

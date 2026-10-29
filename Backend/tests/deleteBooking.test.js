@@ -9,6 +9,7 @@ const existingBookings = new Map([
   [10, { id: 10, status: 'Pending', is_archived: 0, is_completed_track: 0 }],
   [20, { id: 20, status: 'Ongoing', is_archived: 0, is_completed_track: 0 }], // has quotes/payments/chats/designs
   [30, { id: 30, status: 'Completed', is_archived: 0, is_completed_track: 1 }], // completed project
+  [40, { id: 40, status: 'Rejected', is_archived: 0, is_completed_track: 0 }], // rejected booking eligible for client deletion
 ]);
 const bookingsWithHistory = new Set([20]);
 
@@ -60,7 +61,12 @@ require.cache[dbPath] = {
         return callback(null, { affectedRows: canDelete ? 1 : 0 });
       }
       if (sql.startsWith('SELECT id FROM bookings WHERE id=?')) {
-        const id = values[0];
+        const id = Number(values[0]);
+        const booking = existingBookings.get(id);
+        if (sql.includes('status')) {
+          const isRejected = booking && booking.status && booking.status.toLowerCase() === 'rejected';
+          return callback(null, isRejected ? [{ id }] : []);
+        }
         return callback(null, existingBookings.has(id) ? [{ id }] : []);
       }
       if (sql.startsWith('SELECT password')) {
@@ -177,4 +183,22 @@ test('projectAccess middleware enforces admin authorization for DELETE /booking/
   let adminNextCalled = false;
   await middleware(adminReq, adminRes, () => { adminNextCalled = true; });
   assert.equal(adminNextCalled, true, 'Admin must proceed to deleteBooking');
+});
+
+test('projectAccess middleware allows client to delete their own rejected booking', async () => {
+  const middleware = projectAccess('booking')[2];
+
+  // Client user attempting DELETE on their own rejected booking (booking 40)
+  const { req: clientReq, res: clientRes } = createMockReqRes({ id: '40', role: 'client' });
+  let clientNextCalled = false;
+  await middleware(clientReq, clientRes, () => { clientNextCalled = true; });
+  assert.equal(clientNextCalled, true, 'Client must be authorized to proceed for their own rejected booking');
+
+  // Verify deleteBooking controller permanently deletes the rejected booking
+  deleteBooking(clientReq, clientRes);
+  assert.equal(clientRes.statusCode, 200);
+  assert.equal(clientRes.data.success, true);
+  assert.equal(clientRes.data.archived, false);
+  assert.equal(clientRes.data.message, 'Booking deleted.');
+  assert.equal(existingBookings.has(40), false, 'Rejected booking must be deleted from map');
 });

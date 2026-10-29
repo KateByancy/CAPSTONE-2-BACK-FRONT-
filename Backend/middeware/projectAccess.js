@@ -2,7 +2,7 @@ const db = require('../config/db');
 const auth = require('./auth');
 const query=(sql,values)=>new Promise((resolve,reject)=>db.query(sql,values,(error,rows)=>error?reject(error):resolve(rows)));
 const ownBooking=async(id,user)=>{const rows=await query('SELECT id FROM bookings WHERE id=? AND user_id=?',[id,user]);return Boolean(rows.length);};
-const ownRejectedBooking=async(id,user)=>{const rows=await query('SELECT id FROM bookings WHERE id=? AND user_id=? AND LOWER(status)="rejected"',[id,user]);return Boolean(rows.length);};
+const ownRejectedBooking=async(id,user)=>{const bookingId=Number(id);const userId=Number(user);if(!Number.isSafeInteger(bookingId)||bookingId<=0||!Number.isSafeInteger(userId)||userId<=0)return false;const rows=await query('SELECT id FROM bookings WHERE id=? AND user_id=? AND LOWER(status)=?',[bookingId,userId,'rejected']);return Boolean(rows.length);};
 module.exports = resource => [auth, auth.authorizeRoles('admin','client'), async(req,res,next)=>{
  res.set('Cache-Control','no-store');
  if(req.user.role==='admin')return next();
