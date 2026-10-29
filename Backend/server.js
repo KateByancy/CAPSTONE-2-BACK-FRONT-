@@ -82,6 +82,7 @@ app.use("/api/designs", designRoutes);
 app.use("/api/design-catalog", require("./routes/catalogRoutes"));
 app.use("/api/inquiries", inquiryRoutes);
 app.use("/api/client-home", clientHomeRoutes);
+app.use("/api/reviews", require("./routes/reviewRoutes"));
 
 app.get("/api/health", (req, res) => {
     db.ping((error) => {
@@ -151,6 +152,8 @@ const startServer = async () => {
     await require('./migrations/quotations')((sql, values=[]) => new Promise((resolve,reject)=>db.query(sql,values,(error,rows)=>error?reject(error):resolve(rows))));
     await require('./migrations/bookingDesignSnapshot')((sql, values=[]) => new Promise((resolve,reject)=>db.query(sql,values,(error,rows)=>error?reject(error):resolve(rows))));
     await require('./migrations/designCatalog')((sql, values=[]) => new Promise((resolve,reject)=>db.query(sql,values,(error,rows)=>error?reject(error):resolve(rows))));
+    await require('./migrations/reviewsAndArchival')((sql, values=[]) => new Promise((resolve,reject)=>db.query(sql,values,(error,rows)=>error?reject(error):resolve(rows))));
+    
     return new Promise((resolve, reject) => {
         const server = app.listen(PORT);
 

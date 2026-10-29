@@ -2,11 +2,12 @@ const db = require("../config/db");
 
 // Get notifications
 const getNotifications = (req, res) => {
-    const userId = req.query.user_id;
+    const userId = req.user?.id || req.query.user_id;
     const sql = userId ? "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC" : "SELECT * FROM notifications ORDER BY created_at DESC";
     db.query(sql, userId ? [userId] : [], (err, result) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
-        res.json({ success: true, notifications: result });
+        const unreadCount = result.filter(n => !n.is_read).length;
+        res.json({ success: true, notifications: result, unread: unreadCount });
     });
 };
 
@@ -29,6 +30,16 @@ const markAsRead = (req, res) => {
     });
 };
 
+// Mark all as read for user
+const markAllAsRead = (req, res) => {
+    const userId = req.user?.id || req.query.user_id;
+    if (!userId) return res.status(400).json({ success: false, message: "user_id required" });
+    db.query("UPDATE notifications SET is_read = TRUE WHERE user_id = ?", [userId], (err) => {
+        if (err) return res.status(500).json({ success: false, message: err.message });
+        res.json({ success: true, message: "All notifications marked as read." });
+    });
+};
+
 // Delete notification
 const deleteNotification = (req, res) => {
     db.query("DELETE FROM notifications WHERE id = ?", [req.params.id], (err, result) => {
@@ -42,5 +53,6 @@ module.exports = {
     getNotifications,
     createNotification,
     markAsRead,
+    markAllAsRead,
     deleteNotification
 };

@@ -101,58 +101,64 @@ const createBooking = async (req, res) => {
 
 // Get all bookings
 const getBookings = (req, res) => {
-
     const userId = Number(req.query.user_id);
+    const includeArchived = req.query.include_archived === 'true' || Boolean(userId);
+    const whereClauses = [];
+    const params = [];
+
+    if (userId) {
+        whereClauses.push("bookings.user_id = ?");
+        params.push(userId);
+    } else if (!includeArchived) {
+        whereClauses.push("(bookings.is_archived IS NULL OR bookings.is_archived = 0)");
+    }
+
+    const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
     const query = `SELECT bookings.*, users.fullname AS client_name, users.email AS client_email,
                           COALESCE(NULLIF(bookings.project_address, ''), users.address) AS client_address,
                           COALESCE(NULLIF(bookings.project_landmark, ''), users.landmark) AS client_landmark
                    FROM bookings
                    LEFT JOIN users ON users.id = bookings.user_id
-                   ${userId ? "WHERE bookings.user_id = ?" : ""}
+                   ${whereSql}
                    ORDER BY bookings.created_at DESC, bookings.id DESC`;
     db.query(
         query,
-        userId ? [userId] : [],
+        params,
         (err, result) => {
-
             if (err) {
                 return res.status(500).json({ success: false, message: err.message });
             }
-
             res.json({ success: true, bookings: result });
-
         }
     );
 };
 
 // Get one booking
 const getBookingById = (req, res) => {
-
     db.query(
         "SELECT * FROM bookings WHERE id=?",
         [req.params.id],
         (err, result) => {
-
             if (err) {
                 return res.status(500).json(err);
             }
-
             res.json(result);
-
         }
     );
 };
 
 // Update booking
 const updateBooking = (req, res) => {
-
     const { service_type, project_description, status } = req.body;
 
     if (!status && (!service_type || !project_description)) {
         return res.status(400).json({ success: false, message: "Provide a status or the complete booking details." });
     }
 
-    if(status && (typeof status!=='string' || !['Pending','Confirmed','Approved','Ongoing','Completed','Rejected','Cancelled'].some(value=>value.toLowerCase()===status.toLowerCase())))return res.status(400).json({success:false,message:'Choose a valid booking status.'});
+    if (status && (typeof status !== 'string' || !['Pending','Confirmed','Approved','Ongoing','Completed','Rejected','Cancelled'].some(value => value.toLowerCase() === status.toLowerCase()))) {
+        return res.status(400).json({ success: false, message: 'Choose a valid booking status.' });
+    }
     const updates = [];
     const values = [];
     if (service_type) { updates.push("service_type = ?"); values.push(service_type); }
@@ -168,7 +174,6 @@ const updateBooking = (req, res) => {
         `UPDATE bookings SET ${updates.join(", ")} WHERE id = ? ${status && ['rejected','cancelled'].includes(status.toLowerCase()) ? "AND NOT EXISTS (SELECT 1 FROM gcash_requests p WHERE p.booking_id=bookings.id AND p.status <> 'Cancelled') AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM quotations q WHERE q.booking_id=bookings.id)" : ''}`,
         values,
         (err, result) => {
-
             if (err) {
                 return res.status(500).json({ success: false, message: err.message });
             }
@@ -178,28 +183,40 @@ const updateBooking = (req, res) => {
             cache.clear("schedule:unavailable-slots");
 
             const sendUpdatedResponse = () => res.json({
-              success: true,
-              message: "Booking updated."
+                success: true,
+                message: "Booking updated."
             });
 
-            if (status && ["confirmed", "approved", "rejected"].includes(status.toLowerCase())) {
-              const accepted = status.toLowerCase() !== "rejected";
-              db.query(
-                `INSERT INTO notifications (user_id, title, message)
-                 SELECT user_id, ?,
-                        CONCAT('Your ', service_type, ' booking request (#', id, ') was ', ?, ' by the admin.')
-                 FROM bookings WHERE id = ?`,
-                [accepted ? "Booking Accepted" : "Booking Rejected", accepted ? "accepted" : "rejected", req.params.id],
-                (notificationError) => {
-                  if (notificationError) console.error("Unable to create rejection notification:", notificationError.message);
-                  sendUpdatedResponse();
+            if (status && ["confirmed", "approved", "rejected", "completed"].includes(status.toLowerCase())) {
+                const normStatus = status.toLowerCase();
+                let title = "Booking Updated";
+                let msg = `Your booking #${req.params.id} status is now ${status}.`;
+
+                if (normStatus === "confirmed" || normStatus === "approved") {
+                    title = "Booking Accepted";
+                    msg = `Your booking request (#${req.params.id}) has been accepted by the admin.`;
+                } else if (normStatus === "rejected") {
+                    title = "Booking Rejected";
+                    msg = `Your booking request (#${req.params.id}) was rejected by the admin.`;
+                } else if (normStatus === "completed") {
+                    title = "Project Completed";
+                    msg = `Your interior project (#${req.params.id}) is marked as Completed! You can now view your completed project updates and submit your verified star rating & review.`;
                 }
-              );
-              return;
+
+                db.query(
+                    `INSERT INTO notifications (user_id, title, message)
+                     SELECT user_id, ?, ?
+                     FROM bookings WHERE id = ?`,
+                    [title, msg, req.params.id],
+                    (notificationError) => {
+                        if (notificationError) console.error("Unable to create notification:", notificationError.message);
+                        sendUpdatedResponse();
+                    }
+                );
+                return;
             }
 
             sendUpdatedResponse();
-
         }
     );
 };
@@ -211,39 +228,72 @@ const deleteBooking = (req, res) => {
         return res.status(400).json({ success: false, message: "Invalid booking ID." });
     }
 
-    db.query(
-        "DELETE FROM bookings WHERE id=? AND NOT EXISTS (SELECT 1 FROM gcash_requests p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM quotations q WHERE q.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM project_messages m WHERE m.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM designs d WHERE d.project_id=bookings.id)",
-        [id],
-        (err, result) => {
+    // Check if the booking exists and whether it is completed
+    const checkSql = `
+        SELECT b.id, b.status, b.is_archived,
+               EXISTS(
+                 SELECT 1 FROM tracking t 
+                 WHERE t.booking_id = b.id AND (t.progress >= 100 OR LOWER(t.current_stage) = 'completed')
+               ) AS is_completed_track
+        FROM bookings b
+        WHERE b.id = ?
+    `;
 
-            if (err) {
-                return res.status(500).json({ success: false, message: err.message || "Unable to delete booking." });
-            }
+    db.query(checkSql, [id], (lookupErr, rows) => {
+        if (lookupErr) {
+            return res.status(500).json({ success: false, message: lookupErr.message || "Database error verifying booking status." });
+        }
+        if (!rows.length) {
+            return res.status(404).json({ success: false, message: "Booking not found." });
+        }
 
-            if (!result.affectedRows) {
-                return db.query("SELECT id FROM bookings WHERE id=?", [id], (lookupErr, rows) => {
-                    if (lookupErr) {
-                        return res.status(500).json({ success: false, message: "Database error verifying booking status." });
-                    }
-                    if (!rows.length) {
-                        return res.status(404).json({ success: false, message: "Booking not found." });
-                    }
+        const booking = rows[0];
+        const isCompleted = booking.status?.toLowerCase() === 'completed' || Boolean(booking.is_completed_track);
+
+        if (isCompleted) {
+            // Archive instead of permanently deleting
+            db.query(
+                "UPDATE bookings SET is_archived = 1, archived_at = NOW() WHERE id = ?",
+                [id],
+                (archiveErr) => {
+                    if (archiveErr) return res.status(500).json({ success: false, message: archiveErr.message });
+                    cache.clear("schedule:unavailable-slots");
+                    return res.json({
+                        success: true,
+                        archived: true,
+                        message: "Completed project archived successfully. Client access, concept photos, ratings, and reviews are preserved."
+                    });
+                }
+            );
+            return;
+        }
+
+        // For non-completed projects, perform safe deletion if no financial or design history exists
+        db.query(
+            "DELETE FROM bookings WHERE id=? AND NOT EXISTS (SELECT 1 FROM gcash_requests p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM quotations q WHERE q.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM project_messages m WHERE m.booking_id=bookings.id) AND NOT EXISTS (SELECT 1 FROM designs d WHERE d.project_id=bookings.id)",
+            [id],
+            (err, result) => {
+                if (err) {
+                    return res.status(500).json({ success: false, message: err.message || "Unable to delete booking." });
+                }
+
+                if (!result.affectedRows) {
                     return res.status(409).json({
                         success: false,
                         message: "Bookings with payment, quotation, project-chat, or design records cannot be deleted. Keep them for history."
                     });
+                }
+
+                cache.clear("schedule:unavailable-slots");
+
+                res.json({
+                    success: true,
+                    archived: false,
+                    message: "Booking deleted."
                 });
             }
-
-            cache.clear("schedule:unavailable-slots");
-
-            res.json({
-                success: true,
-                message: "Booking deleted."
-            });
-
-        }
-    );
+        );
+    });
 };
 
 module.exports = {

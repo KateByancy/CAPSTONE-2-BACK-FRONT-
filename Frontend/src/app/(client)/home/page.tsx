@@ -572,7 +572,28 @@ export default function Home({ setActiveTab = tab => window.location.assign('/?s
                       </select>
                     </label>
                     {selectedDesign && <section className="col-span-2 marc-booking-selection" aria-label="Selected interior design"><div className="marc-booking-thumbnail"><Image src={selectedDesign.image} alt={selectedDesign.name} unoptimized fill sizes="110px" /></div><div><span>{selectedDesign.category}</span><h4>{selectedDesign.name}</h4><p>{designPrice(selectedDesign.price)}</p><p>{selectedDesign.description}</p></div></section>}
-                    {selectedDesign && <div className="col-span-2 rounded-xl border border-brand-700/30 bg-stone-900 p-3 text-xs leading-relaxed"><p>Sample base: {designPrice(selectedDesign.price)}</p>{customization && <p>Customization adjustment: +{customizationAdjustment}%</p>}<p className="mt-1 text-brand-200">Preliminary estimate: {designPrice(bookingEstimate).replace('From ', '')}</p><p className="mt-1 text-stone-400">Illustrative pricing, subject to consultation and site assessment.</p></div>}
+                    {selectedDesign && (
+                      <div className="col-span-2 rounded-2xl border border-brand-500/30 bg-stone-900/90 p-4 text-xs leading-relaxed shadow-inner">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-stone-800 pb-2.5">
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-brand-400">Preliminary Estimation</span>
+                            <p className="text-xl sm:text-2xl font-black font-mono text-amber-300 tracking-tight mt-0.5">
+                              {designPrice(bookingEstimate).replace('From ', '₱')}
+                            </p>
+                          </div>
+                          <span className="self-start sm:self-auto text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-900/60 text-brand-300 border border-brand-700/50">
+                            Subject to Site Assessment
+                          </span>
+                        </div>
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-stone-300 text-[11px]">
+                          <span>Sample base: <strong className="text-stone-100">{designPrice(selectedDesign.price)}</strong></span>
+                          {customization && <span>• Customization adjustment: <strong className="text-brand-300">+{customizationAdjustment}%</strong></span>}
+                        </div>
+                        <p className="mt-2 text-[10px] text-stone-400">
+                          Illustrative pricing based on current design preferences. Final scope and costs confirmed after detailed consultation.
+                        </p>
+                      </div>
+                    )}
                     <div className="col-span-2 min-w-0 space-y-1 sm:col-span-1">
                       <label className="text-[10px] font-black uppercase tracking-wider text-stone-300 block">
                         Project Address

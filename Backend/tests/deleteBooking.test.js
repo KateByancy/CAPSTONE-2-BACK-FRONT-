@@ -5,8 +5,12 @@ const assert = require('node:assert/strict');
 process.env.JWT_SECRET = 'delete-booking-test-secret';
 
 // Mock DB queries for booking controller
-const existingBookings = new Set([10, 20]);
-const bookingsWithHistory = new Set([20]); // Booking 20 has quotes/payments/chats/designs
+const existingBookings = new Map([
+  [10, { id: 10, status: 'Pending', is_archived: 0, is_completed_track: 0 }],
+  [20, { id: 20, status: 'Ongoing', is_archived: 0, is_completed_track: 0 }], // has quotes/payments/chats/designs
+  [30, { id: 30, status: 'Completed', is_archived: 0, is_completed_track: 1 }], // completed project
+]);
+const bookingsWithHistory = new Set([20]);
 
 const dbPath = require.resolve('../config/db');
 let simulateDbError = false;
@@ -24,6 +28,23 @@ require.cache[dbPath] = {
       if (simulateDbError) {
         return callback(new Error('Simulated database failure'));
       }
+      // Check query: SELECT b.id, b.status, b.is_archived ... FROM bookings b WHERE b.id = ?
+      if (sql.includes('FROM bookings b') && sql.includes('WHERE b.id = ?')) {
+        const id = values[0];
+        const row = existingBookings.get(id);
+        return callback(null, row ? [row] : []);
+      }
+      // Archive query: UPDATE bookings SET is_archived = 1, archived_at = NOW() WHERE id = ?
+      if (sql.startsWith('UPDATE bookings SET is_archived = 1')) {
+        const id = values[0];
+        const row = existingBookings.get(id);
+        if (row) {
+          row.is_archived = 1;
+          row.archived_at = new Date();
+        }
+        return callback(null, { affectedRows: row ? 1 : 0 });
+      }
+      // Delete query
       if (sql.startsWith('DELETE FROM bookings WHERE id=?')) {
         assert.match(sql, /NOT EXISTS \(SELECT 1 FROM gcash_requests/);
         assert.match(sql, /NOT EXISTS \(SELECT 1 FROM payments/);
@@ -93,7 +114,18 @@ test('deleteBooking returns 404 when booking does not exist', () => {
   assert.equal(res.data.message, 'Booking not found.');
 });
 
-test('deleteBooking preserves records and returns 409 when booking has project history', () => {
+test('deleteBooking archives completed project instead of permanently deleting it', () => {
+  cache.set('schedule:unavailable-slots', ['dummy-slot'], 60000);
+  const { req, res } = createMockReqRes({ id: '30' });
+  deleteBooking(req, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.data.success, true);
+  assert.equal(res.data.archived, true);
+  assert.match(res.data.message, /completed project archived/i);
+  assert.equal(existingBookings.get(30).is_archived, 1, 'Completed booking must be marked as archived');
+});
+
+test('deleteBooking preserves records and returns 409 when non-completed booking has project history', () => {
   const { req, res } = createMockReqRes({ id: '20' });
   deleteBooking(req, res);
   assert.equal(res.statusCode, 409);
@@ -110,6 +142,7 @@ test('deleteBooking deletes eligible booking, clears cache, and returns 200', ()
   deleteBooking(req, res);
   assert.equal(res.statusCode, 200);
   assert.equal(res.data.success, true);
+  assert.equal(res.data.archived, false);
   assert.equal(res.data.message, 'Booking deleted.');
   assert.equal(existingBookings.has(10), false, 'Booking must be deleted');
   assert.equal(cache.get('schedule:unavailable-slots'), undefined, 'Schedule slot cache must be cleared');
@@ -145,4 +178,3 @@ test('projectAccess middleware enforces admin authorization for DELETE /booking/
   await middleware(adminReq, adminRes, () => { adminNextCalled = true; });
   assert.equal(adminNextCalled, true, 'Admin must proceed to deleteBooking');
 });
-

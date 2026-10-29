@@ -42,7 +42,7 @@ module.exports = resource => [auth, auth.authorizeRoles('admin','client'), async
   }
   if(resource==='notifications'){
    if(method==='POST')return deny();
-   if(!id){req.query.user_id=String(req.user.id);return next();}
+   if(!id || id==='read-all'){req.query.user_id=String(req.user.id);return next();}
    const rows=await query('SELECT id FROM notifications WHERE id=? AND user_id=?',[id,req.user.id]);return rows.length?next():res.status(404).json({message:'Notification not found.'});
   }
   return deny();

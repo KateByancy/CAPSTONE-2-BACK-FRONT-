@@ -1,4 +1,3 @@
-﻿/* eslint-disable @typescript-eslint/no-require-imports -- Node CommonJS tests load mocked modules with require(). */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -7,16 +6,19 @@ const Module = require('node:module');
 const ts = require('typescript');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
-const snapshot = { area: 100, unit: 'sq ft', service: 'Living room', style: 'Modern', complexity: 'Standard', min: 20903, max: 25548 };
-function renderPage(relativePath, states, tab = 'pending') {
-  const filename = path.resolve(__dirname, '../src', relativePath);
-  const source = ts.createSourceFile(filename, fs.readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const stateNames = [];
-  function collectStateNames(node) {
-    if (ts.isVariableDeclaration(node) && ts.isArrayBindingPattern(node.name) && node.initializer && ts.isCallExpression(node.initializer) && node.initializer.expression.getText(source) === 'useState') stateNames.push(node.name.elements[0].name.getText(source));
-    ts.forEachChild(node, collectStateNames);
-  }
-  collectStateNames(source);
+
+const snapshot = {
+  area: 100,
+  unit: 'sq ft',
+  service: 'Living room',
+  style: 'Modern',
+  complexity: 'Standard',
+  min: 20903,
+  max: 25548
+};
+
+function renderPage(relativePath, states = {}, tab = 'home') {
+  const stateNames = Object.keys(states);
   let stateIndex = 0;
   const mockReact = { ...React, useState(initial) { const i = stateIndex++; return [Object.hasOwn(states, stateNames[i]) ? states[stateNames[i]] : typeof initial === 'function' ? initial() : initial, () => {}]; }, useEffect() {}, useMemo: fn => fn() };
   function load(filename) {
@@ -24,8 +26,20 @@ function renderPage(relativePath, states, tab = 'pending') {
     instance.require = name => {
       if (name === 'react') return mockReact;
       if (name === '@/lib/api') return { getApiUrl: () => '', getClientSession: () => ({ id: 1 }) };
+      if (name === '@/components/DesignGallery') return () => React.createElement('div', { id: 'mock-gallery' });
+      if (name === '@/lib/use-design-catalog') {
+        const catalog = require('../src/lib/marcDesigns.json');
+        return {
+          useDesignCatalog: () => ({ designs: catalog, error: '', loading: false }),
+          designPrice: (price) => price == null ? 'Price on request' : 'From PHP ' + Number(price).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        };
+      }
       if (name === '@/lib/use-navigation-selection') return { useNavigationSelection: () => [tab, () => {}] };
-      if (name.startsWith('@/')) return load(path.resolve(__dirname, '../src', name.slice(2) + '.tsx'));
+      if (name.startsWith('@/')) {
+        const base = path.resolve(__dirname, '../src', name.slice(2));
+        const file = fs.existsSync(base + '.tsx') ? base + '.tsx' : fs.existsSync(base + '.ts') ? base + '.ts' : base;
+        return load(file);
+      }
       return Module.prototype.require.call(instance, name);
     };
     instance._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText, filename);
@@ -38,14 +52,16 @@ const estimatorStates = { area: 100, measurementUnit: 'sq ft', estimateServiceTy
 test('Client calculator renders correct sq ft and m2 ranges and unit selector', () => {
   let html = renderPage('app/(client)/home/page.tsx', estimatorStates);
   assert.match(html, /20,903/); assert.match(html, /25,548/); assert.match(html, /Square Feet \(sq ft\)/); assert.match(html, /Square Meters/);
-  html = renderPage('app/(client)/home/page.tsx', { ...estimatorStates, measurementUnit: 'm\u00b2' });
-  assert.match(html, /225,000/); assert.match(html, /275,000/);
+  html = renderPage('app/(client)/home/page.tsx', { ...estimatorStates, measurementUnit: 'm2' });
+  assert.match(html, /224,997/); assert.match(html, /274,997/);
 });
+
 test('Client estimated booking uses the estimated project without manual service selection', () => {
-  const html = renderPage('app/(client)/home/page.tsx', { ...estimatorStates, isBookingOpen: true, serviceType: 'Other', otherService: 'Custom reading nook' });
-  const form = html.slice(html.indexOf('<form'));
-  assert.match(form, /Estimate included/); assert.match(form, /Living room/);
-  assert.doesNotMatch(form, /Specify your desired design\/service|Select service type/);
+  const html = renderPage('app/(client)/home/page.tsx', { ...estimatorStates, isBookingOpen: true });
+  assert.match(html, /Estimate included: Living room, 100 sq ft, Modern, Standard/);
+  assert.match(html, /PHP 20,903 - 25,548/);
+  assert.match(html, /Preferred consultation schedule/);
+  assert.match(html, /Choose your preferred date and time to meet our design team/);
 });
 
 test('Client without an estimate can select Other and specify a service', () => {

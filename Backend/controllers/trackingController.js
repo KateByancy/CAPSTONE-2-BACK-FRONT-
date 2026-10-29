@@ -26,6 +26,16 @@ const createTracking = (req, res) => {
     }
     db.query("INSERT INTO tracking (booking_id, progress, current_stage, remarks) VALUES (?, ?, ?, ?)", [booking_id, progress, current_stage, remarks || null], (err, result) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
+        
+        // Notify client of initial project tracking milestone
+        db.query("SELECT user_id, service_type FROM bookings WHERE id = ?", [booking_id], (bErr, bRows) => {
+            if (!bErr && bRows.length) {
+                const title = `Project Update: Stage "${current_stage}"`;
+                const msg = `Your project "${bRows[0].service_type}" has started stage "${current_stage}" (${progress}%). ${remarks ? 'Note: ' + remarks : ''}`;
+                db.query("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)", [bRows[0].user_id, title, msg], () => {});
+            }
+        });
+
         res.status(201).json({ success: true, trackingId: result.insertId });
     });
 };
@@ -39,6 +49,24 @@ const updateTracking = (req, res) => {
     db.query("UPDATE tracking SET progress = ?, current_stage = ?, remarks = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [progress, current_stage, remarks || null, req.params.id], (err, result) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
         if (!result.affectedRows) return res.status(404).json({ success: false, message: "Tracking record not found." });
+
+        // Notify client of milestone/progress update
+        db.query(
+            "SELECT t.booking_id, b.user_id, b.service_type FROM tracking t JOIN bookings b ON b.id = t.booking_id WHERE t.id = ?",
+            [req.params.id],
+            (bErr, bRows) => {
+                if (!bErr && bRows.length) {
+                    const title = Number(progress) >= 100
+                        ? `Project 100% Completed: #${bRows[0].booking_id}`
+                        : `Project Milestone: ${progress}% - ${current_stage}`;
+                    const msg = Number(progress) >= 100
+                        ? `Your project "${bRows[0].service_type}" is 100% completed! Handover is complete. You can now leave your verified client star rating and review.`
+                        : `Project "${bRows[0].service_type}" progress updated to ${progress}% (${current_stage}). ${remarks ? 'Note: ' + remarks : ''}`;
+                    db.query("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)", [bRows[0].user_id, title, msg], () => {});
+                }
+            }
+        );
+
         res.json({ success: true, message: "Tracking updated successfully." });
     });
 };
