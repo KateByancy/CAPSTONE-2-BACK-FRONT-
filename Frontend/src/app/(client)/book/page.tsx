@@ -5,7 +5,7 @@ import { imageSource } from '@/components/AdminImageUpload';
 import { useDesignCatalog } from '@/lib/use-design-catalog';
 import BookingEstimate, { type EstimateSnapshot } from '@/components/BookingEstimate';
 import React, { useState, useEffect } from 'react';
-import { Calendar, CheckCircle, X, ChevronLeft, ChevronRight, ChevronDown, Clock, AlertCircle } from 'lucide-react';
+import { Calendar, CheckCircle, X, ChevronLeft, ChevronRight, ChevronDown, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import { apiFetch, getApiUrl, getClientSession } from '@/lib/api';
 
 interface RejectedBooking {
@@ -32,6 +32,28 @@ export default function Book({ setActiveTab }: { setActiveTab?: (tab: string) =>
   const [savedEstimate, setSavedEstimate] = useState<EstimateSnapshot | string | null>(null);
   const [rejectedBookings, setRejectedBookings] = useState<RejectedBooking[]>([]);
   const [highlightRejectedId, setHighlightRejectedId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const handleDeleteRejectedBooking = async (id: number) => {
+    if (!window.confirm(`Are you sure you want to delete this rejected project booking (#${id})?`)) {
+      return;
+    }
+    setDeletingId(id);
+    try {
+      const response = await apiFetch(`${getApiUrl()}/booking/${id}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Unable to delete rejected booking.');
+      }
+      setRejectedBookings(prev => prev.filter(b => b.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Unable to delete rejected booking.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -227,7 +249,17 @@ export default function Book({ setActiveTab }: { setActiveTab?: (tab: string) =>
               >
                 {/* Top header of rejected form */}
                 <div className="flex items-center justify-between pb-3 border-b border-rose-100 flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      disabled={deletingId === b.id}
+                      onClick={() => void handleDeleteRejectedBooking(b.id)}
+                      title="Delete Rejected Project"
+                      aria-label="Delete Rejected Project"
+                      className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 transition cursor-pointer border border-rose-200 flex items-center justify-center shrink-0 disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs">
                       <X className="w-3.5 h-3.5" />
                       Booking Rejected
