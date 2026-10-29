@@ -219,7 +219,7 @@ export default function Book({ setActiveTab }: { setActiveTab?: (tab: string) =>
       <div className="flex items-center">
         <div className="flex items-center space-x-2 text-[11px] md:text-xs leading-snug font-bold tracking-normal md:tracking-wider text-stone-400">
           <Calendar className="w-4 h-4 shrink-0 text-brand-500" />
-          <h1>My Pending Bookings</h1>
+          <h1>PENDING BOOKINGS</h1>
         </div>
       </div>
       <p className="text-xs text-stone-500">View and reschedule your bookings while awaiting admin confirmation.</p><Link href="/?screen=dashboard&tab=quotes" className="inline-flex rounded-xl bg-marc-charcoal px-4 py-3 text-sm text-white">Review quotations</Link>
