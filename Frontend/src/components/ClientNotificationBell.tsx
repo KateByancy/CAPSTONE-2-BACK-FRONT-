@@ -160,7 +160,7 @@ export default function ClientNotificationBell({ onNavigate, className }: Client
         <div
           role="region"
           aria-label="Client notification tray"
-          className="absolute right-0 top-full mt-2 w-[340px] sm:w-[380px] max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden animate-fadeIn text-stone-900 z-50 text-left"
+          className="absolute right-0 top-full mt-2 w-[340px] sm:w-[380px] max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden animate-fadeIn text-black z-50 text-left"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-stone-900 text-white">
@@ -204,10 +204,10 @@ export default function ClientNotificationBell({ onNavigate, className }: Client
             )}
 
             {!notifications.length && !error && (
-              <div className="p-8 text-center text-stone-400 space-y-2">
-                <Bell size={24} className="mx-auto text-stone-300 stroke-1" />
-                <p className="text-xs font-medium text-stone-600">No project updates yet</p>
-                <p className="text-[11px] text-stone-400">Milestone updates and booking alerts will appear here in real time.</p>
+              <div className="p-8 text-center text-black space-y-2">
+                <Bell size={24} className="mx-auto text-black stroke-1" />
+                <p className="text-xs font-bold text-black">No project updates yet</p>
+                <p className="text-[11px] text-black">Milestone updates and booking alerts will appear here in real time.</p>
               </div>
             )}
 
@@ -223,17 +223,17 @@ export default function ClientNotificationBell({ onNavigate, className }: Client
                   {getIconForNotification(item.title)}
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className={`text-xs font-bold leading-tight ${!Boolean(item.is_read) ? 'text-stone-950 font-black' : 'text-stone-700'}`}>
+                      <p className={`text-xs leading-tight text-black ${!Boolean(item.is_read) ? 'font-black' : 'font-bold'}`}>
                         {item.title}
                       </p>
                       {!Boolean(item.is_read) && (
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block" />
                       )}
                     </div>
-                    <p className="text-[11px] text-stone-600 leading-snug break-words">
+                    <p className="text-[11px] text-black leading-snug break-words">
                       {item.message}
                     </p>
-                    <time className="block text-[10px] text-stone-400 pt-0.5">
+                    <time className="block text-[10px] text-black pt-0.5">
                       {new Date(item.created_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}
                     </time>
                   </div>
@@ -244,7 +244,7 @@ export default function ClientNotificationBell({ onNavigate, className }: Client
                     type="button"
                     title="Dismiss notification"
                     onClick={(e) => void deleteNotification(e, item.id)}
-                    className="p-1 text-stone-400 hover:text-red-700 rounded-md hover:bg-stone-100 transition-colors"
+                    className="p-1 text-black hover:text-red-700 rounded-md hover:bg-stone-100 transition-colors"
                   >
                     <Trash2 size={13} />
                   </button>
