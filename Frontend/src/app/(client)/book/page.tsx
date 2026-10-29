@@ -5,10 +5,21 @@ import { imageSource } from '@/components/AdminImageUpload';
 import { useDesignCatalog } from '@/lib/use-design-catalog';
 import BookingEstimate, { type EstimateSnapshot } from '@/components/BookingEstimate';
 import React, { useState, useEffect } from 'react';
-import { Calendar, CheckCircle, X, ChevronLeft, ChevronRight, ChevronDown, Clock } from 'lucide-react';
+import { Calendar, CheckCircle, X, ChevronLeft, ChevronRight, ChevronDown, Clock, AlertCircle } from 'lucide-react';
 import { apiFetch, getApiUrl, getClientSession } from '@/lib/api';
 
-export default function Book() {
+interface RejectedBooking {
+  id: number;
+  service_type: string;
+  project_description: string;
+  status: string;
+  preferred_date?: string;
+  preferred_time?: string;
+  design_snapshot?: { name: string; image: string } | string | null;
+  estimate?: EstimateSnapshot | string | null;
+}
+
+export default function Book({ setActiveTab }: { setActiveTab?: (tab: string) => void } = {}) {
   const {designs}=useDesignCatalog();
   const [designSnapshot,setDesignSnapshot]=useState<{name:string;image:string}|null>(null);
   const [modalMode, setModalMode] = useState<'none' | 'book_form' | 'book_done' | 'schedule_form' | 'schedule_done'>('none');
@@ -19,6 +30,26 @@ export default function Book() {
   const aliases:Record<string,string>={'Standard Living Room':'Bronze Living Room','Standard Kitchen':'Bronze Kitchen','Deluxe Living Room':'Silver Living Room'};
   const selectedDesign=designSnapshot || designs.find(design=>design.name===(aliases[legacyName] || legacyName));
   const [savedEstimate, setSavedEstimate] = useState<EstimateSnapshot | string | null>(null);
+  const [rejectedBookings, setRejectedBookings] = useState<RejectedBooking[]>([]);
+  const [highlightRejectedId, setHighlightRejectedId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkHighlight = () => {
+      const stored = sessionStorage.getItem('highlight_rejected_id');
+      if (stored) {
+        const rid = Number(stored);
+        setHighlightRejectedId(rid);
+        setTimeout(() => {
+          const el = document.getElementById(`rejected-booking-${rid}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 350);
+      }
+    };
+    checkHighlight();
+  }, [rejectedBookings]);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -97,8 +128,18 @@ export default function Book() {
       const response = await apiFetch(`${getApiUrl()}/booking?user_id=${client.id}`);
       const result: { success: boolean; bookings?: Array<{ id: number; design_snapshot?: {name:string;image:string} | string | null; estimate?: EstimateSnapshot | string | null; service_type: string; project_description: string; status: string; accepted_at?: string | null }> } = await response.json();
       if (!response.ok || !result.success) throw new Error('Unable to load your booking.');
-      const booking = result.bookings?.find((item) => !['rejected','cancelled','completed'].includes(item.status.toLowerCase()));
-      if (!booking) return;
+      const allBookings = result.bookings ?? [];
+      const rejectedList = allBookings.filter((item) => (item.status || '').toLowerCase() === 'rejected');
+      setRejectedBookings(rejectedList);
+
+      const booking = allBookings.find((item) => !['rejected','cancelled','completed'].includes(item.status.toLowerCase()));
+      if (!booking) {
+        setBookingId(null);
+        setProject({ serviceType: '', description: '' });
+        setSelectedDate('');
+        setScheduleStatus('none');
+        return;
+      }
       setSavedEstimate(booking.estimate ?? null);
       if (booking.accepted_at) {
         setBookingId(null);
@@ -158,6 +199,103 @@ export default function Book() {
       <p className="text-xs text-stone-500">View and reschedule your bookings while awaiting admin confirmation.</p><Link href="/?screen=dashboard&tab=quotes" className="inline-flex rounded-xl bg-marc-charcoal px-4 py-3 text-sm text-white">Review quotations</Link>
 
       {savedEstimate && <section aria-label="Latest booking estimate"><BookingEstimate estimate={savedEstimate} /></section>}
+
+      {/* Rejected Bookings Form Section */}
+      {rejectedBookings.length > 0 && (
+        <section className="space-y-4" aria-label="Rejected Booking Requests">
+          <div className="flex items-center space-x-2 text-[11px] md:text-xs font-bold uppercase tracking-wider text-rose-700">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>Rejected Booking Requests ({rejectedBookings.length})</span>
+          </div>
+
+          {rejectedBookings.map((b) => {
+            let snapshot = b.design_snapshot;
+            if (typeof snapshot === 'string') {
+              try { snapshot = JSON.parse(snapshot); } catch { snapshot = null; }
+            }
+            const designImage = (snapshot && typeof snapshot === 'object' && typeof snapshot.image === 'string') ? snapshot.image : null;
+            const designName = (snapshot && typeof snapshot === 'object' && typeof snapshot.name === 'string') ? snapshot.name : b.service_type;
+            const isHighlighted = highlightRejectedId === b.id;
+
+            return (
+              <div
+                key={b.id}
+                id={`rejected-booking-${b.id}`}
+                className={`bg-white border-2 border-rose-300 rounded-2xl p-5 shadow-sm space-y-4 animate-fadeIn transition-all duration-300 ${
+                  isHighlighted ? 'ring-4 ring-rose-400/50 shadow-md' : ''
+                }`}
+              >
+                {/* Top header of rejected form */}
+                <div className="flex items-center justify-between pb-3 border-b border-rose-100 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs">
+                      <X className="w-3.5 h-3.5" />
+                      Booking Rejected
+                    </span>
+                    <span className="text-xs font-bold text-stone-600">
+                      Request #{b.id}
+                    </span>
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-wider text-rose-700">
+                    Rejected by Admin
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  {designImage && (
+                    <div className="relative h-36 w-full sm:w-48 shrink-0 overflow-hidden rounded-xl bg-stone-100 border border-stone-200">
+                      <Image
+                        src={imageSource(designImage)}
+                        alt={designName}
+                        fill
+                        unoptimized
+                        sizes="(max-width:640px) 90vw,192px"
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <h3 className="text-sm font-bold text-stone-900">{designName}</h3>
+                    <p className="text-xs text-stone-600 leading-relaxed italic">
+                      &quot;{b.project_description || b.service_type}&quot;
+                    </p>
+                    {b.preferred_date && (
+                      <p className="text-[11px] text-stone-500 font-medium">
+                        Requested Target Date: {new Date(b.preferred_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {b.preferred_time ? ` at ${b.preferred_time}` : ''}
+                      </p>
+                    )}
+                    <div className="rounded-xl bg-rose-50 border border-rose-200/80 p-3 text-xs text-rose-800 space-y-1">
+                      <p className="font-bold">This booking request was declined by the administrator.</p>
+                      <p className="text-[11px] text-rose-700">You can submit a new booking request with an alternative date, style preference, or updated requirements.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action button */}
+                <div className="pt-2 flex items-center justify-end gap-3 border-t border-rose-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (setActiveTab) {
+                        setActiveTab('home');
+                      } else if (typeof window !== 'undefined') {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('tab', 'home');
+                        window.history.pushState({}, '', url.toString());
+                        window.dispatchEvent(new PopStateEvent('popstate'));
+                      }
+                    }}
+                    className="bg-marc-charcoal hover:bg-stone-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm cursor-pointer"
+                  >
+                    Submit New Booking
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
 
       {/* Baseline Overview Card - Visible only while not yet fully confirmed by admin */}
       {scheduleStatus !== 'confirmed' && (

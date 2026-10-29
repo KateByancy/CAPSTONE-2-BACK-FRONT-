@@ -107,7 +107,31 @@ export default function ClientNotificationBell({ onNavigate, className }: Client
     if (!onNavigate) return;
 
     const lower = (item.title + ' ' + item.message).toLowerCase();
+    const idMatch = (item.title + ' ' + item.message).match(/#(\d+)/);
+    const bookingId = idMatch ? idMatch[1] : null;
+
+    // Booking Accepted: Direct to Progress Tracking (tab: 'track') and highlight confirmed project
+    if (lower.includes('booking accepted') || lower.includes('accepted by the admin') || lower.includes('has been accepted') || (lower.includes('booking') && lower.includes('accepted'))) {
+      if (bookingId && typeof window !== 'undefined') {
+        sessionStorage.setItem('highlight_project_id', bookingId);
+      }
+      onNavigate('track');
+      return;
+    }
+
+    // Booking Rejected: Direct to Pending Bookings (tab: 'book') and highlight rejected booking form
+    if (lower.includes('booking rejected') || lower.includes('rejected by the admin') || lower.includes('was rejected') || (lower.includes('booking') && lower.includes('rejected'))) {
+      if (bookingId && typeof window !== 'undefined') {
+        sessionStorage.setItem('highlight_rejected_id', bookingId);
+      }
+      onNavigate('book');
+      return;
+    }
+
     if (lower.includes('milestone') || lower.includes('stage') || lower.includes('progress') || lower.includes('handover') || lower.includes('rating') || lower.includes('track')) {
+      if (bookingId && typeof window !== 'undefined') {
+        sessionStorage.setItem('highlight_project_id', bookingId);
+      }
       onNavigate('track');
     } else if (lower.includes('quote') || lower.includes('quotation')) {
       onNavigate('quotes');
@@ -160,10 +184,10 @@ export default function ClientNotificationBell({ onNavigate, className }: Client
         <div
           role="region"
           aria-label="Client notification tray"
-          className="absolute right-0 top-full mt-2 w-[340px] sm:w-[380px] max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden animate-fadeIn text-black z-50 text-left"
+          className="marc-client-notification-tray absolute right-0 top-full mt-2 w-[340px] sm:w-[380px] max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden animate-fadeIn text-black z-50 text-left"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-stone-900 text-white">
+          <div className="marc-notif-header flex items-center justify-between px-4 py-3 bg-stone-900 text-white">
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-amber-400" />
               <h3 className="text-xs font-bold font-serif tracking-wide uppercase">Project Updates</h3>
@@ -206,8 +230,8 @@ export default function ClientNotificationBell({ onNavigate, className }: Client
             {!notifications.length && !error && (
               <div className="p-8 text-center text-black space-y-2">
                 <Bell size={24} className="mx-auto text-black stroke-1" />
-                <p className="text-xs font-bold text-black">No project updates yet</p>
-                <p className="text-[11px] text-black">Milestone updates and booking alerts will appear here in real time.</p>
+                <p style={{ color: '#000000' }} className="text-xs font-bold !text-black">No project updates yet</p>
+                <p style={{ color: '#000000' }} className="text-[11px] !text-black">Milestone updates and booking alerts will appear here in real time.</p>
               </div>
             )}
 
@@ -223,17 +247,26 @@ export default function ClientNotificationBell({ onNavigate, className }: Client
                   {getIconForNotification(item.title)}
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className={`text-xs leading-tight text-black ${!Boolean(item.is_read) ? 'font-black' : 'font-bold'}`}>
+                      <p
+                        style={{ color: '#000000' }}
+                        className={`text-xs leading-tight !text-black ${!Boolean(item.is_read) ? 'font-black' : 'font-bold'}`}
+                      >
                         {item.title}
                       </p>
                       {!Boolean(item.is_read) && (
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block" />
                       )}
                     </div>
-                    <p className="text-[11px] text-black leading-snug break-words">
+                    <p
+                      style={{ color: '#000000' }}
+                      className="text-[11px] !text-black leading-snug break-words"
+                    >
                       {item.message}
                     </p>
-                    <time className="block text-[10px] text-black pt-0.5">
+                    <time
+                      style={{ color: '#000000' }}
+                      className="block text-[10px] !text-black pt-0.5"
+                    >
                       {new Date(item.created_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}
                     </time>
                   </div>

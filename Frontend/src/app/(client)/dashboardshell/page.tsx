@@ -95,13 +95,35 @@ export default function DashboardShell({
   return (
     <div className={'marc-dashboard-shell ' + (activeTab === 'chat' ? 'marc-chat-shell' : '')}>
       {bookingAlert && (
-        <div role="alert" className="marc-booking-alert">
+        <div
+          role="alert"
+          className="marc-booking-alert cursor-pointer"
+          onClick={() => {
+            const lower = (bookingAlert.title + ' ' + bookingAlert.message).toLowerCase();
+            const idMatch = (bookingAlert.title + ' ' + bookingAlert.message).match(/#(\d+)/);
+            const bookingId = idMatch ? idMatch[1] : null;
+            if (lower.includes('accepted')) {
+              if (bookingId && typeof window !== 'undefined') sessionStorage.setItem('highlight_project_id', bookingId);
+              setActiveTab('track');
+            } else if (lower.includes('rejected')) {
+              if (bookingId && typeof window !== 'undefined') sessionStorage.setItem('highlight_rejected_id', bookingId);
+              setActiveTab('book');
+            }
+            void dismissRejectionAlert(bookingAlert.id);
+          }}
+        >
           <AlertCircle size={20} />
           <div>
             <strong>{bookingAlert.title}</strong>
             <p>{bookingAlert.message}</p>
           </div>
-          <button aria-label="Dismiss notification" onClick={() => void dismissRejectionAlert(bookingAlert.id)}>
+          <button
+            aria-label="Dismiss notification"
+            onClick={(e) => {
+              e.stopPropagation();
+              void dismissRejectionAlert(bookingAlert.id);
+            }}
+          >
             Close
           </button>
         </div>

@@ -26,6 +26,25 @@ export default function Track() {
   const [ratingErrors, setRatingErrors] = useState<Record<number, string>>({});
   const [editingRating, setEditingRating] = useState<Record<number, boolean>>({});
   const [submittedBanner, setSubmittedBanner] = useState<number | null>(null);
+  const [highlightProjectId, setHighlightProjectId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkHighlight = () => {
+      const stored = sessionStorage.getItem('highlight_project_id');
+      if (stored) {
+        const pid = Number(stored);
+        setHighlightProjectId(pid);
+        setTimeout(() => {
+          const el = document.getElementById(`project-card-${pid}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 350);
+      }
+    };
+    checkHighlight();
+  }, [activeProjects, completedProjects]);
 
   // Fetch verified reviews from database
   const loadReviews = useCallback(async () => {
@@ -103,7 +122,9 @@ export default function Track() {
         if (!bookingResponse.ok || !bookings.success) throw new Error('Unable to load projects.');
         const groups = await Promise.all(
           (bookings.bookings ?? [])
-            .filter((booking: { accepted_at?: string | null }) => Boolean(booking.accepted_at))
+            .filter((booking: { accepted_at?: string | null; status?: string }) =>
+              Boolean(booking.accepted_at) || ['confirmed', 'approved', 'ongoing', 'completed'].includes((booking.status || '').toLowerCase())
+            )
             .map(async (booking: { id: number }) => {
               const response = await apiFetch(`${getApiUrl()}/designs?project_id=${booking.id}`, { cache: 'no-store' });
               const rows = await response.json();
@@ -134,7 +155,9 @@ export default function Track() {
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || 'Unable to load your projects.');
       const accepted = (data.bookings ?? [])
-        .filter((item: { accepted_at?: string | null }) => Boolean(item.accepted_at))
+        .filter((item: { accepted_at?: string | null; status?: string }) =>
+          Boolean(item.accepted_at) || ['confirmed', 'approved', 'ongoing', 'completed'].includes((item.status || '').toLowerCase())
+        )
         .sort((first: { id: number }, second: { id: number }) => first.id - second.id);
 
       const rows: Project[] = await Promise.all(
@@ -146,8 +169,8 @@ export default function Track() {
             id: booking.id,
             title: booking.service_type,
             progress: Math.max(0, Math.min(100, Number(latest?.progress) || 0)),
-            stage: latest?.current_stage || booking.status || 'Pending',
-            remarks: latest?.remarks || '',
+            stage: latest?.current_stage || (['confirmed', 'approved'].includes((booking.status || '').toLowerCase()) ? 'Confirmed' : booking.status) || 'Confirmed',
+            remarks: latest?.remarks || 'Project accepted and confirmed with admin.',
           };
         })
       );
@@ -380,7 +403,29 @@ export default function Track() {
         const projectConcepts = concepts.filter((concept) => concept.project_id === project.id);
 
         return (
-          <section key={project.id} className="space-y-4">
+          <section
+            key={project.id}
+            id={`project-card-${project.id}`}
+            className={`space-y-4 rounded-3xl transition-all duration-300 ${
+              highlightProjectId === project.id ? 'ring-4 ring-emerald-500/60 p-2 bg-emerald-50/20' : ''
+            }`}
+          >
+            {/* Top Text of the Form: Confirmed */}
+            <div className="bg-emerald-600 text-white px-5 py-3.5 rounded-2xl flex items-center justify-between shadow-sm flex-wrap gap-2">
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-5 h-5 text-white" />
+                <span className="text-sm font-black font-serif uppercase tracking-widest text-white">
+                  Confirmed
+                </span>
+                <span className="text-xs text-emerald-100 font-bold">
+                  • Project #{project.id}
+                </span>
+              </div>
+              <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-emerald-950 bg-emerald-100 px-3 py-1 rounded-full shadow-xs">
+                Booking Confirmed with Admin
+              </span>
+            </div>
+
             <div className="bg-marc-charcoal text-white rounded-2xl p-5 shadow-xl">
               <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1">
                 {project.stage} · Project #{project.id}
