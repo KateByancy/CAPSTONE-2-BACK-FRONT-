@@ -14,13 +14,13 @@ interface ClientNotification {
 
 interface ClientNotificationBellProps {
   onNavigate?: (tab: string) => void;
+  className?: string;
 }
 
-export default function ClientNotificationBell({ onNavigate }: ClientNotificationBellProps) {
+export default function ClientNotificationBell({ onNavigate, className }: ClientNotificationBellProps) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<ClientNotification[]>([]);
   const [unread, setUnread] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -137,6 +137,8 @@ export default function ClientNotificationBell({ onNavigate }: ClientNotificatio
     return <AlertCircle size={16} className="text-brand-500 shrink-0 mt-0.5" />;
   };
 
+  const defaultButtonClass = "relative flex shrink-0 min-h-11 min-w-11 items-center justify-center p-2 md:p-2.5 rounded-xl text-white bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/25 transition shadow-sm cursor-pointer";
+
   return (
     <div ref={containerRef} className="relative z-40">
       <button
@@ -144,11 +146,11 @@ export default function ClientNotificationBell({ onNavigate }: ClientNotificatio
         aria-label={`Notifications, ${unread} unread`}
         title="Notifications & Project Updates"
         onClick={() => setOpen(prev => !prev)}
-        className="relative flex items-center justify-center p-2 rounded-xl text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-colors border border-stone-200/80 bg-white shadow-2xs"
+        className={className || defaultButtonClass}
       >
-        <Bell size={18} />
+        <Bell size={18} className="text-white" />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-black font-mono text-white bg-brand-700 rounded-full border-2 border-white shadow-xs">
+          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-black font-mono text-white bg-brand-700 rounded-full border-2 border-stone-800 shadow-xs">
             {unread > 99 ? '99+' : unread}
           </span>
         )}
@@ -158,7 +160,7 @@ export default function ClientNotificationBell({ onNavigate }: ClientNotificatio
         <div
           role="region"
           aria-label="Client notification tray"
-          className="absolute right-0 top-full mt-2 w-[340px] sm:w-[380px] max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-xl border border-stone-200 overflow-hidden animate-fadeIn"
+          className="absolute right-0 top-full mt-2 w-[340px] sm:w-[380px] max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden animate-fadeIn text-stone-900 z-50 text-left"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-stone-900 text-white">
@@ -204,7 +206,7 @@ export default function ClientNotificationBell({ onNavigate }: ClientNotificatio
             {!notifications.length && !error && (
               <div className="p-8 text-center text-stone-400 space-y-2">
                 <Bell size={24} className="mx-auto text-stone-300 stroke-1" />
-                <p className="text-xs font-medium">No project updates yet</p>
+                <p className="text-xs font-medium text-stone-600">No project updates yet</p>
                 <p className="text-[11px] text-stone-400">Milestone updates and booking alerts will appear here in real time.</p>
               </div>
             )}
@@ -255,4 +257,3 @@ export default function ClientNotificationBell({ onNavigate }: ClientNotificatio
     </div>
   );
 }
-

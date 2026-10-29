@@ -7,6 +7,7 @@ import customizationRates from '@/lib/customizationRates.json';
 import { useDesignCatalog, designPrice } from '@/lib/use-design-catalog';
 import DesignCustomizer from '@/components/DesignCustomizer';
 import ClientProfileIcon from '@/components/ClientProfileIcon';
+import ClientNotificationBell from '@/components/ClientNotificationBell';
 import MobileTimePicker from '@/components/MobileTimePicker';
 import { apiFetch, formatClientName, getApiUrl, getClientSession } from '@/lib/api';
 
@@ -468,16 +469,19 @@ export default function Home({ setActiveTab = tab => window.location.assign('/?s
           <p className="text-xs text-brand-100 font-light mt-0.5">Your interior journey starts here.</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab?.('profile')}
-          aria-label="Account profile"
-          title="Account profile"
-          className="flex shrink-0 min-h-11 min-w-11 items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/25 p-2 md:px-4 md:py-2.5 rounded-xl text-xs font-bold tracking-wider transition shadow-sm cursor-pointer"
-        >
-          <ClientProfileIcon />
-          <span className="hidden md:inline">Account Profile</span>
-        </button>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <ClientNotificationBell onNavigate={(target) => setActiveTab?.(target)} />
+          <button
+            type="button"
+            onClick={() => setActiveTab?.('profile')}
+            aria-label="Account profile"
+            title="Account profile"
+            className="flex shrink-0 min-h-11 min-w-11 items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/25 p-2 md:px-4 md:py-2.5 rounded-xl text-xs font-bold tracking-wider transition shadow-sm cursor-pointer"
+          >
+            <ClientProfileIcon />
+            <span className="hidden md:inline">Account Profile</span>
+          </button>
+        </div>
       </div>
       {homeError && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">{homeError}</p>}
 

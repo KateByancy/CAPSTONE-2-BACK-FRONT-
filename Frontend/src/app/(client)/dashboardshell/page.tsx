@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Home, Calendar, Compass, MessageSquare, LogOut, AlertCircle, SlidersHorizontal, Wallet, UserRound } from 'lucide-react';
 import MarcBrand from '@/components/MarcBrand';
-import ClientNotificationBell from '@/components/ClientNotificationBell';
 import { apiFetch, getApiUrl, getClientSession } from '@/lib/api';
 
 interface ShellProps {
@@ -148,17 +147,6 @@ export default function DashboardShell({
         </div>
       </aside>
       <main data-dashboard-content className={'marc-dashboard-main ' + (activeTab === 'chat' ? 'marc-chat-main' : '')}>
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-stone-200">
-          <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-brand-700">Client Portal</span>
-            <h2 className="text-base sm:text-lg font-bold font-serif text-stone-900">
-              {tabs.find(t => t.id === activeTab)?.label || 'Dashboard'}
-            </h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <ClientNotificationBell onNavigate={(target) => setActiveTab(target)} />
-          </div>
-        </div>
         {React.Children.map(children, child =>
           React.isValidElement(child)
             ? React.cloneElement(child, { userName, setActiveTab } as { userName: string; setActiveTab: (tab: string) => void })
